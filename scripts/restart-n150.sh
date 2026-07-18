@@ -24,6 +24,8 @@ fi
 
 # 启动
 cd "$DIR" || exit 1
+# 加载持久化凭据（如 GITHUB_TOKEN）—— .env 受 rsync --exclude 保护，跨版本持久
+[ -f "$DIR/.env" ] && . "$DIR/.env"
 export WEMONITOR_API_KEY="${WEMONITOR_API_KEY:-wemonitor-dev-key-change-me}"
 nohup node server.js > "$LOG" 2>&1 &
 sleep 2

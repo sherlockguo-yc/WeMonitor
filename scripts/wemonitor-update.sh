@@ -20,6 +20,13 @@ DIR="$HOME/wemonitor"
 LOG="/tmp/wemonitor-update.log"
 API="https://api.github.com/repos/$REPO/releases?per_page=1"
 
+# 加载持久化凭据（.env 受 rsync --exclude 保护），GITHUB_TOKEN 用于将 API 额度从 60→5000/hr
+[ -f "$DIR/.env" ] && . "$DIR/.env"
+
+# 构建鉴权头（数组），token 为空时不传递 Authorization
+AUTH_HDR=()
+[ -n "${GITHUB_TOKEN:-}" ] && AUTH_HDR=(-H "Authorization: Bearer $GITHUB_TOKEN")
+
 # ── 查询最新 release ──
 # 使用 ETag 条件请求避免 API 限流：304 响应不消耗配额，仅 release 真正更新时才计费
 ETAG_FILE="/tmp/wemonitor-etag"
@@ -31,10 +38,12 @@ query_api() {
   if [ -n "$etag_val" ]; then
     curl -sS --max-time 30 -o "$API_BODY_FILE" -w '%{http_code}' -D "$API_HEADERS_FILE" \
       -H "Cache-Control: no-cache" -H "If-None-Match: $etag_val" \
+      "${AUTH_HDR[@]}" \
       --connect-timeout 10 "$API" 2>/dev/null
   else
     curl -sS --max-time 30 -o "$API_BODY_FILE" -w '%{http_code}' -D "$API_HEADERS_FILE" \
       -H "Cache-Control: no-cache" \
+      "${AUTH_HDR[@]}" \
       --connect-timeout 10 "$API" 2>/dev/null
   fi
 }
