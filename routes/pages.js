@@ -80,7 +80,7 @@ router.get('/firewall', (req, res) => {
 
 // 部署状态
 router.get('/deploy', (req, res) => {
-  res.render('deploy', { title: '部署状态', active: 'deploy' });
+  res.render('deploy', { title: 'CI/CD', active: 'deploy' });
 });
 
 // Tunnel 管理
