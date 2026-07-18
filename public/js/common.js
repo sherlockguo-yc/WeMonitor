@@ -160,7 +160,6 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
   if (!tt) {
     tt = document.createElement('div');
     tt.className = 'u-tooltip';
-    container.appendChild(tt);
   }
 
   const opts = {
@@ -170,9 +169,6 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
       show: true,
       x: true,
       y: false,
-      drag: { x: false, y: false },
-      points: { show: true, size: 5, width: 2 },
-      focus: { prox: 30 },
     },
     legend: { show: true, live: false },
     scales: {
@@ -250,7 +246,9 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
     console.log(`[uPlot] ${containerId} creating: container=${container.offsetWidth}x${container.offsetHeight}, cols=${cols.length}, ts=${timestamps.length}`);
     const plot = new uPlot(opts, cols, container);
     _chartInstances[containerId] = plot;
-    console.log(`[uPlot] ${containerId} created OK, root=${container.querySelector('.uplot')?.offsetWidth}x${container.querySelector('.uplot')?.offsetHeight}`);
+    // tooltip 必须在 uPlot 创建之后插入，避免干扰构造函数内部 DOM 操作
+    if (!tt.parentNode) container.appendChild(tt);
+    console.log(`[uPlot] ${containerId} created OK`);
     return plot;
   } catch (e) {
     console.error(`[uPlot] ${containerId} ERROR:`, e.message, e.stack);
