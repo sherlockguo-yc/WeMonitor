@@ -78,6 +78,11 @@ router.get('/firewall', (req, res) => {
   res.render('firewall', { title: '防火墙', active: 'firewall' });
 });
 
+// 部署状态
+router.get('/deploy', (req, res) => {
+  res.render('deploy', { title: '部署状态', active: 'deploy' });
+});
+
 // Tunnel 管理
 router.get('/tunnel', (req, res) => {
   res.render('tunnel', { title: 'Tunnel', active: 'tunnel' });

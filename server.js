@@ -130,6 +130,7 @@ app.get('/health', (req, res) => {
 
 // 路由
 app.use('/api/v1', require('./routes/api'));
+app.use('/api/v1/deploy', require('./routes/deploy'));
 app.use('/', require('./routes/pages'));
 
 app.listen(config.port, '0.0.0.0', () => {

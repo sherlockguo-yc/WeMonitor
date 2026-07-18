@@ -45,6 +45,10 @@
           <span>用户管理</span>
         </a>
         <% } %>
+        <a href="/deploy" class="nav-item <%= active === 'deploy' ? 'active' : '' %>">
+          <i data-lucide="rocket" class="icon-sm"></i>
+          <span>部署状态</span>
+        </a>
         <a href="/tunnel" class="nav-item <%= active === 'tunnel' ? 'active' : '' %>">
           <i data-lucide="orbit" class="icon-sm"></i>
           <span>Tunnel</span>
