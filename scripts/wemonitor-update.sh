@@ -3,6 +3,15 @@
 # 对齐 WeMusic 的更新模式：查 GitHub latest release → 比对版本 → 下载 → 部署
 # 本脚本放在 ~/ 下，不在 ~/wemonitor/ 内，避免被 rsync --delete 清除
 
+set -e
+
+LOCK_FILE="/tmp/wemonitor-update.lock"
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+  # 另一个实例正在运行，退出避免竞态
+  exit 0
+fi
+
 REPO="sherlockguo-yc/WeMonitor"
 DIR="$HOME/wemonitor"
 LOG="/tmp/wemonitor-update.log"
@@ -24,19 +33,34 @@ fi
 
 echo "[$(date)] 发现新版本 $REMOTE_VER (当前: $LOCAL_VER)，开始部署" >> "$LOG"
 
-# 下载产物（固定 tag latest），GFW 不稳定时重试
+# 下载产物 — 优先 ghproxy.net 镜像，失败回退直连
 URL="https://github.com/$REPO/releases/download/latest/wemonitor.tar.gz"
+MIRROR_URL="https://ghproxy.net/$URL"
 TMP="/tmp/wemonitor-latest.tar.gz"
 DOWNLOAD_OK=0
-for i in 1 2 3 4 5 6 7 8; do
-  if curl -sSL --connect-timeout 20 -o "$TMP" "$URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
+
+# 先试镜像
+for i in 1 2 3 4 5; do
+  if curl -sSL --connect-timeout 15 -o "$TMP" "$MIRROR_URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
     DOWNLOAD_OK=1
     break
   fi
   sleep 3
 done
+
+# 镜像失败则直连（8 次重试）
 if [ "$DOWNLOAD_OK" -ne 1 ]; then
-  echo "[$(date)] 下载失败（重试 8 次）: $URL" >> "$LOG"
+  for i in 1 2 3 4 5 6 7 8; do
+    if curl -sSL --connect-timeout 20 -o "$TMP" "$URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
+      DOWNLOAD_OK=1
+      break
+    fi
+    sleep 3
+  done
+fi
+
+if [ "$DOWNLOAD_OK" -ne 1 ]; then
+  echo "[$(date)] 下载失败（镜像+直连均重试后失败）" >> "$LOG"
   rm -f "$TMP"
   exit 0
 fi
@@ -64,3 +88,5 @@ rm -rf "$STAGE" "$TMP"
 # 重启
 bash "$DIR/restart.sh" >> "$LOG" 2>&1
 echo "[$(date)] 部署完成 → $REMOTE_VER" >> "$LOG"
+
+# flock 在脚本退出时自动释放

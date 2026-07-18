@@ -74,7 +74,7 @@ async function loadTrendChart() {
       tension: 0.3,
       pointRadius: 0
     }
-  ]);
+  ], '%');
 }
 
 async function loadHealthList() {

@@ -43,7 +43,8 @@ async function loadCharts() {
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99,102,241,0.08)',
         fill: true, tension: 0.3, pointRadius: 0
-      }]
+      }],
+      '%'
     );
   }
 
@@ -57,7 +58,8 @@ async function loadCharts() {
         borderColor: '#10b981',
         backgroundColor: 'rgba(16,185,129,0.08)',
         fill: true, tension: 0.3, pointRadius: 0
-      }]
+      }],
+      '%'
     );
   }
 
@@ -78,7 +80,7 @@ async function loadCharts() {
       fill: false, tension: 0.3, pointRadius: 0
     }));
 
-    createLineChart('diskChart', diskLabels, diskDatasets);
+    createLineChart('diskChart', diskLabels, diskDatasets, '%');
   }
 
   // 网络图
@@ -96,7 +98,7 @@ async function loadCharts() {
       borderColor: '#f59e0b',
       fill: false, tension: 0.3, pointRadius: 0
     }
-  ]);
+  ], 'bytes');
 }
 
 function refreshPage() {

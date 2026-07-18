@@ -60,7 +60,8 @@ function getTimeRange(range) {
 const _chartInstances = {};
 
 // 创建或更新 Chart.js 折线图
-function createLineChart(canvasId, labels, datasets) {
+// yAxisUnit: '%' → 百分比单位, 'bytes' → B/KB/MB/GB + /s, 不传 → 原始数值
+function createLineChart(canvasId, labels, datasets, yAxisUnit) {
   if (typeof Chart === 'undefined') return null;
 
   const canvas = document.getElementById(canvasId);
@@ -78,6 +79,13 @@ function createLineChart(canvasId, labels, datasets) {
   newCanvas.id = canvasId;
   newCanvas.style.cssText = canvas.style.cssText || 'width:100%; height:260px;';
   canvas.parentNode.replaceChild(newCanvas, canvas);
+
+  // Y 轴刻度格式化
+  const yTickCallback = yAxisUnit === '%'
+    ? (v) => v.toFixed(0) + '%'
+    : yAxisUnit === 'bytes'
+    ? (v) => formatBytes(v) + '/s'
+    : undefined;
 
   const chart = new Chart(newCanvas.getContext('2d'), {
     type: 'line',
@@ -99,7 +107,10 @@ function createLineChart(canvasId, labels, datasets) {
           grid: { display: false }
         },
         y: {
-          ticks: { font: { size: 11 } },
+          ticks: {
+            font: { size: 11 },
+            callback: yTickCallback
+          },
           grid: { color: '#eef0f5' },
           beginAtZero: true
         }
