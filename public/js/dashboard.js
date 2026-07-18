@@ -3,6 +3,17 @@
    =================================================== */
 
 let trendChart = null;
+let currentRange = '1h';
+
+// 标签页切换
+document.querySelectorAll('#trend-tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('#trend-tabs .tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentRange = tab.dataset.range;
+    loadTrendChart();
+  });
+});
 
 async function loadDashboard() {
   // 获取实时系统状态
@@ -18,7 +29,8 @@ async function loadDashboard() {
     if (rootDisk) {
       document.getElementById('disk-value').textContent = formatPercent(rootDisk.value);
     }
-    document.getElementById('disk-detail').textContent = stats.disks?.map(d =>
+    const realDisks = (stats.disks || []).filter(d => d.labels?.fs !== 'efivarfs');
+    document.getElementById('disk-detail').textContent = realDisks.map(d =>
       (d.labels?.mount || '?') + ': ' + formatPercent(d.value)
     ).join(' · ') || '';
 
@@ -28,14 +40,22 @@ async function loadDashboard() {
       '↓ ' + formatBytes(stats.net_rx_bytes_sec) + '/s  ↑ ' + formatBytes(stats.net_tx_bytes_sec) + '/s';
   }
 
-  // 获取 1 小时趋势数据（CPU 和 内存）
-  const range = getTimeRange('1h');
+  // 趋势图
+  loadTrendChart();
+
+  // 健康状态
+  loadHealthList();
+}
+
+async function loadTrendChart() {
+  const range = getTimeRange(currentRange);
   const [cpuData, memData] = await Promise.all([
-    api('/metrics?service=system&metric_name=cpu_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=200'),
-    api('/metrics?service=system&metric_name=mem_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=200')
+    api('/metrics?service=system&metric_name=cpu_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=500'),
+    api('/metrics?service=system&metric_name=mem_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=500')
   ]);
 
-  const labels = cpuData?.data?.map(d => formatTime(d.timestamp)) || [];
+  const timeFmt = currentRange === '7d' ? formatDateTime : formatTime;
+  const labels = cpuData?.data?.map(d => timeFmt(d.timestamp)) || [];
   const cpuValues = cpuData?.data?.map(d => d.value) || [];
   const memValues = memData?.data?.map(d => d.value) || [];
 
@@ -59,9 +79,6 @@ async function loadDashboard() {
       pointRadius: 0
     }
   ]);
-
-  // 健康状态
-  loadHealthList();
 }
 
 async function loadHealthList() {

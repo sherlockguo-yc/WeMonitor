@@ -26,4 +26,9 @@ router.get('/firewall', (req, res) => {
   res.render('firewall', { title: '防火墙', active: 'firewall' });
 });
 
+// Tunnel 管理
+router.get('/tunnel', (req, res) => {
+  res.render('tunnel', { title: 'Tunnel', active: 'tunnel' });
+});
+
 module.exports = router;
