@@ -17,6 +17,9 @@ module.exports = {
   healthInterval: 30,         // 健康检查间隔（秒）
   scrapeInterval: 30,         // Pull scrape 间隔（秒）
 
+  // Cloudflare Tunnel
+  tunnelName: 'WeCloudflareTunnel',
+
   // 默认被监控服务
   defaultServices: [
     {

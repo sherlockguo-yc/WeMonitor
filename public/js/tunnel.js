@@ -21,6 +21,7 @@ async function loadTunnelStatus() {
     badge.textContent = '已停止';
   }
 
+  document.getElementById('tunnel-name').textContent = data.name || '--';
   document.getElementById('tunnel-connections').textContent = data.connections;
   document.getElementById('tunnel-locations').textContent =
     data.locations && data.locations.length > 0 ? data.locations.join(', ') : '--';
