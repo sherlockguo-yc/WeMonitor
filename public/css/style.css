@@ -632,6 +632,64 @@ body {
 }
 
 /* ===================================================
+   Tunnel 管理页
+   =================================================== */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: calc(var(--font-size) * 1.2);
+}
+
+.stat-item {
+  padding: calc(var(--font-size) * 0.6) 0;
+}
+
+.stat-label {
+  font-size: calc(var(--font-size) * 0.82);
+  color: var(--text-dim);
+  margin-bottom: calc(var(--font-size) * 0.25);
+}
+
+.stat-value {
+  font-size: calc(var(--font-size) * 1.2);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.form-inline {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(var(--font-size) * 0.8);
+}
+
+.action-hint {
+  display: inline-block;
+  margin-left: calc(var(--font-size) * 0.8);
+  font-size: calc(var(--font-size) * 0.85);
+}
+
+.actions-row {
+  display: flex;
+  align-items: center;
+}
+
+.log-viewer {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: calc(var(--font-size) * 0.8);
+  font-family: var(--font-mono);
+  font-size: calc(var(--font-size) * 0.78);
+  line-height: 1.6;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-dim);
+}
+
+/* ===================================================
    响应式
    =================================================== */
 
