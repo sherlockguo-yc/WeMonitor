@@ -18,10 +18,19 @@ fi
 REPO="sherlockguo-yc/WeMonitor"
 DIR="$HOME/wemonitor"
 LOG="/tmp/wemonitor-update.log"
+EVENTS="$DIR/data/deploy-events.jsonl"
 API="https://api.github.com/repos/$REPO/releases?per_page=1"
 
 # 加载持久化凭据（.env 受 rsync --exclude 保护），GITHUB_TOKEN 用于将 API 额度从 60→5000/hr
 [ -f "$DIR/.env" ] && . "$DIR/.env"
+
+# 写入结构化部署事件
+log_event() {
+  local stage="$1" status="$2" message="$3"
+  local ts=$(date +%s)
+  mkdir -p "$DIR/data"
+  echo "{\"stage\":\"$stage\",\"status\":\"$status\",\"message\":\"$message\",\"ts\":$ts}" >> "$EVENTS"
+}
 
 # 构建鉴权头（数组），token 为空时不传递 Authorization
 AUTH_HDR=()
@@ -52,8 +61,10 @@ ETAG_VAL=""
 [ -f "$ETAG_FILE" ] && ETAG_VAL=$(cat "$ETAG_FILE")
 HTTP_CODE=$(query_api "$ETAG_VAL")
 
-# 304 = 未修改，跳过
+# 304 = 未修改，跳过（但仍记录检查事件，让用户看到 cron 在正常工作）
 if [ "$HTTP_CODE" = "304" ]; then
+  LOCAL_VER=$(cat "$DIR/.version" 2>/dev/null || echo "none")
+  log_event "check" "ok" "已是最新版本 $LOCAL_VER"
   exit 0
 fi
 
@@ -68,6 +79,7 @@ grep -i '^etag:' "$API_HEADERS_FILE" 2>/dev/null | head -1 | sed 's/.*etag: //i'
 
 if [ "$HTTP_CODE" != "200" ]; then
   echo "[$(date)] API 返回非预期状态码 $HTTP_CODE" >> "$LOG"
+  log_event "check" "error" "查询 release 失败 (HTTP $HTTP_CODE)"
   exit 0
 fi
 
@@ -76,15 +88,18 @@ REMOTE_VER=$(echo "$BODY" | grep -m1 '"body"' | sed -E 's/.*Auto build ([a-f0-9]
 
 if [ -z "$REMOTE_VER" ] || [ "$REMOTE_VER" = "$BODY" ]; then
   echo "[$(date)] 查询 release 失败或无法解析版本" >> "$LOG"
+  log_event "check" "error" "查询 release 失败"
   exit 0
 fi
 
 LOCAL_VER=$(cat "$DIR/.version" 2>/dev/null || echo "none")
 if [ "$REMOTE_VER" = "$LOCAL_VER" ]; then
+  log_event "check" "ok" "已是最新版本 $REMOTE_VER"
   exit 0  # 无更新
 fi
 
 echo "[$(date)] 发现新版本 $REMOTE_VER (当前: $LOCAL_VER)，开始部署" >> "$LOG"
+log_event "download" "started" "发现新版本 $REMOTE_VER"
 
 # 下载产物
 # 优先按唯一 sha 拼接的地址（不命中缓存），镜像失败/404 时回退 latest tag。
@@ -117,15 +132,19 @@ done
 
 if [ "$DOWNLOAD_OK" -ne 1 ]; then
   echo "[$(date)] 下载失败（镜像+直连均重试后失败）" >> "$LOG"
+  log_event "download" "error" "下载失败"
   rm -f "$TMP"
   exit 0
 fi
+
+log_event "download" "ok" "下载完成 $REMOTE_VER"
 
 # 解压到临时目录
 STAGE="/tmp/wemonitor-stage"
 rm -rf "$STAGE" && mkdir -p "$STAGE"
 if ! tar -xzf "$TMP" -C "$STAGE"; then
   echo "[$(date)] 解压失败" >> "$LOG"
+  log_event "deploy" "error" "解压失败"
   rm -f "$TMP"; exit 0
 fi
 
@@ -133,13 +152,16 @@ fi
 STAGE_VER=$(cat "$STAGE/.version" 2>/dev/null)
 if [ "$STAGE_VER" != "$REMOTE_VER" ]; then
   echo "[$(date)] 版本校验失败: 包内=$STAGE_VER 期望=$REMOTE_VER" >> "$LOG"
+  log_event "deploy" "error" "版本校验失败"
   rm -rf "$STAGE" "$TMP"; exit 0
 fi
 
 # 同步到运行目录（--delete 清理旧文件，但保护 data/ 和 .env）
+log_event "deploy" "started" "开始同步文件 $REMOTE_VER"
 mkdir -p "$DIR"
 rsync -a --delete --exclude 'data' --exclude '.env' "$STAGE/" "$DIR/"
 rm -rf "$STAGE" "$TMP"
+log_event "deploy" "ok" "文件同步完成 $REMOTE_VER"
 
 # 重启
 # 关键：200>&- 关闭更新锁 fd，避免 node 进程继承后长期持有锁，

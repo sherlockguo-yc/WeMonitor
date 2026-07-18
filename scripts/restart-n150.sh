@@ -12,6 +12,9 @@ log_event() {
   echo "{\"stage\":\"$stage\",\"status\":\"$status\",\"message\":\"$message\",\"ts\":$ts}" >> "$EVENTS"
 }
 
+# 读取当前部署版本
+VER=$(cat "$DIR/.version" 2>/dev/null || echo "unknown")
+
 # 杀旧进程
 PID=$(lsof -ti:$PORT 2>/dev/null)
 if [ -n "$PID" ]; then
@@ -32,9 +35,9 @@ sleep 2
 NEWPID=$(lsof -ti:$PORT 2>/dev/null)
 if [ -n "$NEWPID" ]; then
   echo "[$(date)] started PID $NEWPID port $PORT"
-  log_event "restart" "ok" "启动成功 PID $NEWPID :$PORT"
+  log_event "restart" "ok" "启动成功 PID $NEWPID :$PORT (v $VER)"
 else
   echo "[$(date)] 启动失败，查看 $LOG"
-  log_event "restart" "error" "启动失败"
+  log_event "restart" "error" "启动失败 (v $VER)"
   tail -5 "$LOG"
 fi
