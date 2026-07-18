@@ -2,15 +2,15 @@
    WeMonitor — 概览页
    =================================================== */
 
-let trendChart = null;
 let currentRange = '1h';
 
 // 标签页切换
 document.querySelectorAll('#trend-tabs .tab').forEach(tab => {
-  tab.addEventListener('click', () => {
+  tab.addEventListener('click', function() {
+    if (this.classList.contains('active')) return;
     document.querySelectorAll('#trend-tabs .tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentRange = tab.dataset.range;
+    this.classList.add('active');
+    currentRange = this.dataset.range;
     loadTrendChart();
   });
 });
@@ -24,7 +24,6 @@ async function loadDashboard() {
     document.getElementById('mem-detail').textContent =
       (stats.mem_used_gb || 0).toFixed(1) + ' GB / ' + (stats.mem_total_gb || 0).toFixed(1) + ' GB';
 
-    // 取根分区的磁盘使用率
     const rootDisk = stats.disks?.find(d => d.labels?.mount === '/') || stats.disks?.[0];
     if (rootDisk) {
       document.getElementById('disk-value').textContent = formatPercent(rootDisk.value);
@@ -40,10 +39,7 @@ async function loadDashboard() {
       '↓ ' + formatBytes(stats.net_rx_bytes_sec) + '/s  ↑ ' + formatBytes(stats.net_tx_bytes_sec) + '/s';
   }
 
-  // 趋势图
   loadTrendChart();
-
-  // 健康状态
   loadHealthList();
 }
 
@@ -59,7 +55,7 @@ async function loadTrendChart() {
   const cpuValues = cpuData?.data?.map(d => d.value) || [];
   const memValues = memData?.data?.map(d => d.value) || [];
 
-  trendChart = createLineChart('trendChart', labels, [
+  createLineChart('trendChart', labels, [
     {
       label: 'CPU %',
       data: cpuValues,
@@ -108,10 +104,8 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// 重写全局刷新
 function refreshPage() {
   loadDashboard();
 }
 
-// 页面加载
 loadDashboard();

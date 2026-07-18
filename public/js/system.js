@@ -3,14 +3,14 @@
    =================================================== */
 
 let currentRange = '1h';
-let charts = {};
 
 // 标签页切换
 document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
+  tab.addEventListener('click', function() {
+    if (this.classList.contains('active')) return;
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentRange = tab.dataset.range;
+    this.classList.add('active');
+    currentRange = this.dataset.range;
     loadCharts();
   });
 });
@@ -35,7 +35,7 @@ async function loadCharts() {
 
   // CPU 图
   if (cpuData) {
-    charts.cpu = createLineChart('cpuChart',
+    createLineChart('cpuChart',
       cpuData.data.map(d => timeFmt(d.timestamp)),
       [{
         label: 'CPU %',
@@ -49,7 +49,7 @@ async function loadCharts() {
 
   // 内存图
   if (memData) {
-    charts.mem = createLineChart('memChart',
+    createLineChart('memChart',
       memData.data.map(d => timeFmt(d.timestamp)),
       [{
         label: '内存 %',
@@ -63,7 +63,6 @@ async function loadCharts() {
 
   // 磁盘图
   if (diskData) {
-    // 按 mount 分组
     const diskGroups = {};
     for (const d of diskData.data) {
       const mount = d.labels?.mount || 'unknown';
@@ -79,12 +78,12 @@ async function loadCharts() {
       fill: false, tension: 0.3, pointRadius: 0
     }));
 
-    charts.disk = createLineChart('diskChart', diskLabels, diskDatasets);
+    createLineChart('diskChart', diskLabels, diskDatasets);
   }
 
   // 网络图
   const netLabels = netRxData?.data?.map(d => timeFmt(d.timestamp)) || [];
-  charts.net = createLineChart('netChart', netLabels, [
+  createLineChart('netChart', netLabels, [
     {
       label: '↓ 入站',
       data: netRxData?.data?.map(d => d.value) || [],
@@ -98,9 +97,6 @@ async function loadCharts() {
       fill: false, tension: 0.3, pointRadius: 0
     }
   ]);
-  if (charts.net) {
-    charts.net.options.scales.y.ticks.callback = (v) => formatBytes(v);
-  }
 }
 
 function refreshPage() {

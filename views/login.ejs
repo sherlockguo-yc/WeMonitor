@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 — WeMonitor</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-body">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <i data-lucide="activity" class="icon-lg" style="color: var(--accent);"></i>
+        <h1>WeMonitor</h1>
+        <p class="login-sub">N150 服务器监控系统</p>
+      </div>
+
+      <form class="login-form" method="POST" action="<%= isRegister ? '/register' : '/login' %>">
+        <input type="hidden" name="redirect" value="<%= redirect || '/' %>">
+
+        <% if (error) { %>
+        <div class="login-error"><%= error %></div>
+        <% } %>
+
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" name="username" class="form-input" placeholder="请输入用户名" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary login-btn"><%= isRegister ? '注 册' : '登 录' %></button>
+      </form>
+
+      <div class="login-switch">
+        <% if (isRegister) { %>
+        已有账号？<a href="/login">登录</a>
+        <% } else { %>
+        没有账号？<a href="/register">注册</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>

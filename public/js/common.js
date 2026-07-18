@@ -56,22 +56,36 @@ function getTimeRange(range) {
   }
 }
 
-// 创建 Chart.js 折线图
+// chart 实例 registry，用于避免画布复用问题
+const _chartInstances = {};
+
+// 创建或更新 Chart.js 折线图
 function createLineChart(canvasId, labels, datasets) {
-  if (typeof Chart === 'undefined') return null; // CDN 未加载
+  if (typeof Chart === 'undefined') return null;
+
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
 
-  // 销毁已有图表
-  const existing = Chart.getChart(canvas);
-  if (existing) existing.destroy();
+  // 销毁旧实例 + 重建 canvas 避免 Chart.js 画布复用问题
+  const prev = _chartInstances[canvasId];
+  if (prev) {
+    prev.destroy();
+    delete _chartInstances[canvasId];
+  }
 
-  return new Chart(canvas, {
+  // 替换 canvas 确保全新渲染
+  const newCanvas = document.createElement('canvas');
+  newCanvas.id = canvasId;
+  newCanvas.style.cssText = canvas.style.cssText || 'width:100%; height:260px;';
+  canvas.parentNode.replaceChild(newCanvas, canvas);
+
+  const chart = new Chart(newCanvas.getContext('2d'), {
     type: 'line',
     data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: { duration: 300 },
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
@@ -92,12 +106,19 @@ function createLineChart(canvasId, labels, datasets) {
       }
     }
   });
+
+  _chartInstances[canvasId] = chart;
+  return chart;
 }
 
-// API 请求封装
+// API 请求封装（自动注入 auth cookie）
 async function api(path) {
   const res = await fetch('/api/v1' + path);
   if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      return null;
+    }
     console.error('API error:', path, res.status);
     return null;
   }

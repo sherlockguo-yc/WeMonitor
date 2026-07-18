@@ -690,6 +690,122 @@ body {
 }
 
 /* ===================================================
+   侧栏用户信息
+   =================================================== */
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: calc(var(--font-size) * 0.4);
+}
+
+.sidebar-username {
+  color: var(--text-inverse-dim);
+  font-size: calc(var(--font-size) * 0.85);
+}
+
+.sidebar-logout {
+  color: var(--text-inverse-dim);
+  font-size: calc(var(--font-size) * 0.78);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.sidebar-logout:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+/* ===================================================
+   登录页
+   =================================================== */
+
+.login-body {
+  background: var(--bg-sidebar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-container {
+  width: 380px;
+  max-width: 90vw;
+}
+
+.login-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: calc(var(--font-size) * 2.5) calc(var(--font-size) * 2);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: calc(var(--font-size) * 2);
+}
+
+.login-header h1 {
+  font-size: calc(var(--font-size) * 1.5);
+  font-weight: 700;
+  margin: calc(var(--font-size) * 0.6) 0 calc(var(--font-size) * 0.3);
+}
+
+.login-sub {
+  font-size: calc(var(--font-size) * 0.88);
+  color: var(--text-dim);
+}
+
+.login-form .form-group {
+  margin-bottom: calc(var(--font-size) * 1.2);
+}
+
+.login-btn {
+  width: 100%;
+  justify-content: center;
+  padding: calc(var(--font-size) * 0.6);
+  font-size: calc(var(--font-size) * 1);
+  margin-top: calc(var(--font-size) * 0.6);
+}
+
+.login-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: calc(var(--font-size) * 0.6) calc(var(--font-size) * 0.8);
+  border-radius: var(--radius-sm);
+  font-size: calc(var(--font-size) * 0.88);
+  margin-bottom: calc(var(--font-size) * 1);
+  text-align: center;
+}
+
+.login-switch {
+  text-align: center;
+  margin-top: calc(var(--font-size) * 1.2);
+  font-size: calc(var(--font-size) * 0.88);
+  color: var(--text-dim);
+}
+
+.login-switch a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.login-switch a:hover {
+  text-decoration: underline;
+}
+
+/* ===================================================
+   图表容器最小高度（避免切换时闪烁）
+   =================================================== */
+
+.chart-body {
+  min-height: 260px;
+  position: relative;
+}
+
+/* ===================================================
    响应式
    =================================================== */
 
