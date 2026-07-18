@@ -25,8 +25,8 @@ jobs:
         run: |
           mkdir -p pkg
           cp server.js package.json package-lock.json config.js pkg/
-          cp -r lib/ routes/ views/ public/ scripts/restart-n150.sh pkg/
-          mv pkg/scripts/restart-n150.sh pkg/restart.sh
+          cp -r lib/ routes/ views/ public/ pkg/
+          cp scripts/restart-n150.sh pkg/restart.sh
           cd pkg && npm ci --omit=dev && cd ..
           echo "${{ steps.ver.outputs.sha }}" > pkg/.version
           tar -czf wemonitor.tar.gz -C pkg .
