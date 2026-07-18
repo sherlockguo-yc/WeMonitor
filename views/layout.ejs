@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — WeMonitor</title>
   <link rel="stylesheet" href="/css/style.css?v=<%= version %>">
+  <script src="/js/chart.min.js?v=<%= version %>" defer></script>
+  <script src="/js/lucide.min.js?v=<%= version %>" defer></script>
   <script src="/js/common.js?v=<%= version %>" defer></script>
 </head>
 <body>
@@ -77,8 +79,6 @@
       if (typeof refreshPage === 'function') refreshPage();
     }
   </script>
-  <script src="/js/chart.min.js" defer></script>
-  <script src="/js/lucide.min.js" defer></script>
   <script>
     if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
