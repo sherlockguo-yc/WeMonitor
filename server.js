@@ -76,6 +76,16 @@ try {
 
 const app = express();
 
+// 性能日志中间件（记录每个请求耗时）
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    if (ms > 200) console.log(`[perf] ${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms`);
+  });
+  next();
+});
+
 // 中间件
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

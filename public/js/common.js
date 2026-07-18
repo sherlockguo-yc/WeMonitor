@@ -124,7 +124,9 @@ function createLineChart(canvasId, labels, datasets, yAxisUnit) {
 
 // API 请求封装（自动注入 auth cookie）
 async function api(path) {
+  const t0 = performance.now();
   const res = await fetch('/api/v1' + path);
+  const fetchMs = Math.round(performance.now() - t0);
   if (!res.ok) {
     if (res.status === 401) {
       window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
@@ -133,7 +135,11 @@ async function api(path) {
     console.error('API error:', path, res.status);
     return null;
   }
-  return res.json();
+  const data = await res.json();
+  if (fetchMs > 200 || (data._perf && data._perf.dbMs > 50)) {
+    console.log(`[client] ${path} fetch=${fetchMs}ms db=${data._perf?.dbMs || '?'}ms rows=${data.count || '?'}`);
+  }
+  return data;
 }
 
 // 窗口级刷新占位

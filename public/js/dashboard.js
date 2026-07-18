@@ -16,8 +16,15 @@ document.querySelectorAll('#trend-tabs .tab').forEach(tab => {
 });
 
 async function loadDashboard() {
-  // 获取实时系统状态
-  const stats = await api('/stats/current');
+  const t0 = performance.now();
+
+  // 并行请求：stats + trendChart 数据 + health，互不依赖
+  const [stats, health] = await Promise.all([
+    api('/stats/current'),
+    api('/health')
+  ]);
+
+  // 渲染卡片（不等待图表）
   if (stats) {
     document.getElementById('cpu-value').textContent = formatPercent(stats.cpu_usage_percent);
     document.getElementById('mem-value').textContent = formatPercent(stats.mem_usage_percent);
@@ -39,21 +46,44 @@ async function loadDashboard() {
       '↓ ' + formatBytes(stats.net_rx_bytes_sec) + '/s  ↑ ' + formatBytes(stats.net_tx_bytes_sec) + '/s';
   }
 
+  // 异步渲染健康列表
+  renderHealthList(health);
+
+  // 异步加载趋势图
   loadTrendChart();
-  loadHealthList();
+
+  const totalMs = Math.round(performance.now() - t0);
+  console.log(`[client] loadDashboard total=${totalMs}ms (render immediately, chart loads async)`);
+}
+
+function renderHealthList(health) {
+  const container = document.getElementById('health-list');
+  if (!health || health.length === 0) {
+    container.innerHTML = '<div class="empty-state">暂无服务</div>';
+    return;
+  }
+  container.innerHTML = health.map(h => `
+    <div class="health-row">
+      <span class="status-dot ${h.status || 'unknown'}"></span>
+      <span class="service-name">${escapeHtml(h.name)}</span>
+      <span class="status-badge status-${h.status || 'unknown'}">${h.status || '未知'}</span>
+      <span class="service-meta">${h.latency_ms != null ? h.latency_ms + 'ms' : '--'}</span>
+    </div>
+  `).join('');
+  refreshIcons();
 }
 
 async function loadTrendChart() {
   const range = getTimeRange(currentRange);
-  const [cpuData, memData] = await Promise.all([
-    api('/metrics?service=system&metric_name=cpu_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=500'),
-    api('/metrics?service=system&metric_name=mem_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=500')
-  ]);
+  const batch = await api('/metrics/batch?names=cpu_usage_percent,mem_usage_percent&from=' + range.from + '&to=' + range.to + '&limit=500');
+  if (!batch || !batch.data) return;
 
   const timeFmt = currentRange === '7d' ? formatDateTime : formatTime;
-  const labels = cpuData?.data?.map(d => timeFmt(d.timestamp)) || [];
-  const cpuValues = cpuData?.data?.map(d => d.value) || [];
-  const memValues = memData?.data?.map(d => d.value) || [];
+  const cpu = batch.data.cpu_usage_percent || [];
+  const mem = batch.data.mem_usage_percent || [];
+  const labels = cpu.map(d => timeFmt(d.t));
+  const cpuValues = cpu.map(d => d.v);
+  const memValues = mem.map(d => d.v);
 
   createLineChart('trendChart', labels, [
     {
@@ -75,27 +105,6 @@ async function loadTrendChart() {
       pointRadius: 0
     }
   ], '%');
-}
-
-async function loadHealthList() {
-  const health = await api('/health');
-  const container = document.getElementById('health-list');
-
-  if (!health || health.length === 0) {
-    container.innerHTML = '<div class="empty-state">暂无服务</div>';
-    return;
-  }
-
-  container.innerHTML = health.map(h => `
-    <div class="health-row">
-      <span class="status-dot ${h.status || 'unknown'}"></span>
-      <span class="service-name">${escapeHtml(h.name)}</span>
-      <span class="status-badge status-${h.status || 'unknown'}">${h.status || '未知'}</span>
-      <span class="service-meta">${h.latency_ms != null ? h.latency_ms + 'ms' : '--'}</span>
-    </div>
-  `).join('');
-
-  refreshIcons();
 }
 
 function escapeHtml(str) {

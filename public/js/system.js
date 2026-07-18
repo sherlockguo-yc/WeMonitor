@@ -17,19 +17,17 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 async function loadCharts() {
   const range = getTimeRange(currentRange);
-  const metricNames = ['cpu_usage_percent', 'mem_usage_percent', 'disk_usage_percent', 'net_rx_bytes_sec', 'net_tx_bytes_sec'];
+  const names = 'cpu_usage_percent,mem_usage_percent,disk_usage_percent,net_rx_bytes_sec,net_tx_bytes_sec';
 
-  const results = await Promise.all(
-    metricNames.map(name =>
-      api('/metrics?service=system&metric_name=' + name + '&from=' + range.from + '&to=' + range.to + '&limit=500')
-    )
-  );
+  const batch = await api('/metrics/batch?names=' + names + '&from=' + range.from + '&to=' + range.to + '&limit=500');
+  if (!batch || !batch.data) return;
 
-  const cpuData = results[0];
-  const memData = results[1];
-  const diskData = results[2];
-  const netRxData = results[3];
-  const netTxData = results[4];
+  const d = batch.data;
+  const cpuData   = { data: (d.cpu_usage_percent || []).map(r => ({ timestamp: r.t, value: r.v })) };
+  const memData   = { data: (d.mem_usage_percent || []).map(r => ({ timestamp: r.t, value: r.v })) };
+  const diskData  = { data: (d.disk_usage_percent || []).map(r => ({ timestamp: r.t, value: r.v, labels: r.l })) };
+  const netRxData = { data: (d.net_rx_bytes_sec || []).map(r => ({ timestamp: r.t, value: r.v })) };
+  const netTxData = { data: (d.net_tx_bytes_sec || []).map(r => ({ timestamp: r.t, value: r.v })) };
 
   const timeFmt = currentRange === '7d' ? formatDateTime : formatTime;
 

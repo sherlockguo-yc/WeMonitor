@@ -20,6 +20,7 @@ router.use((req, res, next) => {
 // 系统指标
 router.get('/stats/current', metricsApi.getCurrentStats);
 router.get('/metrics', metricsApi.queryMetrics);
+router.get('/metrics/batch', metricsApi.queryMetricsBatch);
 router.post('/metrics', metricsApi.pushMetrics);
 
 // 健康检查
