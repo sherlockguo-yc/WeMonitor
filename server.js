@@ -84,17 +84,17 @@ app.use(session({
   }
 }));
 
-// 将 session 暴露给所有模板
-app.use((req, res, next) => {
-  res.locals.session = req.session;
-  next();
-});
-
 // 视图引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
+
+// 将 session 暴露给所有模板（必须在 layout 中间件之后）
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
 
 // 健康检查 — 放在鉴权路由之前
 app.get('/health', (req, res) => {
