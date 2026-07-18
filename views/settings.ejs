@@ -1,0 +1,60 @@
+<div class="card">
+  <div class="card-header">
+    <h3>已注册服务</h3>
+    <button class="btn btn-primary btn-sm" onclick="showAddForm()">+ 新增服务</button>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>服务名</th>
+            <th>采集模式</th>
+            <th>Pull URL / 健康检查目标</th>
+            <th>采集间隔</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="settings-services-body">
+          <tr><td colspan="6" class="empty-state">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/编辑服务模态框 -->
+<div class="modal-mask" id="service-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title">新增服务</h3>
+      <button class="btn-icon" onclick="closeModal()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id" value="">
+      <div class="form-group">
+        <label>服务名</label>
+        <input type="text" id="svc-name" class="form-input" placeholder="WeMusic">
+      </div>
+      <div class="form-group">
+        <label>采集 URL（Pull 模式，为空则为 Push 模式）</label>
+        <input type="text" id="svc-scrape-url" class="form-input" placeholder="http://127.0.0.1:5174/metrics">
+      </div>
+      <div class="form-group">
+        <label>采集间隔（秒）</label>
+        <input type="number" id="svc-scrape-interval" class="form-input" value="30">
+      </div>
+      <div class="form-group">
+        <label>健康检查目标（host:port）</label>
+        <input type="text" id="svc-health-target" class="form-input" placeholder="127.0.0.1:5174">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveService()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/settings.js"></script>

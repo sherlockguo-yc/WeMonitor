@@ -1,0 +1,15 @@
+{
+  "name": "wemonitor",
+  "version": "0.1.0",
+  "description": "轻量级 N150 服务器监控系统",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "systeminformation": "^5.23.0"
+  }
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — WeMonitor</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- 侧栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon"><i data-lucide="activity" class="icon-md"></i></span>
+        <span class="brand-text">WeMonitor</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-item <%= active === 'dashboard' ? 'active' : '' %>">
+          <i data-lucide="layout-dashboard" class="icon-sm"></i>
+          <span>概览</span>
+        </a>
+        <a href="/system" class="nav-item <%= active === 'system' ? 'active' : '' %>">
+          <i data-lucide="cpu" class="icon-sm"></i>
+          <span>系统资源</span>
+        </a>
+        <a href="/services" class="nav-item <%= active === 'services' ? 'active' : '' %>">
+          <i data-lucide="heart-pulse" class="icon-sm"></i>
+          <span>服务状态</span>
+        </a>
+        <a href="/settings" class="nav-item <%= active === 'settings' ? 'active' : '' %>">
+          <i data-lucide="settings" class="icon-sm"></i>
+          <span>服务管理</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="sidebar-version">v0.1.0</span>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <header class="content-header">
+        <h1 class="page-title"><%= title %></h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary btn-sm" onclick="refreshData()" title="刷新数据">
+            <i data-lucide="refresh-cw" class="icon-sm"></i>
+          </button>
+        </div>
+      </header>
+      <div class="content-body">
+        <%- body %>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // 全局刷新函数，每个页面可重写
+    function refreshData() {
+      if (typeof refreshPage === 'function') {
+        refreshPage();
+      }
+    }
+  </script>
+  <script src="/js/common.js"></script>
+  <script>
+    // 初始化 Lucide 图标
+    lucide.createIcons();
+  </script>
+</body>
+</html>

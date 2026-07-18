@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Get version
+        id: ver
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Package
+        run: |
+          mkdir -p pkg
+          cp server.js package.json package-lock.json config.js pkg/
+          cp -r lib/ routes/ views/ public/ scripts/restart-n150.sh pkg/
+          mv pkg/scripts/restart-n150.sh pkg/restart.sh
+          cd pkg && npm ci --omit=dev && cd ..
+          echo "${{ steps.ver.outputs.sha }}" > pkg/.version
+          tar -czf wemonitor.tar.gz -C pkg .
+          ls -lh wemonitor.tar.gz
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: latest
+          body: "Auto build ${{ steps.ver.outputs.sha }}"
+          files: wemonitor.tar.gz
+          prerelease: true

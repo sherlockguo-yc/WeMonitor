@@ -1,0 +1,59 @@
+<div class="dashboard-grid">
+  <!-- 系统资源卡片 -->
+  <div class="card stat-card" id="cpu-card">
+    <div class="stat-icon"><i data-lucide="cpu"></i></div>
+    <div class="stat-info">
+      <div class="stat-label">CPU 使用率</div>
+      <div class="stat-value" id="cpu-value">--</div>
+    </div>
+  </div>
+
+  <div class="card stat-card" id="mem-card">
+    <div class="stat-icon"><i data-lucide="memory-stick"></i></div>
+    <div class="stat-info">
+      <div class="stat-label">内存 使用率</div>
+      <div class="stat-value" id="mem-value">--</div>
+      <div class="stat-sub" id="mem-detail"></div>
+    </div>
+  </div>
+
+  <div class="card stat-card" id="disk-card">
+    <div class="stat-icon"><i data-lucide="hard-drive"></i></div>
+    <div class="stat-info">
+      <div class="stat-label">磁盘 使用率</div>
+      <div class="stat-value" id="disk-value">--</div>
+      <div class="stat-sub" id="disk-detail"></div>
+    </div>
+  </div>
+
+  <div class="card stat-card" id="net-card">
+    <div class="stat-icon"><i data-lucide="network"></i></div>
+    <div class="stat-info">
+      <div class="stat-label">网络流量</div>
+      <div class="stat-value" id="net-value">--</div>
+      <div class="stat-sub" id="net-detail"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 趋势图 -->
+<div class="card chart-card">
+  <div class="chart-header">
+    <h3>系统资源趋势（最近 1 小时）</h3>
+  </div>
+  <div class="chart-body">
+    <canvas id="trendChart" style="width:100%; height:280px;"></canvas>
+  </div>
+</div>
+
+<!-- 服务健康状态 -->
+<div class="card">
+  <div class="card-header">
+    <h3>服务健康状态</h3>
+  </div>
+  <div class="card-body" id="health-list">
+    <div class="empty-state">加载中...</div>
+  </div>
+</div>
+
+<script src="/js/dashboard.js"></script>
