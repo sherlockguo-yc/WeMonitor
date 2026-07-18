@@ -3,45 +3,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登录 — WeMonitor</title>
+  <title><%= isRegister ? '注册' : '登录' %> — WeMonitor</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-body">
+  <div class="login-bg">
+    <div class="login-bg-shape shape-1"></div>
+    <div class="login-bg-shape shape-2"></div>
+    <div class="login-bg-shape shape-3"></div>
+  </div>
+
   <div class="login-container">
     <div class="login-card">
-      <div class="login-header">
-        <i data-lucide="activity" class="icon-lg" style="color: var(--accent);"></i>
-        <h1>WeMonitor</h1>
-        <p class="login-sub">N150 服务器监控系统</p>
+      <div class="login-brand">
+        <div class="login-logo">
+          <i data-lucide="activity" class="icon-xl"></i>
+        </div>
+        <h1 class="login-title">WeMonitor</h1>
+        <p class="login-tagline">N150 服务器监控系统</p>
       </div>
 
       <form class="login-form" method="POST" action="<%= isRegister ? '/register' : '/login' %>">
         <input type="hidden" name="redirect" value="<%= redirect || '/' %>">
 
         <% if (error) { %>
-        <div class="login-error"><%= error %></div>
+        <div class="login-error">
+          <i data-lucide="alert-circle" class="icon-sm"></i>
+          <span><%= error %></span>
+        </div>
         <% } %>
 
-        <div class="form-group">
-          <label>用户名</label>
-          <input type="text" name="username" class="form-input" placeholder="请输入用户名" required autofocus>
+        <div class="form-field">
+          <label for="username">用户名</label>
+          <div class="input-wrap">
+            <i data-lucide="user" class="input-icon"></i>
+            <input type="text" id="username" name="username" class="form-input" placeholder="请输入用户名" required autofocus>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>密码</label>
-          <input type="password" name="password" class="form-input" placeholder="请输入密码" required>
+        <div class="form-field">
+          <label for="password">密码</label>
+          <div class="input-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="password" name="password" class="form-input" placeholder="<%= isRegister ? '设置密码' : '请输入密码' %>" required>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary login-btn"><%= isRegister ? '注 册' : '登 录' %></button>
+        <button type="submit" class="btn btn-primary login-submit">
+          <span><%= isRegister ? '创建账号' : '登录' %></span>
+          <i data-lucide="arrow-right" class="icon-sm"></i>
+        </button>
       </form>
+
+      <div class="login-divider">
+        <span>或</span>
+      </div>
 
       <div class="login-switch">
         <% if (isRegister) { %>
-        已有账号？<a href="/login">登录</a>
+        已有账号？<a href="/login">直接登录</a>
         <% } else { %>
-        没有账号？<a href="/register">注册</a>
+        还没有账号？<a href="/register">立即注册</a>
         <% } %>
       </div>
+    </div>
+
+    <div class="login-footer">
+      <span>N150 · 部署于家庭内网</span>
+      <span>·</span>
+      <span>v0.1.0</span>
     </div>
   </div>
 

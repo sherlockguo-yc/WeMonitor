@@ -723,77 +723,244 @@ body {
    =================================================== */
 
 .login-body {
-  background: var(--bg-sidebar);
+  background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3d 50%, #1a1a2e 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.login-bg-shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+
+.login-bg-shape.shape-1 {
+  width: 400px;
+  height: 400px;
+  background: #6366f1;
+  top: -100px;
+  left: -100px;
+}
+
+.login-bg-shape.shape-2 {
+  width: 300px;
+  height: 300px;
+  background: #10b981;
+  bottom: -50px;
+  right: -50px;
+  opacity: 0.3;
+}
+
+.login-bg-shape.shape-3 {
+  width: 200px;
+  height: 200px;
+  background: #f59e0b;
+  top: 50%;
+  right: 30%;
+  opacity: 0.2;
 }
 
 .login-container {
-  width: 380px;
-  max-width: 90vw;
+  width: 420px;
+  max-width: 92vw;
+  position: relative;
+  z-index: 1;
 }
 
 .login-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  padding: calc(var(--font-size) * 2.5) calc(var(--font-size) * 2);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  padding: calc(var(--font-size) * 2.4) calc(var(--font-size) * 2.2);
 }
 
-.login-header {
+.login-brand {
   text-align: center;
   margin-bottom: calc(var(--font-size) * 2);
 }
 
-.login-header h1 {
-  font-size: calc(var(--font-size) * 1.5);
-  font-weight: 700;
-  margin: calc(var(--font-size) * 0.6) 0 calc(var(--font-size) * 0.3);
+.login-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  margin-bottom: calc(var(--font-size) * 0.8);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
 }
 
-.login-sub {
+.login-logo .icon-xl {
+  width: 28px;
+  height: 28px;
+}
+
+.login-title {
+  font-size: calc(var(--font-size) * 1.6);
+  font-weight: 700;
+  margin-bottom: calc(var(--font-size) * 0.2);
+  background: linear-gradient(135deg, #1a1a2e, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-tagline {
   font-size: calc(var(--font-size) * 0.88);
   color: var(--text-dim);
 }
 
-.login-form .form-group {
-  margin-bottom: calc(var(--font-size) * 1.2);
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--font-size) * 1);
 }
 
-.login-btn {
-  width: 100%;
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--font-size) * 0.4);
+}
+
+.form-field label {
+  font-size: calc(var(--font-size) * 0.88);
+  font-weight: 500;
+  color: var(--text);
+  margin-left: 2px;
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: calc(var(--font-size) * 0.8);
+  color: var(--text-dim);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.input-wrap .form-input {
+  padding-left: calc(var(--font-size) * 2.6);
+  height: calc(var(--font-size) * 2.6);
+  font-size: calc(var(--font-size) * 0.95);
+  border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.input-wrap .form-input:focus {
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+}
+
+.login-submit {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: calc(var(--font-size) * 0.6);
-  font-size: calc(var(--font-size) * 1);
-  margin-top: calc(var(--font-size) * 0.6);
+  gap: calc(var(--font-size) * 0.5);
+  width: 100%;
+  height: calc(var(--font-size) * 2.8);
+  font-size: calc(var(--font-size) * 1.02);
+  font-weight: 600;
+  border-radius: 10px;
+  margin-top: calc(var(--font-size) * 0.4);
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.login-submit:hover {
+  background: linear-gradient(135deg, #5558e3, #7c4fe0);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.login-submit:active {
+  transform: translateY(0);
 }
 
 .login-error {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 0.5);
   background: var(--danger-bg);
   color: var(--danger);
   padding: calc(var(--font-size) * 0.6) calc(var(--font-size) * 0.8);
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   font-size: calc(var(--font-size) * 0.88);
-  margin-bottom: calc(var(--font-size) * 1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
   text-align: center;
+  margin: calc(var(--font-size) * 1.4) 0 calc(var(--font-size) * 0.8);
+  color: var(--text-dim);
+  font-size: calc(var(--font-size) * 0.82);
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-divider span {
+  padding: 0 calc(var(--font-size) * 0.8);
 }
 
 .login-switch {
   text-align: center;
-  margin-top: calc(var(--font-size) * 1.2);
-  font-size: calc(var(--font-size) * 0.88);
+  font-size: calc(var(--font-size) * 0.9);
   color: var(--text-dim);
 }
 
 .login-switch a {
   color: var(--accent);
   text-decoration: none;
+  font-weight: 500;
+  margin-left: 2px;
+  transition: color 0.15s;
 }
 
 .login-switch a:hover {
+  color: #5558e3;
   text-decoration: underline;
+}
+
+.login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--font-size) * 0.5);
+  margin-top: calc(var(--font-size) * 1.5);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: calc(var(--font-size) * 0.78);
 }
 
 /* ===================================================
