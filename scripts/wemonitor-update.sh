@@ -24,11 +24,20 @@ fi
 
 echo "[$(date)] 发现新版本 $REMOTE_VER (当前: $LOCAL_VER)，开始部署" >> "$LOG"
 
-# 下载产物（固定 tag latest）
+# 下载产物（固定 tag latest），GFW 不稳定时重试
 URL="https://github.com/$REPO/releases/download/latest/wemonitor.tar.gz"
 TMP="/tmp/wemonitor-latest.tar.gz"
-if ! curl -sSL --connect-timeout 30 -o "$TMP" "$URL"; then
-  echo "[$(date)] 下载失败: $URL" >> "$LOG"
+DOWNLOAD_OK=0
+for i in 1 2 3 4 5 6 7 8; do
+  if curl -sSL --connect-timeout 20 -o "$TMP" "$URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
+    DOWNLOAD_OK=1
+    break
+  fi
+  sleep 3
+done
+if [ "$DOWNLOAD_OK" -ne 1 ]; then
+  echo "[$(date)] 下载失败（重试 8 次）: $URL" >> "$LOG"
+  rm -f "$TMP"
   exit 0
 fi
 

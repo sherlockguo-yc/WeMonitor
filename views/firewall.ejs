@@ -1,0 +1,66 @@
+<div class="card">
+  <div class="card-header">
+    <h3>UFW 防火墙状态</h3>
+    <span class="status-badge" id="fw-status-badge">加载中...</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>防火墙规则</h3>
+    <button class="btn btn-primary btn-sm" onclick="showAddRuleForm()">+ 添加规则</button>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>端口</th>
+            <th>协议</th>
+            <th>动作</th>
+            <th>来源</th>
+            <th>备注</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="fw-rules-body">
+          <tr><td colspan="7" class="empty-state">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 添加规则模态框 -->
+<div class="modal-mask" id="fw-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>添加防火墙规则</h3>
+      <button class="btn-icon" onclick="closeFwModal()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>端口号</label>
+        <input type="number" id="fw-port" class="form-input" placeholder="18990" min="1" max="65535">
+      </div>
+      <div class="form-group">
+        <label>协议</label>
+        <select id="fw-protocol" class="form-select" style="width:100%;">
+          <option value="tcp">TCP</option>
+          <option value="udp">UDP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>备注（可选）</label>
+        <input type="text" id="fw-comment" class="form-input" placeholder="WeMonitor">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeFwModal()">取消</button>
+      <button class="btn btn-primary" onclick="addFwRule()">添加</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/firewall.js"></script>

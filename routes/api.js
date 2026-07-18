@@ -31,4 +31,10 @@ router.put('/services/:id', servicesApi.updateService);
 router.patch('/services/:id/toggle', servicesApi.toggleService);
 router.delete('/services/:id', servicesApi.deleteService);
 
+// 防火墙管理
+const firewallApi = require('../lib/api/firewall');
+router.get('/firewall/status', firewallApi.getStatus);
+router.post('/firewall/rules', firewallApi.addRule);
+router.delete('/firewall/rules/:number', firewallApi.deleteRule);
+
 module.exports = router;

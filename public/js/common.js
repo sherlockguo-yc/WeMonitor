@@ -58,6 +58,7 @@ function getTimeRange(range) {
 
 // 创建 Chart.js 折线图
 function createLineChart(canvasId, labels, datasets) {
+  if (typeof Chart === 'undefined') return null; // CDN 未加载
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
 

@@ -21,4 +21,9 @@ router.get('/settings', (req, res) => {
   res.render('settings', { title: '服务管理', active: 'settings' });
 });
 
+// 防火墙管理
+router.get('/firewall', (req, res) => {
+  res.render('firewall', { title: '防火墙', active: 'firewall' });
+});
+
 module.exports = router;

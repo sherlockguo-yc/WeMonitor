@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — WeMonitor</title>
   <link rel="stylesheet" href="/css/style.css">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div class="app-layout">
@@ -35,6 +31,10 @@
           <i data-lucide="settings" class="icon-sm"></i>
           <span>服务管理</span>
         </a>
+        <a href="/firewall" class="nav-item <%= active === 'firewall' ? 'active' : '' %>">
+          <i data-lucide="shield" class="icon-sm"></i>
+          <span>防火墙</span>
+        </a>
       </nav>
       <div class="sidebar-footer">
         <span class="sidebar-version">v0.1.0</span>
@@ -57,18 +57,15 @@
     </main>
   </div>
 
-  <script>
-    // 全局刷新函数，每个页面可重写
-    function refreshData() {
-      if (typeof refreshPage === 'function') {
-        refreshPage();
-      }
-    }
-  </script>
   <script src="/js/common.js"></script>
   <script>
-    // 初始化 Lucide 图标
-    lucide.createIcons();
+    function refreshData() {
+      if (typeof refreshPage === 'function') refreshPage();
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
+  <!-- CDN 放在最后，不阻塞数据加载 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
 </body>
 </html>
