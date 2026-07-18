@@ -130,6 +130,79 @@ body {
   font-weight: 600;
 }
 
+/* ---- 可展开导航组 ---- */
+.nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 0.7);
+  padding: calc(var(--font-size) * 0.7) calc(var(--font-size) * 1.4);
+  color: var(--text-inverse-dim);
+  text-decoration: none;
+  font-size: calc(var(--font-size) * 1.02);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-group-toggle:hover {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-inverse);
+}
+
+.nav-group-arrow {
+  margin-left: auto;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.nav-group.expanded .nav-group-arrow {
+  transform: rotate(180deg);
+}
+
+.nav-group.expanded .nav-group-toggle {
+  color: var(--text-inverse);
+  font-weight: 600;
+}
+
+/* 子项容器：折叠时隐藏，展开时显示 */
+.nav-group-items {
+  display: none;
+}
+
+.nav-group.expanded .nav-group-items {
+  display: block;
+}
+
+/* 子项样式 — 继承 nav-item 的外观但左缩进 */
+.nav-sub-item {
+  display: flex;
+  align-items: center;
+  padding: calc(var(--font-size) * 0.55) calc(var(--font-size) * 1.4) calc(var(--font-size) * 0.55) calc(var(--font-size) * 2.6);
+  color: var(--text-inverse-dim);
+  text-decoration: none;
+  font-size: calc(var(--font-size) * 0.95);
+  border-left: 3px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.nav-sub-item:hover {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-inverse);
+}
+
+.nav-sub-item.active {
+  background: var(--bg-sidebar-active);
+  color: var(--text-inverse);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+
 .sidebar-footer {
   padding: calc(var(--font-size) * 1);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -1374,6 +1447,17 @@ body {
   .nav-item {
     justify-content: center;
     padding: calc(var(--font-size) * 0.7) 0;
+  }
+
+  .nav-group-toggle {
+    justify-content: center;
+    padding: calc(var(--font-size) * 0.7) 0;
+  }
+
+  .sidebar .nav-group-toggle span,
+  .sidebar .nav-group-arrow,
+  .sidebar .nav-group-items {
+    display: none;
   }
 
   .main-content {
