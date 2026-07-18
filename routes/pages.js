@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { requireAuth, register, login } = require('../lib/auth');
+const { requireAuth, requireActive, requireAdmin, register, login } = require('../lib/auth');
 
 // ── 公开页面 ──
 
-// 登录页
 router.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
   res.render('login', { error: '', redirect: req.query.redirect || '/', layout: false, isRegister: false });
@@ -18,10 +17,11 @@ router.post('/login', async (req, res) => {
   }
   req.session.userId = result.userId;
   req.session.username = result.username;
+  req.session.role = result.role;
+  req.session.status = result.status;
   res.redirect(redirect || '/');
 });
 
-// 注册
 router.get('/register', (req, res) => {
   if (req.session.userId) return res.redirect('/');
   res.render('login', { error: '', redirect: '/', layout: false, isRegister: true });
@@ -33,21 +33,30 @@ router.post('/register', async (req, res) => {
   if (result.error) {
     return res.render('login', { error: result.error, redirect: '/', layout: false, isRegister: true });
   }
-  // 注册成功，自动登录
   req.session.userId = result.userId;
   req.session.username = username;
-  res.redirect('/');
+  req.session.role = result.role;
+  req.session.status = result.status;
+  // 首个用户(admin)直接进系统，普通用户去等待审批
+  if (result.status === 'active') return res.redirect('/');
+  res.redirect('/pending');
 });
 
-// 退出
 router.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/login');
 });
 
-// ── 受保护页面 ──
+// ── 待审批页面（需登录但无需激活） ──
 
-router.use(requireAuth);
+router.get('/pending', requireAuth, (req, res) => {
+  if (req.session.status === 'active') return res.redirect('/');
+  res.render('pending', { title: '等待审批', active: '', layout: false });
+});
+
+// ── 受保护页面（需登录 + 激活） ──
+
+router.use(requireActive);
 
 router.get('/', (req, res) => {
   res.render('dashboard', { title: '概览', active: 'dashboard' });
@@ -67,6 +76,13 @@ router.get('/settings', (req, res) => {
 
 router.get('/firewall', (req, res) => {
   res.render('firewall', { title: '防火墙', active: 'firewall' });
+});
+
+// ── 管理员页面 ──
+
+router.use('/users', requireAdmin);
+router.get('/users', (req, res) => {
+  res.render('users', { title: '用户管理', active: 'users' });
 });
 
 module.exports = router;

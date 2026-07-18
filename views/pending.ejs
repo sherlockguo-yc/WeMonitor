@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>等待审批 — WeMonitor</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="pending-body">
+  <div class="pending-card">
+    <div class="pending-icon">
+      <i data-lucide="hourglass" class="icon-xl"></i>
+    </div>
+    <h2>等待管理员审批</h2>
+    <p>您的账号 <strong><%= session.username %></strong> 已注册成功，需要超级管理员审批后才能使用。</p>
+    <p class="pending-hint">请联系管理员开通权限。</p>
+    <a href="/logout" class="btn btn-secondary">返回登录</a>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>

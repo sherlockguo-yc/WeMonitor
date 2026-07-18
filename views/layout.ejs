@@ -36,6 +36,12 @@
           <i data-lucide="shield" class="icon-sm"></i>
           <span>防火墙</span>
         </a>
+        <% if (session.role === 'admin') { %>
+        <a href="/users" class="nav-item <%= active === 'users' ? 'active' : '' %>">
+          <i data-lucide="users" class="icon-sm"></i>
+          <span>用户管理</span>
+        </a>
+        <% } %>
         <a href="/tunnel" class="nav-item <%= active === 'tunnel' ? 'active' : '' %>">
           <i data-lucide="orbit" class="icon-sm"></i>
           <span>Tunnel</span>

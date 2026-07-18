@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../lib/auth');
+const { requireAuth, requireAdmin } = require('../lib/auth');
+const { stmts } = require('../lib/db');
 
 const metricsApi = require('../lib/api/metrics');
 const healthApi = require('../lib/api/health');
 const servicesApi = require('../lib/api/services');
 const firewallApi = require('../lib/api/firewall');
-const config = require('../config');
 
-// 所有 API 需要鉴权（除了 health check）
+// 所有 API 需要鉴权 + 已激活
+router.use(requireAuth);
 router.use((req, res, next) => {
-  if (req.path === '/health') return next(); // 健康检查不需要鉴权
-  requireAuth(req, res, next);
+  if (!req.session || req.session.status !== 'active') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
 });
 
 // 系统指标
@@ -34,5 +37,38 @@ router.delete('/services/:id', servicesApi.deleteService);
 router.get('/firewall/status', firewallApi.getStatus);
 router.post('/firewall/rules', firewallApi.addRule);
 router.delete('/firewall/rules/:number', firewallApi.deleteRule);
+
+// ── 管理员 API ──
+router.use('/admin', requireAdmin);
+
+router.get('/admin/users', (req, res) => {
+  const users = stmts.getAllUsers.all();
+  // 不返回 password_hash
+  res.json({ users: users.map(u => ({ id: u.id, username: u.username, role: u.role, status: u.status, created_at: u.created_at })) });
+});
+
+router.post('/admin/users/:id/approve', (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const user = stmts.getUserById.get(userId);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  stmts.approveUser.run(userId);
+  res.json({ approved: true });
+});
+
+router.delete('/admin/users/:id', (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const user = stmts.getUserById.get(userId);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  // 不允许删除自己
+  if (user.id === req.session.userId) return res.status(400).json({ error: '不能删除自己' });
+  // 不允许删除最后一个 admin
+  if (user.role === 'admin') {
+    const allUsers = stmts.getAllUsers.all();
+    const adminCount = allUsers.filter(u => u.role === 'admin' && u.id !== userId).length;
+    if (adminCount === 0) return res.status(400).json({ error: '不能删除最后一个管理员' });
+  }
+  stmts.deleteUser.run(userId);
+  res.json({ deleted: true });
+});
 
 module.exports = router;

@@ -84,6 +84,12 @@ app.use(session({
   }
 }));
 
+// 将 session 暴露给所有模板
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
 // 视图引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
