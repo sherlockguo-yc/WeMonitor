@@ -152,6 +152,14 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
     });
   };
 
+  // 创建鼠标悬浮 tooltip 元素（每个容器只能有一个）
+  let tt = container.querySelector('.u-tooltip');
+  if (!tt) {
+    tt = document.createElement('div');
+    tt.className = 'u-tooltip';
+    container.appendChild(tt);
+  }
+
   const opts = {
     width: container.offsetWidth || 800,
     height: 260,
@@ -160,7 +168,8 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
       x: true,
       y: false,
       drag: { x: false, y: false },
-      points: { show: false },
+      points: { show: true, size: 5, width: 2 },
+      focus: { prox: 30 },
     },
     legend: { show: true, live: false },
     scales: {
@@ -185,6 +194,53 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
       }
     ],
     series,
+    hooks: {
+      setCursor: [u => {
+        const { left, top, idx } = u.cursor;
+        if (idx == null || left < 0 || top < 0) { tt.style.display = 'none'; return; }
+
+        const t = u.data[0][idx];
+        const d = new Date(t * 1000);
+        const timeStr = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+        // 格式化某个系列的值
+        const fmtVal = (v) => {
+          if (v == null) return '—';
+          if (yAxisOpts.unit === '%') return v.toFixed(1) + '%';
+          if (yAxisOpts.unit === 'bytes') return formatBytes(v) + '/s';
+          return v.toFixed(1);
+        };
+
+        let html = `<div class="u-tt-time">${timeStr}</div>`;
+        for (let i = 1; i < u.series.length; i++) {
+          const v = u.data[i][idx];
+          const label = u.series[i].label || '';
+          const stroke = u.series[i].stroke || '#6366f1';
+          html += `<div class="u-tt-row">
+            <span class="u-tt-marker" style="background:${stroke}"></span>
+            <span class="u-tt-label">${label}</span>
+            <span class="u-tt-val">${fmtVal(v)}</span>
+          </div>`;
+        }
+
+        tt.innerHTML = html;
+        tt.style.display = 'block';
+
+        // 定位 tooltip（容器内绝对坐标，避免溢出）
+        const over = u.over;
+        const bbox = over.getBoundingClientRect();
+        const relLeft = left - bbox.left;
+        const relTop = top - bbox.top;
+        const ttW = tt.offsetWidth || 140;
+        const ttH = tt.offsetHeight || 60;
+        let l = relLeft + 14;
+        let tPos = relTop - ttH - 10;
+        if (l + ttW > bbox.width - 4) l = relLeft - ttW - 10;
+        if (tPos < 4) tPos = relTop + 14;
+        tt.style.left = l + 'px';
+        tt.style.top = tPos + 'px';
+      }]
+    },
   };
 
   const plot = new uPlot(opts, cols, container);
