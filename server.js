@@ -67,6 +67,13 @@ const version = (() => {
   catch (_) { return 'dev'; }
 })();
 
+// 部署时间（.version 文件的 mtime）
+let deployedAt = '';
+try {
+  const verPath = path.join(__dirname, '.version');
+  deployedAt = new Date(fs.statSync(verPath).mtimeMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+} catch (_) { deployedAt = '未知'; }
+
 const app = express();
 
 // 中间件
@@ -102,6 +109,7 @@ app.set('layout', 'layout');
 app.use((req, res, next) => {
   res.locals.session = req.session;
   res.locals.version = version;
+  res.locals.deployedAt = deployedAt;
   next();
 });
 

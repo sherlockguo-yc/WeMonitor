@@ -54,7 +54,7 @@
           <span class="sidebar-username"><%= session.username || '用户' %></span>
           <a href="/logout" class="sidebar-logout" title="退出登录">退出</a>
         </div>
-        <span class="sidebar-version">v0.1.0</span>
+        <span class="sidebar-version" title="<%= version %>"><%= deployedAt %></span>
       </div>
     </aside>
 
