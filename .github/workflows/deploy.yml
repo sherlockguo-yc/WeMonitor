@@ -35,8 +35,10 @@ jobs:
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: latest
+          # 每个构建用唯一 tag（commit sha）发布，避免 latest tag 的下载资源
+          # 被 CDN 缓存滞后一版，导致自动更新始终拿到旧包、版本校验失败。
+          tag_name: ${{ steps.ver.outputs.sha }}
+          name: ${{ steps.ver.outputs.sha }}
           body: "Auto build ${{ steps.ver.outputs.sha }}"
           files: wemonitor.tar.gz
           prerelease: true

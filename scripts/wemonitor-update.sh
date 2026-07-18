@@ -1,7 +1,10 @@
 #!/bin/bash
 # WeMonitor 自动更新脚本（N150 生产环境，由 cron 每分钟调用）
-# 对齐 WeMusic 的更新模式：查 GitHub latest release → 比对版本 → 下载 → 部署
+# 对齐 WeMusic 的更新模式：查 GitHub 最新 release → 比对版本 → 下载 → 部署
 # 本脚本放在 ~/ 下，不在 ~/wemonitor/ 内，避免被 rsync --delete 清除
+#
+# 每个构建以 commit sha 作为唯一 release tag，下载地址按 sha 拼接，
+# 因此不会命中 CDN 对 latest tag 的缓存（否则会滞后拿到上一版包）。
 
 set -e
 
@@ -15,9 +18,9 @@ fi
 REPO="sherlockguo-yc/WeMonitor"
 DIR="$HOME/wemonitor"
 LOG="/tmp/wemonitor-update.log"
-API="https://api.github.com/repos/$REPO/releases/tags/latest"
+API="https://api.github.com/repos/$REPO/releases?per_page=1"
 
-# ── 查询 latest release ──
+# ── 查询最新 release ──
 # 使用 ETag 条件请求避免 API 限流：304 响应不消耗配额，仅 release 真正更新时才计费
 ETAG_FILE="/tmp/wemonitor-etag"
 API_BODY_FILE="/tmp/wemonitor-api-body"
@@ -74,31 +77,34 @@ fi
 
 echo "[$(date)] 发现新版本 $REMOTE_VER (当前: $LOCAL_VER)，开始部署" >> "$LOG"
 
-# 下载产物 — 优先 ghproxy.net 镜像，失败回退直连
-URL="https://github.com/$REPO/releases/download/latest/wemonitor.tar.gz"
-MIRROR_URL="https://ghproxy.net/$URL"
+# 下载产物
+# 优先按唯一 sha 拼接的地址（不命中缓存），镜像失败/404 时回退 latest tag。
+# 优先 ghproxy.net 镜像，失败回退直连。
+BASE="https://github.com/$REPO/releases/download"
+MIRROR_BASE="https://ghproxy.net/$BASE"
 TMP="/tmp/wemonitor-latest.tar.gz"
 DOWNLOAD_OK=0
 
-# 先试镜像
-for i in 1 2 3 4 5; do
-  if curl -sSL --max-time 60 --connect-timeout 15 -o "$TMP" "$MIRROR_URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
-    DOWNLOAD_OK=1
-    break
-  fi
-  sleep 3
-done
+for SLUG in "$REMOTE_VER" "latest"; do
+  URL="$BASE/$SLUG/wemonitor.tar.gz"
+  MIRROR_URL="$MIRROR_BASE/$SLUG/wemonitor.tar.gz"
 
-# 镜像失败则直连（8 次重试）
-if [ "$DOWNLOAD_OK" -ne 1 ]; then
-  for i in 1 2 3 4 5 6 7 8; do
-    if curl -sSL --max-time 60 --connect-timeout 20 -o "$TMP" "$URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
-      DOWNLOAD_OK=1
-      break
+  # 先试镜像（5 次）
+  for i in 1 2 3 4 5; do
+    if curl -sSL --max-time 60 --connect-timeout 15 -o "$TMP" "$MIRROR_URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
+      DOWNLOAD_OK=1; break 2
     fi
     sleep 3
   done
-fi
+
+  # 镜像失败则直连（8 次）
+  for i in 1 2 3 4 5 6 7 8; do
+    if curl -sSL --max-time 60 --connect-timeout 20 -o "$TMP" "$URL" 2>/dev/null && file "$TMP" | grep -q "gzip"; then
+      DOWNLOAD_OK=1; break 2
+    fi
+    sleep 3
+  done
+done
 
 if [ "$DOWNLOAD_OK" -ne 1 ]; then
   echo "[$(date)] 下载失败（镜像+直连均重试后失败）" >> "$LOG"
