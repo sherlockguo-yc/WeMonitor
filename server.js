@@ -61,16 +61,22 @@ const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
 const SqliteStore = require('better-sqlite3-session-store')(session);
 const path = require('path');
+const fs = require('fs');
+const version = (() => {
+  try { return fs.readFileSync(path.join(__dirname, '.version'), 'utf-8').trim(); }
+  catch (_) { return 'dev'; }
+})();
 
 const app = express();
 
 // 中间件
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-// 静态文件：开发期禁用缓存，避免 CSS/JS 改动不生效
+// 静态文件 — 生产环境用长缓存，CSS/JS 文件名不变时会走浏览器缓存
 app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '7d',
   setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
   }
 }));
 
@@ -92,9 +98,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
 
-// 将 session 暴露给所有模板（必须在 layout 中间件之后）
+// 将 session 和版本号暴露给所有模板（必须在 layout 中间件之后）
 app.use((req, res, next) => {
   res.locals.session = req.session;
+  res.locals.version = version;
   next();
 });
 
