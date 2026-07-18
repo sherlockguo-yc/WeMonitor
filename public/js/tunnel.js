@@ -3,14 +3,15 @@
    =================================================== */
 
 async function loadTunnelStatus() {
+  const t0 = performance.now();
   const res = await fetch('/api/v1/tunnel/status');
   if (!res.ok) {
     document.getElementById('tunnel-status-badge').textContent = 'API 错误';
     return;
   }
   const data = await res.json();
+  console.log(`[client] tunnel/status fetch=${Math.round(performance.now() - t0)}ms`);
 
-  // 状态徽章
   const badge = document.getElementById('tunnel-status-badge');
   if (data.active) {
     badge.className = 'status-badge status-healthy';
@@ -20,14 +21,10 @@ async function loadTunnelStatus() {
     badge.textContent = '已停止';
   }
 
-  // 连接数
   document.getElementById('tunnel-connections').textContent = data.connections;
-
-  // 边缘节点
   document.getElementById('tunnel-locations').textContent =
     data.locations && data.locations.length > 0 ? data.locations.join(', ') : '--';
 
-  // 运行时间（activeSince 是 "Sat 2026-07-18 09:55:32 UTC" 格式）
   if (data.activeSince) {
     const since = new Date(data.activeSince.replace(' UTC', 'Z'));
     const diffSec = Math.floor((Date.now() - since.getTime()) / 1000);
@@ -35,11 +32,9 @@ async function loadTunnelStatus() {
   } else {
     document.getElementById('tunnel-uptime').textContent = '--';
   }
-
   if (data.serviceError) {
     document.getElementById('tunnel-uptime').textContent = '错误: ' + data.serviceError;
   }
-
   refreshIcons();
 }
 
@@ -55,7 +50,6 @@ async function restartTunnel() {
   if (data.success) {
     result.textContent = '✅ 重启成功，等待重连...';
     result.style.color = 'var(--success)';
-    // 等待 5 秒后刷新状态
     setTimeout(() => loadTunnelStatus(), 5000);
   } else {
     result.textContent = '❌ 重启失败: ' + (data.error || data.stderr || '未知错误');
@@ -90,6 +84,7 @@ async function addTunnelRoute() {
 }
 
 async function loadTunnelLogs() {
+  const t0 = performance.now();
   document.getElementById('tunnel-logs').textContent = '加载中...';
   const res = await fetch('/api/v1/tunnel/logs?lines=50');
   const data = await res.json();
@@ -101,6 +96,7 @@ async function loadTunnelLogs() {
   } else {
     logEl.textContent = '(暂无日志)';
   }
+  console.log(`[client] tunnel/logs fetch=${Math.round(performance.now() - t0)}ms`);
 }
 
 function refreshPage() {
