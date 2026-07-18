@@ -66,7 +66,12 @@ const app = express();
 // 中间件
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, 'public')));
+// 静态文件：开发期禁用缓存，避免 CSS/JS 改动不生效
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  }
+}));
 
 // Session
 app.use(session({
