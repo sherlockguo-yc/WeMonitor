@@ -87,6 +87,8 @@ app.use(session({
 // 视图引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 
 // 健康检查 — 放在鉴权路由之前
 app.get('/health', (req, res) => {
