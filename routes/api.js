@@ -38,6 +38,13 @@ router.get('/firewall/status', firewallApi.getStatus);
 router.post('/firewall/rules', firewallApi.addRule);
 router.delete('/firewall/rules/:number', firewallApi.deleteRule);
 
+// Tunnel 管理
+const tunnelApi = require('../lib/api/tunnel');
+router.get('/tunnel/status', tunnelApi.getStatus);
+router.post('/tunnel/restart', tunnelApi.restart);
+router.get('/tunnel/logs', tunnelApi.getLogs);
+router.post('/tunnel/route', tunnelApi.addRoute);
+
 // ── 管理员 API ──
 router.use('/admin', requireAdmin);
 
