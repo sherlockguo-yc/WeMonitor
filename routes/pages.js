@@ -7,14 +7,14 @@ const { requireAuth, register, login } = require('../lib/auth');
 // 登录页
 router.get('/login', (req, res) => {
   if (req.session.userId) return res.redirect('/');
-  res.render('login', { error: '', redirect: req.query.redirect || '/', layout: false });
+  res.render('login', { error: '', redirect: req.query.redirect || '/', layout: false, isRegister: false });
 });
 
 router.post('/login', async (req, res) => {
   const { username, password, redirect } = req.body;
   const result = await login(username, password);
   if (result.error) {
-    return res.render('login', { error: result.error, redirect: redirect || '/', layout: false });
+    return res.render('login', { error: result.error, redirect: redirect || '/', layout: false, isRegister: false });
   }
   req.session.userId = result.userId;
   req.session.username = result.username;
