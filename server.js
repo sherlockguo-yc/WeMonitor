@@ -51,8 +51,11 @@ setInterval(() => {
 setInterval(() => {
   cleaner.run();
 }, 3600000);
-// 启动后 5 秒执行一次
-setTimeout(() => cleaner.run(), 5000);
+// 启动 5 秒后：先全量补齐历史 hour_ts，再跑一次常规清理
+setTimeout(() => {
+  cleaner.runFull();
+  setTimeout(() => cleaner.run(), 1000);
+}, 5000);
 
 // ── 启动 Web 服务器 ──
 
