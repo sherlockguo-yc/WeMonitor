@@ -112,7 +112,8 @@ function createLineChart(canvasId, labels, datasets, yAxisUnit) {
             callback: yTickCallback
           },
           grid: { color: '#eef0f5' },
-          beginAtZero: true
+          beginAtZero: true,
+          ...(yAxisUnit === '%' ? { max: 100 } : {})
         }
       }
     }
