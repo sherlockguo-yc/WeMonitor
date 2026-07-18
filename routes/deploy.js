@@ -6,10 +6,11 @@ const { requireAuth } = require('../lib/auth');
 const github = require('../lib/deploy/github');
 const local = require('../lib/deploy/local');
 
-// 被监控的两个服务
+// 被监控的服务
 const SERVICES = [
-  { id: 'wemonitor', name: 'WeMonitor', repo: 'sherlockguo-yc/WeMonitor', dir: local.WEMONITOR_DIR, port: 18990 },
-  { id: 'wemusic',   name: 'WeMusic',   repo: 'sherlockguo-yc/WeMusic',   dir: local.WEMUSIC_DIR,   port: 5174 },
+  { id: 'wemonitor',  name: 'WeMonitor',  repo: 'sherlockguo-yc/WeMonitor',  dir: local.WEMONITOR_DIR,  port: 18990 },
+  { id: 'wemusic',    name: 'WeMusic',    repo: 'sherlockguo-yc/WeMusic',    dir: local.WEMUSIC_DIR,    port: 5174 },
+  { id: 'wedownload', name: 'WeDownload', repo: 'sherlockguo-yc/WeDownload', dir: local.WEDOWNLOAD_DIR, port: 8080 },
 ];
 
 // 鉴权：需登录 + 已激活
