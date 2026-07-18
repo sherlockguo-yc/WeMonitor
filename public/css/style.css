@@ -1035,6 +1035,25 @@ body {
   position: relative;
 }
 
+/* uPlot 容器 & legend 适配 */
+.chart-body .uplot { font-family: var(--font); }
+.chart-body .u-legend {
+  text-align: left;
+  font-size: calc(var(--font-size) * 0.75);
+  padding: calc(var(--font-size) * 0.3) calc(var(--font-size) * 0.4);
+}
+.chart-body .u-legend th {
+  color: var(--text-dim);
+  font-weight: 500;
+  padding: 2px calc(var(--font-size) * 0.4);
+}
+.chart-body .u-legend .u-marker {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: calc(var(--font-size) * 0.2);
+}
+
 /* 空数据状态提示 */
 .chart-empty-hint {
   position: absolute;

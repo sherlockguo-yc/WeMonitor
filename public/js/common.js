@@ -56,118 +56,111 @@ function getTimeRange(range) {
   }
 }
 
-// 根据时间范围生成完整 X 轴时间槽位（解决"选 6h 只显 4 个标签"的问题）
-// 返回 { labels: string[], slotTs: number[] }，即使后端数据不足也能正确显示完整时间轴
+// 根据时间范围生成完整 X 轴时间槽位（已弃用，uPlot 原生支持时间轴）
 function generateTimeSlots(range) {
-  const now = Date.now();
-  let intervalMs, slotCount, fmt;
-
-  switch (range) {
-    case '1h':
-      intervalMs = 300000;   slotCount = 13; fmt = formatTime; break;
-    case '6h':
-      intervalMs = 3600000;  slotCount = 7;  fmt = formatTime; break;
-    case '24h':
-      intervalMs = 14400000; slotCount = 7;  fmt = formatTime; break;
-    case '7d':
-      intervalMs = 86400000; slotCount = 8;  fmt = formatDateTime; break;
-    default:
-      intervalMs = 300000;   slotCount = 13; fmt = formatTime;
-  }
-
-  const labels = [];
-  const slotTs = [];
-  for (let i = slotCount - 1; i >= 0; i--) {
-    const ts = now - i * intervalMs;
-    slotTs.push(ts);
-    labels.push(fmt(ts));
-  }
-
-  return { labels, slotTs };
+  // 保留此函数避免 ReferenceError，功能由 uPlot 时间轴替代
+  return { labels: [], slotTs: [] };
 }
 
-// 将 API 返回的数据点对齐到时间槽位（缺失处填 null，Chart.js 会自动断线）
-// apiData: [{ timestamp: number, value: number }]
-// toleranceMs: 容差（毫秒），在此范围内的数据点归入对应槽位
+// 将 API 返回的数据点对齐到时间槽位（已弃用，uPlot 按时间戳直接绘制）
 function alignDataToSlots(apiData, slotTs, toleranceMs) {
-  return slotTs.map(slotT => {
-    let best = null, bestDiff = Infinity;
-    for (const d of apiData) {
-      const diff = Math.abs(d.timestamp - slotT);
-      if (diff <= toleranceMs && diff < bestDiff) {
-        bestDiff = diff;
-        best = d.value;
-      }
-    }
-    return best;
-  });
+  // 保留此函数避免 ReferenceError，功能由 uPlot 替代
+  return apiData.map(d => d.value);
 }
 
-// chart 实例 registry，用于避免画布复用问题
+// ===================================================
+// uPlot 时间序列图表
+// ===================================================
+
+// 图表实例缓存
 const _chartInstances = {};
 
-// 创建或更新 Chart.js 折线图
-// yAxisUnit: '%' → 百分比单位, 'bytes' → B/KB/MB/GB + /s, 不传 → 原始数值
-function createLineChart(canvasId, labels, datasets, yAxisUnit) {
-  if (typeof Chart === 'undefined') return null;
+// 创建 uPlot 时间序列折线图
+// datasets: [{ label, stroke, fill, data: [{t: ms, v: number}, ...] }, ...]
+// yAxisOpts: { unit: '%' | 'bytes' } 或不传
+function createTimeChart(containerId, datasets, yAxisOpts = {}) {
+  if (typeof uPlot === 'undefined') return null;
 
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
+  const container = document.getElementById(containerId);
+  if (!container) return null;
 
-  // 销毁旧实例 + 重建 canvas 避免 Chart.js 画布复用问题
-  const prev = _chartInstances[canvasId];
-  if (prev) {
-    prev.destroy();
-    delete _chartInstances[canvasId];
+  // 销毁旧实例
+  if (_chartInstances[containerId]) {
+    _chartInstances[containerId].destroy();
+    delete _chartInstances[containerId];
   }
 
-  // 替换 canvas 确保全新渲染
-  const newCanvas = document.createElement('canvas');
-  newCanvas.id = canvasId;
-  newCanvas.style.cssText = canvas.style.cssText || 'width:100%; height:260px;';
-  canvas.parentNode.replaceChild(newCanvas, canvas);
+  // 取所有数据集的时间戳合集（去重排序，作为 X 轴）
+  const tsSet = new Set();
+  for (const ds of datasets) {
+    for (const p of ds.data) tsSet.add(p.t);
+  }
+  const timestamps = [...tsSet].sort((a, b) => a - b);
 
-  // Y 轴刻度格式化
-  const yTickCallback = yAxisUnit === '%'
-    ? (v) => v.toFixed(0) + '%'
-    : yAxisUnit === 'bytes'
-    ? (v) => formatBytes(v) + '/s'
-    : undefined;
+  // 构建 uPlot 列数据：第 0 列时间戳，后续每列一个 series
+  const cols = [timestamps];
+  for (const ds of datasets) {
+    // 构建值数组，按时间戳对齐（缺失处填 null，uPlot 自动断线）
+    const valMap = new Map(ds.data.map(p => [p.t, p.v]));
+    cols.push(timestamps.map(t => valMap.has(t) ? valMap.get(t) : null));
+  }
 
-  const chart = new Chart(newCanvas.getContext('2d'), {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 300 },
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: { boxWidth: 12, padding: 16, font: { size: 12 } }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { autoSkip: true, maxTicksLimit: 8, font: { size: 11 } },
-          grid: { display: false }
-        },
-        y: {
-          ticks: {
-            font: { size: 11 },
-            callback: yTickCallback
-          },
-          grid: { color: '#eef0f5' },
-          beginAtZero: true,
-          ...(yAxisUnit === '%' ? { max: 100 } : {})
-        }
+  // 构建 series 配置
+  const series = [
+    {}, // x 轴：时间
+    ...datasets.map(ds => ({
+      label: ds.label,
+      stroke: ds.stroke || '#6366f1',
+      fill: ds.fill ? (ds.backgroundColor || ds.stroke + '22') : undefined,
+      width: 2,
+      points: { show: false },
+      spanGaps: false,
+    }))
+  ];
+
+  // Y 轴值格式化
+  let yValues;
+  if (yAxisOpts.unit === '%') {
+    yValues = (u, vals) => vals.map(v => v == null ? '—' : v.toFixed(0) + '%');
+  } else if (yAxisOpts.unit === 'bytes') {
+    yValues = (u, vals) => vals.map(v => v == null ? '—' : formatBytes(v) + '/s');
+  }
+
+  const opts = {
+    width: container.offsetWidth || 800,
+    height: 260,
+    cursor: { show: false },
+    legend: { show: true, live: false },
+    scales: {
+      x: { time: true },
+      y: {
+        range: yAxisOpts.unit === '%' ? [0, 100] : undefined,
       }
-    }
-  });
+    },
+    axes: [
+      {
+        stroke: '#e4e4e7',
+        grid: { show: false },
+        ticks: { show: false },
+      },
+      {
+        stroke: '#e4e4e7',
+        grid: { stroke: '#f0f0f5', width: 1 },
+        values: yValues,
+      }
+    ],
+    series,
+  };
 
-  _chartInstances[canvasId] = chart;
-  return chart;
+  const plot = new uPlot(opts, cols, container);
+  _chartInstances[containerId] = plot;
+  return plot;
+}
+
+// 创建 Chart.js 折线图（已弃用，保留空实现避免 ReferenceError）
+function createLineChart(canvasId, labels, datasets, yAxisUnit) {
+  // 兼容旧调用方
+  return null;
 }
 
 // 前端缓存 — 避免切换 Tab 时重复请求相同数据
