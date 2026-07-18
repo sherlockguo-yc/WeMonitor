@@ -1051,6 +1051,21 @@ body {
   width: var(--font-size); height: var(--font-size);
 }
 
+/* 部分数据缺失提示 — 显示在图表底部 */
+.chart-missing-hint {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 0.3);
+  font-size: calc(var(--font-size) * 0.75);
+  color: #a1a1aa;
+  margin-top: calc(var(--font-size) * 0.3);
+  padding: 0 calc(var(--font-size) * 0.3);
+}
+.chart-missing-hint .icon-xs {
+  width: calc(var(--font-size) * 0.7); height: calc(var(--font-size) * 0.7);
+  flex-shrink: 0;
+}
+
 /* ===================================================
    部署状态页
    =================================================== */

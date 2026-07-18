@@ -36,7 +36,7 @@ async function loadCharts() {
   const { labels, slotTs } = generateTimeSlots(currentRange);
   // 容差：取间隔的一半，确保每个数据点归入最近的槽位
   const toleranceMs = currentRange === '1h' ? 150000
-                   : currentRange === '6h' ? 1800000
+                   : currentRange === '6h' ? 3600000   // 60 分钟容差，覆盖整点偏移
                    : currentRange === '24h' ? 7200000
                    : 43200000; // 7d
 
@@ -48,20 +48,44 @@ async function loadCharts() {
       for (const v of ds.data) { totalPoints++; if (v != null) validPoints++; }
     }
     const hasNoData = totalPoints > 0 && validPoints === 0;
+    const hasPartialData = validPoints > 0 && validPoints < totalPoints;
 
-    createLineChart(canvasId, labels, datasets, yAxisUnit);
+    // 缺失数据标记：每个 dataset 追加对应"缺失"圆点（null 位置画灰色圆点，底部）
+    const markerDatasets = datasets.map(ds => ({
+      label: '', // 不占 legend
+      data: ds.data.map(v => v === null ? 0 : null),
+      showLine: false,
+      pointRadius: 3,
+      pointStyle: 'rectRounded',
+      pointBackgroundColor: '#d4d4d8',
+      pointBorderColor: '#d4d4d8',
+    }));
 
-    // 空数据状态 UI 提示
+    createLineChart(canvasId, labels, [...datasets, ...markerDatasets], yAxisUnit);
+
+    // 空数据 / 部分数据 UI 提示
     const body = document.getElementById(canvasId)?.closest('.chart-body');
     if (body) {
       let hint = body.querySelector('.chart-empty-hint');
       if (hasNoData && !hint) {
         hint = document.createElement('div');
         hint.className = 'chart-empty-hint';
-        hint.innerHTML = '<svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg><span>该时间段暂无数据</span>';
+        hint.innerHTML = `<svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg><span>该时间段暂无数据</span>`;
         body.appendChild(hint);
       } else if (!hasNoData && hint) {
         hint.remove();
+      }
+      // 部分缺失提示
+      let missingHint = body.querySelector('.chart-missing-hint');
+      if (hasPartialData && !missingHint) {
+        missingHint = document.createElement('div');
+        missingHint.className = 'chart-missing-hint';
+        missingHint.innerHTML = `<svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg><span>${validPoints} / ${totalPoints} 个时间点有数据</span>`;
+        body.appendChild(missingHint);
+      } else if (!hasPartialData && missingHint) {
+        missingHint.remove();
+      } else if (hasPartialData && missingHint) {
+        missingHint.querySelector('span').textContent = `${validPoints} / ${totalPoints} 个时间点有数据`;
       }
     }
 

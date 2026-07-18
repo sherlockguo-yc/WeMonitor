@@ -47,10 +47,10 @@ setInterval(() => {
   });
 }, config.scrapeInterval * 1000);
 
-// 数据清理（每小时）
+// 数据聚合（每 5 分钟一次，确保 hourly 表紧跟实时）
 setInterval(() => {
   cleaner.run();
-}, 3600000);
+}, 300000);
 // 启动 5 秒后：先全量补齐历史 hour_ts，再跑一次常规清理
 setTimeout(() => {
   cleaner.runFull();
