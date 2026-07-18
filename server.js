@@ -59,6 +59,7 @@ setTimeout(() => cleaner.run(), 5000);
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
+const SqliteStore = require('better-sqlite3-session-store')(session);
 const path = require('path');
 
 const app = express();
@@ -75,6 +76,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // Session
 app.use(session({
+  store: new SqliteStore({ client: db }),
   secret: config.sessionSecret || 'wemonitor-session-secret-change-me',
   resave: false,
   saveUninitialized: false,
