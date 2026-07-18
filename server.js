@@ -83,14 +83,14 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// 路由
-app.use('/api/v1', require('./routes/api'));
-app.use('/', require('./routes/pages'));
-
-// 健康检查 endpoint（给外部探测用）
+// 健康检查 — 放在鉴权路由之前
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
+
+// 路由
+app.use('/api/v1', require('./routes/api'));
+app.use('/', require('./routes/pages'));
 
 app.listen(config.port, '0.0.0.0', () => {
   console.log(`[WeMonitor] Server running on http://0.0.0.0:${config.port}`);
