@@ -91,18 +91,28 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
   }
 
   // 取所有数据集的时间戳合集（去重排序，作为 X 轴）
+  // uPlot time scale 使用 Unix 秒（不是毫秒），需要 /1000
   const tsSet = new Set();
   for (const ds of datasets) {
     for (const p of ds.data) tsSet.add(p.t);
   }
-  const timestamps = [...tsSet].sort((a, b) => a - b);
+  const timestamps = [...tsSet].sort((a, b) => a - b).map(t => Math.floor(t / 1000));
 
   // 构建 uPlot 列数据：第 0 列时间戳，后续每列一个 series
   const cols = [timestamps];
   for (const ds of datasets) {
-    // 构建值数组，按时间戳对齐（缺失处填 null，uPlot 自动断线）
     const valMap = new Map(ds.data.map(p => [p.t, p.v]));
-    cols.push(timestamps.map(t => valMap.has(t) ? valMap.get(t) : null));
+    const tMap = new Map(ds.data.map(p => [Math.floor(p.t / 1000), p.v]));
+    cols.push(timestamps.map(t => tMap.has(t) ? tMap.get(t) : null));
+  }
+
+  // 颜色转 rgba（用于填充透明叠加）
+  function hexToRgba(hex, alpha) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
   }
 
   // 构建 series 配置
@@ -111,8 +121,8 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
     ...datasets.map(ds => ({
       label: ds.label,
       stroke: ds.stroke || '#6366f1',
-      fill: ds.fill ? (ds.backgroundColor || ds.stroke + '22') : undefined,
-      width: 2,
+      fill: ds.fill ? hexToRgba(ds.stroke || '#6366f1', 0.25) : undefined,
+      width: 2.5,
       points: { show: false },
       spanGaps: false,
     }))
@@ -125,6 +135,22 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
   } else if (yAxisOpts.unit === 'bytes') {
     yValues = (u, vals) => vals.map(v => v == null ? '—' : formatBytes(v) + '/s');
   }
+
+  // X 轴时间格式：1h 范围用 HH:MM，6h/24h 用 HH:MM（同日）或 MM/DD HH:MM（跨日），7d 用 MM/DD
+  const xValues = (u, vals) => {
+    if (!vals || vals.length === 0) return [];
+    const range = (vals[vals.length - 1] - vals[0]) * 1000; // s → ms
+    const dayMs = 86400000;
+    return vals.map(v => {
+      const d = new Date(v * 1000);
+      const HH = String(d.getHours()).padStart(2, '0');
+      const MM = String(d.getMinutes()).padStart(2, '0');
+      const MD = `${d.getMonth() + 1}/${d.getDate()}`;
+      if (range < dayMs) return `${HH}:${MM}`;           // < 1 天：HH:MM
+      if (range < 7 * dayMs) return `${MD} ${HH}:${MM}`; // < 1 周：MM/DD HH:MM
+      return MD;                                          // >= 1 周：MM/DD
+    });
+  };
 
   const opts = {
     width: container.offsetWidth || 800,
@@ -139,14 +165,17 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
     },
     axes: [
       {
-        stroke: '#e4e4e7',
+        stroke: '#71717a',
         grid: { show: false },
         ticks: { show: false },
+        values: xValues,
+        font: '11px var(--font)',
       },
       {
-        stroke: '#e4e4e7',
+        stroke: '#71717a',
         grid: { stroke: '#f0f0f5', width: 1 },
         values: yValues,
+        font: '11px var(--font)',
       }
     ],
     series,
