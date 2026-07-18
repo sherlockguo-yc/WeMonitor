@@ -103,7 +103,7 @@ function createLineChart(canvasId, labels, datasets, yAxisUnit) {
       },
       scales: {
         x: {
-          ticks: { maxTicksLimit: 12, font: { size: 11 } },
+          ticks: { autoSkip: true, maxTicksLimit: 8, font: { size: 11 } },
           grid: { display: false }
         },
         y: {
