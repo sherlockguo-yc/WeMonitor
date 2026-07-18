@@ -104,11 +104,11 @@ function renderVersion(local, remote) {
 
   return `<div class="deploy-version">
     <div class="ver-row">
-      <span class="ver-local">${escHtml(lv.substring(0, 7))}</span>
+      <span class="ver-local" title="N150 当前运行版本">${escHtml(lv.substring(0, 7))}</span>
       ${arrow}
-      <span class="ver-remote">${escHtml(rv.substring(0, 7))}</span>
+      <span class="ver-remote" title="GitHub 最新发布版本">${escHtml(rv.substring(0, 7))}</span>
     </div>
-    <span class="ver-label">本地 → 远端</span>
+    <span class="ver-label">当前部署 / 远端可用</span>
   </div>`;
 }
 
