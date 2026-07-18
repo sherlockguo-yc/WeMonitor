@@ -57,6 +57,7 @@ setTimeout(() => cleaner.run(), 5000);
 // ── 启动 Web 服务器 ──
 
 const express = require('express');
+const expressLayouts = require('express-ejs-layouts');
 const path = require('path');
 
 const app = express();
@@ -69,6 +70,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 视图引擎
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 
 // 路由
 app.use('/api/v1', require('./routes/api'));
