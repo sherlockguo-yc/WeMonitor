@@ -1254,6 +1254,24 @@ body {
   flex-shrink: 0;
 }
 
+/* 触发方式标签 */
+.tl-trigger {
+  font-size: calc(var(--font-size) * 0.7);
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+.tl-trigger-webhook {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+.tl-trigger-cron {
+  background: rgba(148, 163, 184, 0.12);
+  color: #64748b;
+}
+
 /* ===================================================
    响应式
    =================================================== */

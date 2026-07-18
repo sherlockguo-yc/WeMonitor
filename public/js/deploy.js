@@ -41,6 +41,14 @@ function stageLabel(stage) {
   return map[stage] || stage;
 }
 
+function triggerLabel(trigger) {
+  if (!trigger) return '';
+  return trigger === 'webhook' ? 'Webhook' : 'Cron';
+}
+function triggerClass(trigger) {
+  return trigger === 'webhook' ? 'tl-trigger-webhook' : 'tl-trigger-cron';
+}
+
 function renderTimeline(events) {
   if (!events || events.length === 0) {
     return '<div class="tl-empty">暂无部署记录</div>';
@@ -50,9 +58,12 @@ function renderTimeline(events) {
     const label = stageLabel(e.stage);
     const time = tsToTime(e.ts);
     const cls = e.status === 'error' ? 'tl-item-error' : e.status === 'started' ? 'tl-item-active' : '';
+    const tLabel = triggerLabel(e.trigger);
+    const tCls = triggerClass(e.trigger);
     return `<div class="tl-item ${cls}">
       <span class="tl-icon"><i data-lucide="${icon}" class="icon-sm"></i></span>
       <span class="tl-label">${label}</span>
+      ${tLabel ? `<span class="tl-trigger ${tCls}" title="触发方式">${tLabel}</span>` : ''}
       <span class="tl-msg">${escHtml(e.message || '')}</span>
       <span class="tl-time">${time}</span>
     </div>`;
