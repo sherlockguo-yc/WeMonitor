@@ -29,39 +29,31 @@ async function loadCharts() {
   const netRxData = { data: (d.net_rx_bytes_sec || []).map(r => ({ timestamp: r.t, value: r.v })) };
   const netTxData = { data: (d.net_tx_bytes_sec || []).map(r => ({ timestamp: r.t, value: r.v })) };
 
-  const timeFmt = currentRange === '7d' ? formatDateTime : formatTime;
+  // 预生成完整时间轴，将 API 数据对齐到槽位（保证 X 轴始终反映选择的完整时间范围）
+  const { labels, slotTs } = generateTimeSlots(currentRange);
+  // 容差：取间隔的一半，确保每个数据点归入最近的槽位
+  const toleranceMs = currentRange === '1h' ? 150000
+                   : currentRange === '6h' ? 1800000
+                   : currentRange === '24h' ? 7200000
+                   : 43200000; // 7d
 
   // CPU 图
-  if (cpuData) {
-    createLineChart('cpuChart',
-      cpuData.data.map(d => timeFmt(d.timestamp)),
-      [{
-        label: 'CPU %',
-        data: cpuData.data.map(d => d.value),
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(99,102,241,0.08)',
-        fill: true, tension: 0.3, pointRadius: 0
-      }],
-      '%'
-    );
-  }
+  if (cpuData) createLineChart('cpuChart', labels, [{
+    label: 'CPU %',
+    data: alignDataToSlots(cpuData.data, slotTs, toleranceMs),
+    borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.08)',
+    fill: true, tension: 0.3, pointRadius: 0, spanGaps: false
+  }], '%');
 
   // 内存图
-  if (memData) {
-    createLineChart('memChart',
-      memData.data.map(d => timeFmt(d.timestamp)),
-      [{
-        label: '内存 %',
-        data: memData.data.map(d => d.value),
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16,185,129,0.08)',
-        fill: true, tension: 0.3, pointRadius: 0
-      }],
-      '%'
-    );
-  }
+  if (memData) createLineChart('memChart', labels, [{
+    label: '内存 %',
+    data: alignDataToSlots(memData.data, slotTs, toleranceMs),
+    borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)',
+    fill: true, tension: 0.3, pointRadius: 0, spanGaps: false
+  }], '%');
 
-  // 磁盘图
+  // 磁盘图（按 mount 分组后分别对齐）
   if (diskData) {
     const diskGroups = {};
     for (const d of diskData.data) {
@@ -70,31 +62,27 @@ async function loadCharts() {
       diskGroups[mount].push(d);
     }
 
-    const diskLabels = Object.values(diskGroups)[0]?.map(d => timeFmt(d.timestamp)) || [];
     const diskDatasets = Object.entries(diskGroups).map(([mount, points], i) => ({
       label: mount,
-      data: points.map(p => p.value),
+      data: alignDataToSlots(points, slotTs, toleranceMs),
       borderColor: ['#6366f1', '#f59e0b', '#ef4444', '#10b981'][i % 4],
-      fill: false, tension: 0.3, pointRadius: 0
+      fill: false, tension: 0.3, pointRadius: 0, spanGaps: false
     }));
 
-    createLineChart('diskChart', diskLabels, diskDatasets, '%');
+    createLineChart('diskChart', labels, diskDatasets, '%');
   }
 
   // 网络图
-  const netLabels = netRxData?.data?.map(d => timeFmt(d.timestamp)) || [];
-  createLineChart('netChart', netLabels, [
+  createLineChart('netChart', labels, [
     {
-      label: '↓ 入站',
-      data: netRxData?.data?.map(d => d.value) || [],
-      borderColor: '#10b981',
-      fill: false, tension: 0.3, pointRadius: 0
+      label: '\u2193 \u5167\u7ad9',
+      data: alignDataToSlots(netRxData?.data || [], slotTs, toleranceMs),
+      borderColor: '#10b981', fill: false, tension: 0.3, pointRadius: 0, spanGaps: false
     },
     {
-      label: '↑ 出站',
-      data: netTxData?.data?.map(d => d.value) || [],
-      borderColor: '#f59e0b',
-      fill: false, tension: 0.3, pointRadius: 0
+      label: '\u2191 \u51fa\u7ad9',
+      data: alignDataToSlots(netTxData?.data || [], slotTs, toleranceMs),
+      borderColor: '#f59e0b', fill: false, tension: 0.3, pointRadius: 0, spanGaps: false
     }
   ], 'bytes');
 }

@@ -56,6 +56,53 @@ function getTimeRange(range) {
   }
 }
 
+// 根据时间范围生成完整 X 轴时间槽位（解决"选 6h 只显 4 个标签"的问题）
+// 返回 { labels: string[], slotTs: number[] }，即使后端数据不足也能正确显示完整时间轴
+function generateTimeSlots(range) {
+  const now = Date.now();
+  let intervalMs, slotCount, fmt;
+
+  switch (range) {
+    case '1h':
+      intervalMs = 300000;   slotCount = 13; fmt = formatTime; break;       // 每 5 分钟 × 13 点
+    case '6h':
+      intervalMs = 3600000;  slotCount = 7;  fmt = formatTime; break;       // 每小时 × 7 点
+    case '24h':
+      intervalMs = 14400000; slotCount = 7;  fmt = formatTime; break;       // 每 4 小时 × 7 点
+    case '7d':
+      intervalMs = 86400000; slotCount = 8;  fmt = formatDateTime; break;   // 每天 × 8 点
+    default:
+      intervalMs = 300000;   slotCount = 13; fmt = formatTime;
+  }
+
+  const labels = [];
+  const slotTs = [];
+  for (let i = slotCount - 1; i >= 0; i--) {
+    const ts = now - i * intervalMs;
+    slotTs.push(ts);
+    labels.push(fmt(ts));
+  }
+
+  return { labels, slotTs };
+}
+
+// 将 API 返回的数据点对齐到时间槽位（缺失处填 null，Chart.js 会自动断线）
+// apiData: [{ timestamp: number, value: number }]
+// toleranceMs: 容差（毫秒），在此范围内的数据点归入对应槽位
+function alignDataToSlots(apiData, slotTs, toleranceMs) {
+  return slotTs.map(slotT => {
+    let best = null, bestDiff = Infinity;
+    for (const d of apiData) {
+      const diff = Math.abs(d.timestamp - slotT);
+      if (diff <= toleranceMs && diff < bestDiff) {
+        bestDiff = diff;
+        best = d.value;
+      }
+    }
+    return best;
+  });
+}
+
 // chart 实例 registry，用于避免画布复用问题
 const _chartInstances = {};
 
