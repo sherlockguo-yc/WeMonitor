@@ -155,7 +155,13 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
   const opts = {
     width: container.offsetWidth || 800,
     height: 260,
-    cursor: { show: false },
+    cursor: {
+      show: true,
+      x: true,
+      y: false,
+      drag: { x: false, y: false },
+      points: { show: false },
+    },
     legend: { show: true, live: false },
     scales: {
       x: { time: true },
