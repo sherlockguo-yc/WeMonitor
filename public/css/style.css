@@ -1109,7 +1109,8 @@ body {
 }
 
 /* uPlot 容器 & legend 适配 */
-.chart-body .uplot { font-family: var(--font); }
+.chart-canvas { width: 100%; min-height: 260px; }
+.chart-body .uplot { font-family: var(--font); width: 100% !important; min-height: 260px; }
 .chart-body .u-legend {
   text-align: left;
   font-size: calc(var(--font-size) * 0.75);
