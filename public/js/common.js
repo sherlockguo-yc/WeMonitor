@@ -122,24 +122,65 @@ function createLineChart(canvasId, labels, datasets, yAxisUnit) {
   return chart;
 }
 
-// API 请求封装（自动注入 auth cookie）
-async function api(path) {
+// 前端缓存 — 避免切换 Tab 时重复请求相同数据
+const _cache = {};
+const CACHE_TTL = {
+  default: 30000,           // 30s
+  '/stats/current': 30000,
+  '/metrics/batch': 60000,
+  '/health': 60000,
+  '/services': 120000,
+  '/firewall/status': 60000,
+  '/admin/users': 120000,
+  '/tunnel/status': 30000,
+  '/tunnel/logs': 30000,
+};
+
+function _getTTL(path) {
+  // 去掉 query string 取基础路径
+  const base = path.split('?')[0];
+  return CACHE_TTL[base] || CACHE_TTL.default;
+}
+
+// API 请求封装（自动注入 auth cookie，带前端缓存）
+async function api(path, opts = {}) {
+  const cacheKey = '/api/v1' + path;
+  const ttl = _getTTL(path);
+  const cached = _cache[cacheKey];
+
+  // 命中缓存 → 立即返回
+  if (cached && (Date.now() - cached.time < ttl) && !opts.skipCache) {
+    console.log(`[client] ${path} cache hit`);
+    return cached.data;
+  }
+
   const t0 = performance.now();
-  const res = await fetch('/api/v1' + path);
-  const fetchMs = Math.round(performance.now() - t0);
-  if (!res.ok) {
-    if (res.status === 401) {
-      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+  try {
+    const res = await fetch(cacheKey);
+    const fetchMs = Math.round(performance.now() - t0);
+    if (!res.ok) {
+      if (res.status === 401) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        return null;
+      }
+      console.error('API error:', path, res.status);
       return null;
     }
-    console.error('API error:', path, res.status);
+    const data = await res.json();
+    if (fetchMs > 200 || (data._perf && data._perf.dbMs > 50)) {
+      console.log(`[client] ${path} fetch=${fetchMs}ms db=${data._perf?.dbMs || '?'}ms rows=${data.count || '?'} ${cached ? 'stale' : 'fresh'}`);
+    }
+    // 存入缓存
+    _cache[cacheKey] = { data, time: Date.now() };
+    return data;
+  } catch (err) {
+    // 网络错误时返回过期缓存
+    if (cached) {
+      console.warn(`[client] ${path} fetch failed, using stale cache`);
+      return cached.data;
+    }
     return null;
   }
-  const data = await res.json();
-  if (fetchMs > 200 || (data._perf && data._perf.dbMs > 50)) {
-    console.log(`[client] ${path} fetch=${fetchMs}ms db=${data._perf?.dbMs || '?'}ms rows=${data.count || '?'}`);
-  }
-  return data;
 }
 
 // 窗口级刷新占位
