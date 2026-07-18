@@ -64,13 +64,13 @@ function generateTimeSlots(range) {
 
   switch (range) {
     case '1h':
-      intervalMs = 300000;   slotCount = 13; fmt = formatTime; break;       // 每 5 分钟 × 13 点
+      intervalMs = 300000;   slotCount = 13; fmt = formatTime; break;
     case '6h':
-      intervalMs = 3600000;  slotCount = 7;  fmt = formatTime; break;       // 每小时 × 7 点
+      intervalMs = 3600000;  slotCount = 7;  fmt = formatTime; break;
     case '24h':
-      intervalMs = 14400000; slotCount = 7;  fmt = formatTime; break;       // 每 4 小时 × 7 点
+      intervalMs = 14400000; slotCount = 7;  fmt = formatTime; break;
     case '7d':
-      intervalMs = 86400000; slotCount = 8;  fmt = formatDateTime; break;   // 每天 × 8 点
+      intervalMs = 86400000; slotCount = 8;  fmt = formatDateTime; break;
     default:
       intervalMs = 300000;   slotCount = 13; fmt = formatTime;
   }
