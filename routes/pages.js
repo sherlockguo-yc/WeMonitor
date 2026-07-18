@@ -66,8 +66,9 @@ router.get('/system', (req, res) => {
   res.render('system', { title: '系统资源', active: 'system' });
 });
 
+// 服务状态 → 重定向到服务管理（子 Tab）
 router.get('/services', (req, res) => {
-  res.render('services', { title: '服务状态', active: 'services' });
+  res.redirect('/settings#status');
 });
 
 router.get('/settings', (req, res) => {
@@ -78,9 +79,9 @@ router.get('/firewall', (req, res) => {
   res.render('firewall', { title: '防火墙', active: 'firewall' });
 });
 
-// 部署状态
+// 部署状态 → 重定向到服务管理（子 Tab）
 router.get('/deploy', (req, res) => {
-  res.render('deploy', { title: '部署状态', active: 'deploy' });
+  res.redirect('/settings#deploy');
 });
 
 // Tunnel 管理
