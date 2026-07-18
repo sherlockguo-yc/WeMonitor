@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> — WeMonitor</title>
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/common.js" defer></script>
 </head>
 <body>
   <div class="app-layout">
@@ -57,15 +58,16 @@
     </main>
   </div>
 
-  <script src="/js/common.js"></script>
   <script>
     function refreshData() {
       if (typeof refreshPage === 'function') refreshPage();
     }
-    if (typeof lucide !== 'undefined') lucide.createIcons();
   </script>
   <!-- CDN 放在最后，不阻塞数据加载 -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
 </body>
 </html>
