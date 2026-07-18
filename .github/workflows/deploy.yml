@@ -42,3 +42,12 @@ jobs:
           body: "Auto build ${{ steps.ver.outputs.sha }}"
           files: wemonitor.tar.gz
           prerelease: true
+
+      - name: Notify N150
+        if: env.WEBHOOK_SECRET
+        continue-on-error: true
+        run: |
+          curl -sS -X POST https://wemusic.sherlockguo.com/deploy \
+            -H "Content-Type: application/json" \
+            -d "{\"project\":\"wemonitor\",\"version\":\"${{ steps.ver.outputs.sha }}\",\"token\":\"${{ secrets.WEBHOOK_SECRET }}\"}" \
+            --max-time 10 --connect-timeout 5 || true
