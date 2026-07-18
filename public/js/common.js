@@ -79,7 +79,10 @@ const _chartInstances = {};
 // datasets: [{ label, stroke, fill, data: [{t: ms, v: number}, ...] }, ...]
 // yAxisOpts: { unit: '%' | 'bytes' } 或不传
 function createTimeChart(containerId, datasets, yAxisOpts = {}) {
-  if (typeof uPlot === 'undefined') return null;
+  if (typeof uPlot === 'undefined') {
+    console.error('[uPlot] uPlot global not defined, chart creation aborted');
+    return null;
+  }
 
   const container = document.getElementById(containerId);
   if (!container) return null;
@@ -243,9 +246,17 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
     },
   };
 
-  const plot = new uPlot(opts, cols, container);
-  _chartInstances[containerId] = plot;
-  return plot;
+  try {
+    console.log(`[uPlot] ${containerId} creating: container=${container.offsetWidth}x${container.offsetHeight}, cols=${cols.length}, ts=${timestamps.length}`);
+    const plot = new uPlot(opts, cols, container);
+    _chartInstances[containerId] = plot;
+    console.log(`[uPlot] ${containerId} created OK, root=${container.querySelector('.uplot')?.offsetWidth}x${container.querySelector('.uplot')?.offsetHeight}`);
+    return plot;
+  } catch (e) {
+    console.error(`[uPlot] ${containerId} ERROR:`, e.message, e.stack);
+    container.innerHTML = `<div style="color:var(--danger);padding:1em;">图表渲染失败: ${e.message}</div>`;
+    return null;
+  }
 }
 
 // 创建 Chart.js 折线图（已弃用，保留空实现避免 ReferenceError）
