@@ -27,7 +27,9 @@ fi
 
 # 启动
 cd "$DIR" || exit 1
-# 加载持久化凭据（如 GITHUB_TOKEN）—— .env 受 rsync --exclude 保护，跨版本持久
+# 统一凭据文件（所有服务共享 GITHUB_TOKEN），.deploy-env 位于 ~/ 下不受 rsync 影响
+[ -f "$HOME/.deploy-env" ] && . "$HOME/.deploy-env"
+# 服务专属配置（.env 受 rsync --exclude 保护，跨版本持久）
 [ -f "$DIR/.env" ] && . "$DIR/.env"
 export WEMONITOR_API_KEY="${WEMONITOR_API_KEY:-wemonitor-dev-key-change-me}"
 nohup node server.js > "$LOG" 2>&1 &
