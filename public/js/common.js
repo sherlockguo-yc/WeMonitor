@@ -225,17 +225,22 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
         tt.innerHTML = html;
         tt.style.display = 'block';
 
-        // 定位 tooltip（容器内绝对坐标，避免溢出）
+        // 定位 tooltip：canvas 在容器内的偏移 + 鼠标在 canvas 内的位置
         const over = u.over;
-        const bbox = over.getBoundingClientRect();
-        const relLeft = left - bbox.left;
-        const relTop = top - bbox.top;
+        const canvasRect = over.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const cursorX = (canvasRect.left - containerRect.left) + left;
+        const cursorY = (canvasRect.top - containerRect.top) + top;
         const ttW = tt.offsetWidth || 140;
         const ttH = tt.offsetHeight || 60;
-        let l = relLeft + 14;
-        let tPos = relTop - ttH - 10;
-        if (l + ttW > bbox.width - 4) l = relLeft - ttW - 10;
-        if (tPos < 4) tPos = relTop + 14;
+        const containerW = containerRect.width;
+        // 默认放在鼠标右侧，超出右边界则翻到左侧
+        let l = cursorX + 14;
+        if (l + ttW > containerW - 4) l = cursorX - ttW - 14;
+        // 顶部对齐鼠标 Y 位置
+        let tPos = cursorY - 10;
+        if (tPos + ttH > containerRect.height) tPos = containerRect.height - ttH - 4;
+        if (tPos < 4) tPos = 4;
         tt.style.left = l + 'px';
         tt.style.top = tPos + 'px';
       }]
