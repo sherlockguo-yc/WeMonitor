@@ -2,8 +2,8 @@
    WeMonitor — 用户管理页
    =================================================== */
 
-async function loadUsers() {
-  const data = await api('/admin/users');
+async function loadUsers(skipCache = false) {
+  const data = await api('/admin/users', { skipCache });
   if (!data) return;
 
   const tbody = document.getElementById('users-body');
@@ -43,7 +43,7 @@ async function loadUsers() {
 async function approveUser(id) {
   const res = await fetch('/api/v1/admin/users/' + id + '/approve', { method: 'POST' });
   if (res.ok) {
-    loadUsers();
+    loadUsers(true);  // 跳过缓存，确保立即反映审批结果
   } else {
     const err = await res.json();
     alert('审批失败: ' + (err.error || '未知错误'));
@@ -54,7 +54,7 @@ async function deleteUser(id, name) {
   if (!confirm('确定删除用户 "' + name + '"？')) return;
   const res = await fetch('/api/v1/admin/users/' + id, { method: 'DELETE' });
   if (res.ok) {
-    loadUsers();
+    loadUsers(true);  // 跳过缓存，确保立即反映删除结果
   } else {
     const err = await res.json();
     alert('删除失败: ' + (err.error || '未知错误'));
