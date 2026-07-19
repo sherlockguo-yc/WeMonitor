@@ -17,15 +17,14 @@ const TOPOLOGY = {
     { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 100, y: 130, w: 170, h: 44 },
     { id: 'ufw',        label: 'UFW 防火墙',         x: 470, y: 130, w: 140, h: 44, dynamic: 'firewall' },
 
-    // Layer 3: 隧道 / 反代
+    // Layer 3: 隧道
     { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 100, y: 240, w: 170, h: 52, dynamic: 'tunnel' },
-    { id: 'npm',        label: 'NPM',               x: 470, y: 240, w: 120, h: 44 },
 
     // Layer 4: 服务（底部一排，从左到右按访问路径分组）
     // Cloudflare → Tunnel → WeMonitor / Webhook
     { id: 'wemonitor',  label: 'WeMonitor',         x: 100, y: 420, w: 130, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
     { id: 'webhook',    label: 'Webhook',           x: 250, y: 420, w: 110, h: 44, port: 9001 },
-    // Cloudflare → Tunnel → NPM → WeMusic / WeDownload
+    // Cloudflare → Tunnel → WeMusic / WeDownload
     { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
     { id: 'wedownload', label: 'WeDownload',        x: 500, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
     // UFW → SSH / qBittorrent / NPM Admin（直连服务）
@@ -41,11 +40,10 @@ const TOPOLOGY = {
     { from: 'ufw',       to: 'ssh',        style: 'solid',  label: ':22' },
     { from: 'ufw',       to: 'qbittorrent',style: 'solid',  label: ':61553' },
     { from: 'ufw',       to: 'npm-admin',  style: 'solid',  label: ':8443' },
-    { from: 'cf-tunnel', to: 'npm',        style: 'solid',  label: '' },
     { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
     { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
-    { from: 'npm',       to: 'wemusic',    style: 'solid',  label: ':5174' },
-    { from: 'npm',       to: 'wedownload', style: 'solid',  label: ':8080' },
+    { from: 'cf-tunnel', to: 'wemusic',    style: 'solid',  label: '' },
+    { from: 'cf-tunnel', to: 'wedownload', style: 'solid',  label: '' },
   ],
 };
 
@@ -103,7 +101,7 @@ function renderTopology(container) {
   const layers = [
     { y: 30,  h: 44, label: '外部' },
     { y: 130, h: 44, label: '入口' },
-    { y: 240, h: 52, label: '隧道/代理' },
+    { y: 240, h: 52, label: '隧道' },
     { y: 420, h: 44, label: '服务' },
   ];
 
