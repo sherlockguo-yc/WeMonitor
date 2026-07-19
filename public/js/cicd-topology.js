@@ -453,24 +453,22 @@ function computeOrthoPath(from, to) {
 
   } else if (isFanOut) {
     // Fan-out: Deploy Agent → 服务
+    // 策略：先从源节点底部竖直向下引出（明显可见），再水平分叉到各服务，最后竖直进入
     const allToIds = [to.id, ...fanOutEdges.map(e => e.to)];
     const allToNodes = allToIds.map(id => CICD_TOPOLOGY.nodes.find(n => n.id === id)).sort((a, b) => a.x - b.x);
     const myIndex = allToNodes.findIndex(n => n.id === to.id); // 0=左, 1=中, 2=右
 
-    // 出口偏移（按目标索引分散）
-    const exitOffsets = [-35, 0, 35];
-    const exitX = sx + (exitOffsets[myIndex] || 0);
-
-    // 中间层 Y
-    const baseMidY = from.y + from.h + (to.y - (from.y + from.h)) / 2;
-    const midY = baseMidY - (Math.abs(myIndex - 1)) * (GAP * 0.5);
+    // 中间层 Y：靠近服务层顶部，确保竖直引出段足够长（至少 35px）
+    const baseMidY = to.y - 38;  // 在服务节点上方 38px 处开始水平分叉
+    const midY = baseMidY - (Math.abs(myIndex - 1)) * (GAP * 0.6);
 
     // 如果已经在同一列附近，直接斜线
-    if (Math.abs(exitX - ex) < 30) {
+    if (Math.abs(sx - ex) < 30) {
       return { d: `M${sx},${sy} L${ex},${ey}`, ex, ey };
     }
 
-    const d = buildOrthoPath(sx, sy, midY, ex, ex, ey, true /* startHorizontal */);
+    // 先竖直向下引出 → 水平分叉 → 竖直进入服务（startHorizontal=false）
+    const d = buildOrthoPath(sx, sy, midY, ex, ex, ey);
     return { d, ex, ey };
 
   } else {
