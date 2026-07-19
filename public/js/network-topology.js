@@ -55,40 +55,8 @@ async function loadNetworkTopology() {
   const container = document.getElementById('nt-diagram');
   container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
 
-  // 并行获取所有状态
-  const results = await Promise.allSettled([
-    api('/firewall/status'),
-    api('/tunnel/status'),
-    api('/health'),
-  ]);
-
-  ntState.firewall = results[0].status === 'fulfilled' ? results[0].value : null;
-  ntState.tunnel   = results[1].status === 'fulfilled' ? results[1].value : null;
-  ntState.health   = results[2].status === 'fulfilled' ? results[2].value : [];
-
-  // 更新状态徽章
-  updateStatusBadge();
-
-  // 渲染 SVG
-  renderTopology(container);
-}
-
-function updateStatusBadge() {
-  const badge = document.getElementById('nt-status-badge');
-  if (!ntState.firewall && !ntState.tunnel) {
-    badge.className = 'status-badge status-unhealthy';
-    badge.textContent = '数据获取失败';
-    return;
-  }
-  const fwOk = ntState.firewall && ntState.firewall.status === 'active';
-  const tunOk = ntState.tunnel && ntState.tunnel.active;
-  if (fwOk && tunOk) {
-    badge.className = 'status-badge status-healthy';
-    badge.textContent = '正常';
-  } else {
-    badge.className = 'status-badge status-warning';
-    badge.textContent = '部分异常';
-  }
+  // 合并视图：物理拓扑（含光猫/路由器 + 完整网络链路）
+  await loadPhysicalTopology();
 }
 
 // ── 渲染 SVG ──
@@ -408,11 +376,9 @@ function hideTooltip(tooltipId) {
 
 function refreshPage() {
   loadNetworkTopology();
-  loadPhysicalTopology();
 }
 
 loadNetworkTopology();
-loadPhysicalTopology();
 
 // ── 物理拓扑 ──
 
@@ -457,9 +423,9 @@ const PT_LAYERS = [
 const PT_SEPARATORS = [87, 157, 237, 337, 486];
 
 async function loadPhysicalTopology() {
-  const container = document.getElementById('pt-diagram');
+  const container = document.getElementById('nt-diagram');
   if (!container) return;
-  container.innerHTML = '<div class="nt-loading">加载物理拓扑...</div>';
+  container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
 
   // 并行获取：物理拓扑数据 + 网络拓扑状态
   const [ptResult, ...ntResults] = await Promise.allSettled([
@@ -489,14 +455,14 @@ async function loadPhysicalTopology() {
     H: 630,
     layers: PT_LAYERS,
     separators: PT_SEPARATORS,
-    tooltipId: 'pt-tooltip',
+    tooltipId: 'nt-tooltip',
     arrowPrefix: 'pt-',
     getNodeStatusFn: getNodeStatus,
   });
 }
 
 function updatePtBadge() {
-  const badge = document.getElementById('pt-status-badge');
+  const badge = document.getElementById('nt-status-badge');
   if (!badge) return;
   if (ptState.error || !ptState.modem) {
     badge.className = 'status-badge status-unhealthy';
