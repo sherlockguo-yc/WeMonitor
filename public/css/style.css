@@ -1558,6 +1558,10 @@ body {
 }
 .nt-line-sample.nt-line-dashed { border-top-style: dashed; }
 
+/* 线色变体 */
+.nt-line-gray  { border-top-color: var(--text-dim); }
+.nt-line-red   { border-top-color: var(--danger); }
+
 /* 状态徽章补充 */
 .status-badge.status-warning {
   background: var(--warning-bg);
