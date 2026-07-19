@@ -19,7 +19,7 @@ REPO="sherlockguo-yc/WeMonitor"
 DIR="$HOME/wemonitor"
 LOG="/tmp/wemonitor-update.log"
 EVENTS="$DIR/data/deploy-events.jsonl"
-API="https://api.github.com/repos/$REPO/releases?per_page=1"
+API="https://api.github.com/repos/$REPO/releases?per_page=30"
 
 # 加载持久化凭据（.env 受 rsync --exclude 保护），GITHUB_TOKEN 用于将 API 额度从 60→5000/hr
 [ -f "$DIR/.env" ] && . "$DIR/.env"
@@ -83,10 +83,23 @@ if [ "$HTTP_CODE" != "200" ]; then
   exit 0
 fi
 
+# 从 JSON 数组中解析最新版本：跳过 latest tag、按 published_at 倒序、取第一个 SHA-tagged release
+# 对齐 deploy-agent.sh 的 query_version 逻辑（共用规则：per_page=30 → 跳过 latest → published_at 排序）
 BODY=$(cat "$API_BODY_FILE")
-REMOTE_VER=$(echo "$BODY" | grep -m1 '"body"' | sed -E 's/.*Auto build ([a-f0-9]+).*/\1/')
+REMOTE_VER=$(echo "$BODY" | python3 -c "
+import json, sys, re
+releases = json.load(sys.stdin)
+releases.sort(key=lambda r: r.get('published_at', ''), reverse=True)
+for r in releases:
+    if r.get('tag_name') == 'latest':
+        continue
+    m = re.search(r'Auto build ([a-f0-9]+)', r.get('body', ''))
+    if m:
+        print(m.group(1))
+        break
+")
 
-if [ -z "$REMOTE_VER" ] || [ "$REMOTE_VER" = "$BODY" ]; then
+if [ -z "$REMOTE_VER" ]; then
   echo "[$(date)] 查询 release 失败或无法解析版本" >> "$LOG"
   log_event "check" "error" "查询 release 失败"
   exit 0
