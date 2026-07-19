@@ -5,8 +5,10 @@
 // ── 静态拓扑定义 ──
 
 // Canvas: W=1100, H=550
-// 5 层结构（自上而下）：源码 → 构建 → 发布 → 部署通道 → 运行服务
+// 5 层结构（自上而下）：源码 → 构建 → 发布 → 部署 → 服务
 // 3 列并行 pipeline，在 L4 汇聚到 Webhook，再分发到 L5 服务
+// L4: Webhook 位于左列与中列之间，Deploy Agent 位于中列与右列之间
+//     让 Release→Webhook 和 Agent→服务 的线条从不同方向自然扇入，避免交叉
 
 const CICD_TOPOLOGY = {
   nodes: [
@@ -25,12 +27,12 @@ const CICD_TOPOLOGY = {
     { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 220, w: 160, h: 48, service: 'wemonitor' },
     { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 220, w: 160, h: 48, service: 'wedownload' },
 
-    // Layer 4: 部署通道
-    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 30,  y: 330, w: 170, h: 52 },
+    // Layer 4: 部署
+    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 40,  y: 330, w: 160, h: 52 },
     { id: 'webhook',      label: 'Webhook',               x: 260, y: 330, w: 150, h: 48, port: 9001 },
-    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 490, y: 330, w: 150, h: 52 },
+    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 480, y: 330, w: 150, h: 52 },
 
-    // Layer 5: 运行服务
+    // Layer 5: 服务
     { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 440, w: 170, h: 48, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
     { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 440, w: 170, h: 48, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
     { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 440, w: 170, h: 48, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
@@ -59,9 +61,9 @@ const CICD_TOPOLOGY = {
     { from: 'webhook', to: 'deploy-agent', style: 'solid', label: '' },
 
     // Deploy Agent → 服务（下载部署 + 重启）
-    { from: 'deploy-agent', to: 'svc-wemusic',    style: 'solid', label: ':5174' },
-    { from: 'deploy-agent', to: 'svc-wemonitor',  style: 'solid', label: ':18990' },
-    { from: 'deploy-agent', to: 'svc-wedownload', style: 'solid', label: ':8080' },
+    { from: 'deploy-agent', to: 'svc-wemusic',    style: 'solid', label: '' },
+    { from: 'deploy-agent', to: 'svc-wemonitor',  style: 'solid', label: '' },
+    { from: 'deploy-agent', to: 'svc-wedownload', style: 'solid', label: '' },
   ],
 };
 
@@ -128,7 +130,7 @@ function renderCicdTopology(container) {
     { y: 20,  h: 48, label: '源码' },
     { y: 120, h: 48, label: '构建' },
     { y: 220, h: 48, label: '发布' },
-    { y: 330, h: 52, label: '部署通道' },
+    { y: 330, h: 52, label: '部署' },
     { y: 440, h: 48, label: '服务' },
   ];
 
@@ -139,9 +141,9 @@ function renderCicdTopology(container) {
     svg += `<line x1="40" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,4"/>`;
   });
 
-  // 层级标签（左侧）
+  // 层级标签（右侧对齐，避免被左侧节点遮挡）
   layers.forEach(layer => {
-    svg += `<text x="12" y="${layer.y + layer.h / 2 + 5}" class="nt-layer-label">${layer.label}</text>`;
+    svg += `<text x="35" y="${layer.y + layer.h / 2 + 5}" text-anchor="end" class="nt-layer-label">${layer.label}</text>`;
   });
 
   // 定义箭头 marker
@@ -242,15 +244,20 @@ function renderCicdTopology(container) {
     }
 
     // 节点标签
-    const labelLines = node.label.split('\n');
+    let labelLines = node.label.split('\n');
+    // 部署节点：在服务名下附加端口号
+    if (node.dynamic === 'deploy' && node.port) {
+      labelLines = [...labelLines, `:${node.port}`];
+    }
     const textX = node.x + 22;
     const textY = node.y + node.h / 2 - (labelLines.length - 1) * 7;
     labelLines.forEach((l, i) => {
-      svg += `<text x="${textX}" y="${textY + i * 14}" class="nt-node-label">${l}</text>`;
+      const cls = (i === labelLines.length - 1 && node.dynamic === 'deploy') ? 'nt-port-label' : 'nt-node-label';
+      svg += `<text x="${textX}" y="${textY + i * 14}" class="${cls}">${l}</text>`;
     });
 
-    // 端口号
-    if (node.port) {
+    // 端口号（非部署节点）
+    if (node.port && node.dynamic !== 'deploy') {
       svg += `<text x="${node.x + node.w - 24}" y="${node.y + 14}" text-anchor="end" class="nt-port-label">:${node.port}</text>`;
     }
   }
