@@ -37,6 +37,7 @@ router.delete('/services/:id', servicesApi.deleteService);
 // 防火墙管理
 router.get('/firewall/status', firewallApi.getStatus);
 router.post('/firewall/rules', firewallApi.addRule);
+router.put('/firewall/rules/:number', firewallApi.editRule);
 router.delete('/firewall/rules/:number', firewallApi.deleteRule);
 
 // Tunnel 管理

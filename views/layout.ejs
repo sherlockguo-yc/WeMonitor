@@ -50,20 +50,31 @@
             </a>
           </div>
         </div>
-        <a href="/firewall" class="nav-item <%= active === 'firewall' ? 'active' : '' %>">
-          <i data-lucide="shield" class="icon-sm"></i>
-          <span>防火墙</span>
-        </a>
+        <%
+          // 网络管理组是否展开：当前在 firewall / tunnel 任一页面时展开
+          const netGroupActive = ['firewall', 'tunnel'].includes(active);
+        %>
+        <div class="nav-group <%= netGroupActive ? 'expanded' : '' %>" data-group="network">
+          <div class="nav-group-toggle" onclick="toggleNavGroup(this.parentElement)">
+            <i data-lucide="network" class="icon-sm"></i>
+            <span>网络管理</span>
+            <i data-lucide="chevron-down" class="icon-sm nav-group-arrow"></i>
+          </div>
+          <div class="nav-group-items">
+            <a href="/firewall" class="nav-sub-item <%= active === 'firewall' ? 'active' : '' %>">
+              <span>防火墙</span>
+            </a>
+            <a href="/tunnel" class="nav-sub-item <%= active === 'tunnel' ? 'active' : '' %>">
+              <span>Tunnel</span>
+            </a>
+          </div>
+        </div>
         <% if (session.role === 'admin') { %>
         <a href="/users" class="nav-item <%= active === 'users' ? 'active' : '' %>">
           <i data-lucide="users" class="icon-sm"></i>
           <span>用户管理</span>
         </a>
         <% } %>
-        <a href="/tunnel" class="nav-item <%= active === 'tunnel' ? 'active' : '' %>">
-          <i data-lucide="orbit" class="icon-sm"></i>
-          <span>Tunnel</span>
-        </a>
       </nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">

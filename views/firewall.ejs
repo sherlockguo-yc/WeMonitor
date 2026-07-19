@@ -32,11 +32,11 @@
   </div>
 </div>
 
-<!-- 添加规则模态框 -->
+<!-- 添加/编辑规则模态框 -->
 <div class="modal-mask" id="fw-modal" style="display:none;">
   <div class="modal-box">
     <div class="modal-header">
-      <h3>添加防火墙规则</h3>
+      <h3 id="fw-modal-title">添加防火墙规则</h3>
       <button class="btn-icon" onclick="closeFwModal()"><i data-lucide="x" class="icon-sm"></i></button>
     </div>
     <div class="modal-body">
@@ -58,7 +58,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeFwModal()">取消</button>
-      <button class="btn btn-primary" onclick="addFwRule()">添加</button>
+      <button class="btn btn-primary" id="fw-submit-btn" onclick="submitFwRule()">添加</button>
     </div>
   </div>
 </div>
