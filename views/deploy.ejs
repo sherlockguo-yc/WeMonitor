@@ -1,7 +1,13 @@
 <!-- CI/CD 拓扑图 -->
-<div class="card">
+<div class="card cicd-card">
   <div class="card-header">
-    <h3>CI/CD 拓扑</h3>
+    <div class="cicd-header-left">
+      <svg class="cicd-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16,18 22,12 16,6"></polyline>
+        <polyline points="8,6 2,12 8,18"></polyline>
+      </svg>
+      <h3>CI/CD 拓扑</h3>
+    </div>
     <span class="status-badge" id="cicd-status-badge">加载中...</span>
   </div>
   <div class="card-body">
@@ -31,4 +37,4 @@
 </div>
 
 <script src="/js/cicd-topology.js?v=<%= version %>" defer></script>
-<script src="/js/deploy.js?v=<%= version %>" defer></script>
+<script src="/js/deploy.js?v<%= version %>" defer></script>

@@ -268,6 +268,22 @@ body {
   font-weight: 600;
 }
 
+/* CI/CD 卡片头部增强 */
+.cicd-card { overflow: hidden; }
+
+.cicd-header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 0.55);
+}
+
+.cicd-header-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
 .card-body {
   padding: calc(var(--font-size) * 1.4);
 }
@@ -1418,22 +1434,41 @@ body {
 }
 
 /* ===================================================
-   网络拓扑图
+   拓扑图（网络拓扑 + CI/CD 拓扑共用）
    =================================================== */
 
 .nt-diagram {
   position: relative;
   overflow-x: auto;
-  padding: calc(var(--font-size) * 0.5) 0;
+  overflow-y: visible;
+  padding: calc(var(--font-size) * 0.8) calc(var(--font-size) * 0.4);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.02) 0%, transparent 40%, transparent 60%, rgba(16, 185, 129, 0.02) 100%);
 }
 
 .nt-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: calc(var(--font-size) * 0.6);
   min-height: 400px;
   color: var(--text-dim);
   font-size: calc(var(--font-size) * 0.95);
+}
+
+.nt-loading::before {
+  content: '';
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--border-light);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: nt-spin 0.7s linear infinite;
+}
+
+@keyframes nt-spin {
+  to { transform: rotate(360deg); }
 }
 
 .nt-svg {
@@ -1443,45 +1478,57 @@ body {
   margin: 0 auto;
 }
 
+/* ── 层级标签（左侧） ── */
+
 .nt-layer-label {
-  font-size: calc(var(--font-size) * 0.78);
+  font-size: calc(var(--font-size) * 0.76);
   fill: var(--text-dim);
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   pointer-events: none;
   user-select: none;
+  opacity: 0.65;
 }
+
+/* ── 节点 ── */
 
 .nt-node {
   cursor: pointer;
-  transition: filter 0.2s, opacity 0.2s;
+  transition: filter 0.25s ease, transform 0.25s ease;
+  transform-origin: center;
 }
 
 .nt-node:hover {
-  filter: brightness(0.96);
+  filter: brightness(0.97) drop-shadow(0 2px 8px rgba(99, 102, 241, 0.15));
+  transform: translateY(-1px);
 }
 
 .nt-node-label {
-  font-size: calc(var(--font-size) * 0.82);
+  font-size: calc(var(--font-size) * 0.84);
   fill: var(--text);
   font-family: var(--font);
+  font-weight: 500;
   pointer-events: none;
   user-select: none;
 }
 
 .nt-port-label {
-  font-size: calc(var(--font-size) * 0.68);
+  font-size: calc(var(--font-size) * 0.72);
   fill: var(--text-dim);
   font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: -0.3px;
   pointer-events: none;
   user-select: none;
 }
 
 .nt-edge-label {
-  font-size: calc(var(--font-size) * 0.68);
-  fill: var(--text-dim);
+  font-size: calc(var(--font-size) * 0.7);
+  fill: #8888a0;
   font-family: var(--font);
+  font-weight: 500;
   pointer-events: none;
   user-select: none;
 }
@@ -1503,83 +1550,141 @@ body {
   user-select: none;
 }
 
-/* Tooltip */
+/* ── Tooltip ── */
+
 .nt-tooltip {
   position: absolute;
-  z-index: 50;
+  z-index: 100;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  padding: calc(var(--font-size) * 0.6) calc(var(--font-size) * 0.8);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: calc(var(--font-size) * 0.7) calc(var(--font-size) * 0.9);
   pointer-events: none;
   white-space: nowrap;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nt-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .nt-tt-name {
-  font-weight: 600;
-  font-size: calc(var(--font-size) * 0.88);
+  font-weight: 650;
+  font-size: calc(var(--font-size) * 0.9);
   color: var(--text);
-  margin-bottom: calc(var(--font-size) * 0.2);
+  margin-bottom: calc(var(--font-size) * 0.25);
+  letter-spacing: 0.2px;
 }
 
 .nt-tt-info {
   font-size: calc(var(--font-size) * 0.78);
   color: var(--text-dim);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-/* 图例 */
+/* ── 图例 ── */
+
 .nt-legend {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: calc(var(--font-size) * 1.2);
+  gap: calc(var(--font-size) * 0.5) calc(var(--font-size) * 1.1);
   justify-content: center;
-  margin-top: calc(var(--font-size) * 0.8);
-  padding: calc(var(--font-size) * 0.6);
+  margin-top: calc(var(--font-size) * 0.9);
+  padding: calc(var(--font-size) * 0.7) calc(var(--font-size) * 1);
+  border-top: 1px solid var(--border-light);
+  background: rgba(245, 246, 250, 0.5);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .nt-legend-item {
   display: inline-flex;
   align-items: center;
-  gap: calc(var(--font-size) * 0.4);
-  font-size: calc(var(--font-size) * 0.8);
+  gap: calc(var(--font-size) * 0.38);
+  font-size: calc(var(--font-size) * 0.78);
   color: var(--text-dim);
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .nt-legend-sep {
   color: var(--border);
-  font-size: calc(var(--font-size) * 0.8);
+  font-size: calc(var(--font-size) * 0.78);
+  font-weight: 300;
+  margin: 0 calc(var(--font-size) * 0.15);
 }
 
 .nt-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.04);
 }
 
-.nt-dot-green  { background: var(--success); }
-.nt-dot-yellow { background: var(--warning); }
-.nt-dot-red    { background: var(--danger); }
+.nt-dot-green  { background: var(--success); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15); }
+.nt-dot-yellow { background: var(--warning); box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15); }
+.nt-dot-red    { background: var(--danger); box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15); }
 .nt-dot-gray   { background: var(--text-dim); }
 
 /* 线型图例 */
 .nt-line-sample {
   display: inline-block;
-  width: 18px;
+  width: 20px;
   height: 0;
   border-top: 2px solid var(--success);
   vertical-align: middle;
   flex-shrink: 0;
 }
-.nt-line-sample.nt-line-dashed { border-top-style: dashed; }
+.nt-line-sample.nt-line-dashed { border-top-style: dashed; border-top-width: 2px; }
 
 /* 线色变体 */
 .nt-line-gray   { border-top-color: var(--text-dim); }
 .nt-line-red    { border-top-color: var(--danger); }
 .nt-line-yellow { border-top-color: var(--warning); }
+
+/* ── 节点入场动画 ── */
+
+@keyframes nt-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nt-node-animate {
+  animation: nt-fade-up 0.35s ease-out both;
+}
+
+/* ── 连线动画 ── */
+
+@keyframes nt-dash-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+.nt-edge-animate {
+  stroke-dasharray: 6, 4;
+  animation: nt-dash-flow 0.8s linear infinite;
+  animation-play-state: paused;
+}
+
+.nt-edge-animate.running {
+  animation-play-state: running;
+}
 
 /* 状态徽章补充 */
 .status-badge.status-warning {

@@ -13,29 +13,29 @@
 const CICD_TOPOLOGY = {
   nodes: [
     // Layer 1: 源码仓库
-    { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 80,  y: 20,  w: 160, h: 48, service: 'wemusic' },
-    { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 320, y: 20,  w: 160, h: 48, service: 'wemonitor' },
-    { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 560, y: 20,  w: 160, h: 48, service: 'wedownload' },
+    { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 80,  y: 20,  w: 160, h: 50, service: 'wemusic' },
+    { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 320, y: 20,  w: 160, h: 50, service: 'wemonitor' },
+    { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 560, y: 20,  w: 160, h: 50, service: 'wedownload' },
 
     // Layer 2: GitHub Actions CI
-    { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 80,  y: 120, w: 160, h: 48, service: 'wemusic' },
-    { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 320, y: 120, w: 160, h: 48, service: 'wemonitor' },
-    { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 560, y: 120, w: 160, h: 48, service: 'wedownload' },
+    { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 80,  y: 122, w: 160, h: 50, service: 'wemusic' },
+    { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 320, y: 122, w: 160, h: 50, service: 'wemonitor' },
+    { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 560, y: 122, w: 160, h: 50, service: 'wedownload' },
 
     // Layer 3: GitHub Releases
-    { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 80,  y: 220, w: 160, h: 48, service: 'wemusic' },
-    { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 220, w: 160, h: 48, service: 'wemonitor' },
-    { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 220, w: 160, h: 48, service: 'wedownload' },
+    { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 80,  y: 224, w: 160, h: 50, service: 'wemusic' },
+    { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 224, w: 160, h: 50, service: 'wemonitor' },
+    { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 224, w: 160, h: 50, service: 'wedownload' },
 
     // Layer 4: 部署
-    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 40,  y: 330, w: 160, h: 52 },
-    { id: 'webhook',      label: 'Webhook',               x: 260, y: 330, w: 150, h: 48, port: 9001 },
-    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 480, y: 330, w: 150, h: 52 },
+    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 40,  y: 336, w: 162, h: 54 },
+    { id: 'webhook',      label: 'Webhook',               x: 262, y: 338, w: 148, h: 50, port: 9001 },
+    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 482, y: 336, w: 148, h: 54 },
 
     // Layer 5: 服务
-    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 440, w: 170, h: 48, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
-    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 440, w: 170, h: 48, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
-    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 440, w: 170, h: 48, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
+    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 448, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
+    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 448, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
+    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 448, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
   ],
 
   edges: [
@@ -124,42 +124,71 @@ function getServiceState(serviceId) {
 
 function renderCicdTopology(container) {
   const W = 1100;
-  const H = 530;
+  const H = 540;
 
   const layers = [
-    { y: 20,  h: 48, label: '源码' },
-    { y: 120, h: 48, label: '构建' },
-    { y: 220, h: 48, label: '发布' },
-    { y: 330, h: 52, label: '部署' },
-    { y: 440, h: 48, label: '服务' },
+    { y: 20,  h: 50, label: '源码' },
+    { y: 122, h: 50, label: '构建' },
+    { y: 224, h: 50, label: '发布' },
+    { y: 336, h: 54, label: '部署' },
+    { y: 448, h: 52, label: '服务' },
   ];
 
   let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
-  // 层级分隔线
-  [98, 200, 302, 418].forEach(y => {
-    svg += `<line x1="40" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,4"/>`;
+  // 层级分隔线 — 更细腻的虚线
+  [100, 204, 310, 420].forEach(y => {
+    svg += `<line x1="38" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,5" opacity="0.7"/>`;
   });
 
-  // 层级标签（右侧对齐，避免被左侧节点遮挡）
+  // 层级标签
   layers.forEach(layer => {
-    svg += `<text x="35" y="${layer.y + layer.h / 2 + 5}" text-anchor="end" class="nt-layer-label">${layer.label}</text>`;
+    svg += `<text x="32" y="${layer.y + layer.h / 2 + 4.5}" text-anchor="end" class="nt-layer-label">${layer.label}</text>`;
   });
 
-  // 定义箭头 marker
+  // 定义箭头 marker — 更精致的箭头
   svg += `<defs>
-    <marker id="cicd-arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--success)"/>
+    <marker id="cicd-arrow-green" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 z" fill="var(--success)"/>
     </marker>
-    <marker id="cicd-arrow-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim)"/>
+    <marker id="cicd-arrow-dim" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 z" fill="#b8bac4"/>
     </marker>
-    <marker id="cicd-arrow-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--danger)"/>
+    <marker id="cicd-arrow-danger" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 z" fill="var(--danger)"/>
     </marker>
-    <marker id="cicd-arrow-warn" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--warning)"/>
+    <marker id="cicd-arrow-warn" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="6" orient="auto">
+      <path d="M0 0 L10 3.5 L0 7 z" fill="var(--warning)"/>
     </marker>
+
+    <!-- 节点阴影滤镜 -->
+    <filter id="nt-node-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#000" flood-opacity="0.06"/>
+    </filter>
+    <filter id="nt-node-shadow-hover" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#6366f1" flood-opacity="0.12"/>
+    </filter>
+
+    <!-- 成功节点微光 -->
+    <linearGradient id="nt-glow-ok" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ecfdf5"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <!-- 警告节点渐变 -->
+    <linearGradient id="nt-glow-warn" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <!-- 错误节点渐变 -->
+    <linearGradient id="nt-glow-error" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef2f2"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <!-- 默认节点 -->
+    <linearGradient id="nt-glow-default" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fafbfc"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
   </defs>`;
 
   // 渲染连线
@@ -170,7 +199,7 @@ function renderCicdTopology(container) {
 
     const { sx, sy, ex, ey } = computeCicdEdgeEndpoints(from, to);
 
-    let color = 'var(--text-dim)';
+    let color = '#b8bac4';
     let dash = '';
     let marker = 'url(#cicd-arrow-dim)';
 
@@ -199,7 +228,7 @@ function renderCicdTopology(container) {
     const ex2 = ex - shortenEnd * Math.cos(angle);
     const ey2 = ey - shortenEnd * Math.sin(angle);
 
-    svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
+    svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="1.8" ${dash} marker-end="${marker}" opacity="0.85"/>`;
 
     // 连线标签
     if (edge.label) {
@@ -207,58 +236,78 @@ function renderCicdTopology(container) {
       const my = (sy + ey) / 2;
       const isHorizontal = Math.abs(ex - sx) > Math.abs(ey - sy);
       const labelOffsetX = isHorizontal ? 0 : -10;
-      const labelOffsetY = isHorizontal ? -10 : 0;
+      const labelOffsetY = isHorizontal ? -11 : 0;
       const lines = edge.label.split('\n');
       const textWidth = Math.max(...lines.map(l => l.length)) * 6;
-      const labelH = lines.length * 12 + 4;
-      const labelW = textWidth + 10;
+      const labelH = lines.length * 13 + 6;
+      const labelW = textWidth + 12;
       const labelX = mx + labelOffsetX - labelW / 2;
-      const labelY = my + labelOffsetY - lines.length * 6;
-      svg += `<rect x="${labelX}" y="${labelY - labelH / 2}" width="${labelW}" height="${labelH}" fill="var(--bg-card)" rx="3"/>`;
+      const labelY = my + labelOffsetY - lines.length * 6.5;
+      svg += `<rect x="${labelX}" y="${labelY - labelH / 2}" width="${labelW}" height="${labelH}" fill="var(--bg-card)" rx="4" stroke="var(--border-light)" stroke-width="0.8"/>`;
       lines.forEach((l, i) => {
-        svg += `<text x="${mx + labelOffsetX}" y="${my + labelOffsetY + (i - (lines.length - 1) / 2) * 12}" text-anchor="middle" class="nt-edge-label">${l}</text>`;
+        svg += `<text x="${mx + labelOffsetX}" y="${my + labelOffsetY + (i - (lines.length - 1) / 2) * 13}" text-anchor="middle" class="nt-edge-label">${l}</text>`;
       });
     }
   }
 
-  // 渲染节点
-  for (const node of CICD_TOPOLOGY.nodes) {
+  // 渲染节点（带入场动画延迟）
+  for (let ni = 0; ni < CICD_TOPOLOGY.nodes.length; ni++) {
+    const node = CICD_TOPOLOGY.nodes[ni];
     const status = getCicdNodeStatus(node);
     const borderColor = status === 'ok' ? 'var(--success)' :
                         status === 'error' ? 'var(--danger)' :
-                        status === 'warn' ? 'var(--warning)' : 'var(--border)';
-    const bgColor = status === 'error' ? 'var(--danger-bg)' :
-                    status === 'warn' ? 'var(--warning-bg)' : 'var(--bg-card)';
+                        status === 'warn' ? 'var(--warning)' : '#d4d6dc';
 
-    // 背景矩形
-    svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="var(--radius)" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" class="nt-node" data-node="${node.id}"/>`;
+    // 根据状态选择背景渐变
+    const fillId = status === 'error' ? 'nt-glow-error' :
+                   status === 'warn' ? 'nt-glow-warn' :
+                   status === 'ok' ? 'nt-glow-ok' : 'nt-glow-default';
 
-    // 状态圆点（仅 dynamic 节点显示）
+    // 入场动画延迟：按层递增
+    const layerIdx = Math.floor(ni / 3);
+    const delay = (layerIdx * 60 + (ni % 3) * 30);
+
+    // 背景矩形 — 带阴影和动画
+    svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}"
+      rx="10" ry="10"
+      fill="url(#${fillId})"
+      stroke="${borderColor}" stroke-width="1.8"
+      class="nt-node nt-node-animate" data-node="${node.id}"
+      filter="url(#nt-node-shadow)"
+      style="animation-delay: ${delay}ms"/>`;
+
+    // 状态圆点（仅 dynamic 节点显示）— 带脉冲效果
     if (node.dynamic) {
       const dotX = node.x + node.w - 14;
       const dotY = node.y + node.h / 2;
       const dotColor = status === 'ok' ? 'var(--success)' :
                        status === 'error' ? 'var(--danger)' :
-                       status === 'warn' ? 'var(--warning)' : 'var(--text-dim)';
-      svg += `<circle cx="${dotX}" cy="${dotY}" r="5" fill="${dotColor}"/>`;
+                       status === 'warn' ? 'var(--warning)' : '#b8bac4';
+      const dotGlow = status === 'ok' ? 'rgba(16,185,129,0.25)' :
+                      status === 'error' ? 'rgba(239,68,68,0.25)' :
+                      status === 'warn' ? 'rgba(245,158,11,0.25)' : 'rgba(184,186,196,0.15)';
+      svg += `<circle cx="${dotX}" cy="${dotY}" r="6" fill="${dotGlow}"/>`;
+      svg += `<circle cx="${dotX}" cy="${dotY}" r="4.5" fill="${dotColor}">
+        ${status === 'ok' ? `<animate attributeName="r" values="4.5;5.2;4.5" dur="2s" repeatCount="indefinite" begin="${delay}ms"/>` : ''}
+        ${status === 'warn' ? `<animate attributeName="opacity" values="1;0.55;1" dur="1.2s" repeatCount="indefinite" begin="${delay}ms"/>` : ''}
+      </circle>`;
     }
 
     // 节点标签
     let labelLines = node.label.split('\n');
-    // 部署节点：在服务名下附加端口号
     if (node.dynamic === 'deploy' && node.port) {
       labelLines = [...labelLines, `:${node.port}`];
     }
-    const textX = node.x + 22;
-    const textY = node.y + node.h / 2 - (labelLines.length - 1) * 7;
+    const textX = node.x + 24;
+    const textY = node.y + node.h / 2 - (labelLines.length - 1) * 7.5;
     labelLines.forEach((l, i) => {
       const cls = (i === labelLines.length - 1 && node.dynamic === 'deploy') ? 'nt-port-label' : 'nt-node-label';
-      svg += `<text x="${textX}" y="${textY + i * 14}" class="${cls}">${l}</text>`;
+      svg += `<text x="${textX}" y="${textY + i * 15}" class="${cls}">${l}</text>`;
     });
 
     // 端口号（非部署节点）
     if (node.port && node.dynamic !== 'deploy') {
-      svg += `<text x="${node.x + node.w - 24}" y="${node.y + 14}" text-anchor="end" class="nt-port-label">:${node.port}</text>`;
+      svg += `<text x="${node.x + node.w - 22}" y="${node.y + 14}" text-anchor="end" class="nt-port-label">:${node.port}</text>`;
     }
   }
 
@@ -292,11 +341,8 @@ function getCicdNodeStatus(node) {
   if (node.service && !node.dynamic) {
     const svc = cicdState.services.find(s => s.id === node.service);
     if (!svc) return 'static';
-    // Release 节点：有远端的 release version 就显示 ok
     if (node.id.startsWith('release-') && svc.remote && svc.remote.release) return 'ok';
-    // CI 节点：有远端的 CI 状态就显示 ok
     if (node.id.startsWith('ci-') && svc.remote && svc.remote.ci) return 'ok';
-    // 仓库节点：有远程数据就显示 ok
     if (node.id.startsWith('repo-') && svc.remote) return 'ok';
     return 'static';
   }
@@ -322,21 +368,23 @@ function computeCicdEdgeEndpoints(from, to) {
     else        { sx = from.x;          ex = to.x + to.w; }
     sy = fcy + (sx - fcx) * (dy / Math.abs(dx || 1));
     ey = tcy + (ex - tcx) * (dy / Math.abs(dx || 1));
-    sy = Math.max(from.y + 4, Math.min(from.y + from.h - 4, sy));
-    ey = Math.max(to.y + 4, Math.min(to.y + to.h - 4, ey));
+    sy = Math.max(from.y + 5, Math.min(from.y + from.h - 5, sy));
+    ey = Math.max(to.y + 5, Math.min(to.y + to.h - 5, ey));
   } else {
     if (dy > 0) { sy = from.y + from.h; ey = to.y; }
     else        { sy = from.y;          ey = to.y + to.h; }
     sx = fcx + (sy - fcy) * (dx / Math.abs(dy || 1));
     ex = tcx + (ey - tcy) * (dx / Math.abs(dy || 1));
-    sx = Math.max(from.x + 4, Math.min(from.x + from.w - 4, sx));
-    ex = Math.max(to.x + 4, Math.min(to.x + to.w - 4, ex));
+    sx = Math.max(from.x + 5, Math.min(from.x + from.w - 5, sx));
+    ex = Math.max(to.x + 5, Math.min(to.x + to.w - 5, ex));
   }
 
   return { sx, sy, ex, ey };
 }
 
 // ── Tooltip ──
+
+let tooltipTimer = null;
 
 function showCicdTooltip(e) {
   const nodeId = e.target.getAttribute('data-node');
@@ -345,6 +393,7 @@ function showCicdTooltip(e) {
 
   let statusText = '静态节点';
   let extraInfo = '';
+  let statusIcon = '';
 
   const svc = node.service ? cicdState.services.find(s => s.id === node.service) : null;
 
@@ -356,12 +405,20 @@ function showCicdTooltip(e) {
       'error': '异常',
       'stopped': '已停止',
     };
-    statusText = summaryMap[svc.summary] || svc.summary || '未知';
+    const summaryKey = svc.summary;
+    statusText = summaryMap[summaryKey] || summaryKey || '未知';
+
+    // 状态图标颜色
+    const iconColor = summaryKey === 'up-to-date' ? 'var(--success)' :
+                      summaryKey === 'error' || summaryKey === 'stopped' ? 'var(--danger)' :
+                      summaryKey === 'deploying' || summaryKey === 'update-available' ? 'var(--warning)' : '#b8bac4';
+    statusIcon = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${iconColor};flex-shrink:0;margin-right:6px;"></span>`;
+
     if (svc.local && svc.local.version) {
-      extraInfo += `<div class="nt-tt-info">本地: ${svc.local.version.slice(0, 8)}</div>`;
+      extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">本地</span> <code style="font-family:var(--font-mono);font-size:0.92em;background:rgba(0,0,0,0.04);padding:1px 5px;border-radius:3px;">${svc.local.version.slice(0, 8)}</code></div>`;
     }
     if (svc.remote && svc.remote.release && svc.remote.release.version) {
-      extraInfo += `<div class="nt-tt-info">远端: ${svc.remote.release.version.slice(0, 8)}</div>`;
+      extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">远端</span> <code style="font-family:var(--font-mono);font-size:0.92em;background:rgba(0,0,0,0.04);padding:1px 5px;border-radius:3px;">${svc.remote.release.version.slice(0, 8)}</code></div>`;
     }
   } else if (svc) {
     if (node.id.startsWith('release-') && svc.remote && svc.remote.release) {
@@ -374,28 +431,66 @@ function showCicdTooltip(e) {
   }
 
   if (node.port) {
-    extraInfo += `<div class="nt-tt-info">端口: ${node.port}</div>`;
+    extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">端口</span> <code style="font-family:var(--font-mono);font-size:0.92em;background:rgba(0,0,0,0.04);padding:1px 5px;border-radius:3px;">${node.port}</code></div>`;
   }
 
   const tooltip = document.getElementById('cicd-tooltip');
   if (!tooltip) return;
 
   tooltip.innerHTML = `
-    <div class="nt-tt-name">${node.label.replace(/\n/g, ' ')}</div>
-    <div class="nt-tt-info">状态: ${statusText}</div>
+    <div style="display:flex;align-items:center;margin-bottom:calc(var(--font-size)*0.35);">
+      ${statusIcon}
+      <div class="nt-tt-name">${node.label.replace(/\n/g, ' ')}</div>
+    </div>
+    <div class="nt-tt-info" style="margin-bottom:${extraInfo ? 'calc(var(--font-size)*0.15)' : '0'};">
+      <span style="color:#8888a0">状态</span> ${statusText}
+    </div>
     ${extraInfo}
   `;
+
   tooltip.style.display = 'block';
+
+  // 延迟显示动画
+  clearTimeout(tooltipTimer);
+  tooltip.classList.remove('visible');
+  tooltipTimer = setTimeout(() => {
+    tooltip.classList.add('visible');
+  }, 20);
 
   const container = document.getElementById('cicd-diagram');
   const rect = container.getBoundingClientRect();
-  tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
-  tooltip.style.top = (e.clientY - rect.top - 40) + 'px';
+  const ttRect = tooltip.getBoundingClientRect();
+
+  // 智能定位：避免溢出
+  let left = e.clientX - rect.left + 16;
+  let top = e.clientY - rect.top - 36;
+
+  // 右边界检测
+  if (left + ttRect.width > rect.width - 10) {
+    left = e.clientX - rect.left - ttRect.width - 16;
+  }
+  // 上边界检测
+  if (top < 5) top = 8;
+  // 下边界检测
+  if (top + ttRect.height > rect.height - 5) {
+    top = rect.height - ttRect.height - 8;
+  }
+
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
 }
 
 function hideCicdTooltip() {
+  clearTimeout(tooltipTimer);
   const tooltip = document.getElementById('cicd-tooltip');
-  if (tooltip) tooltip.style.display = 'none';
+  if (!tooltip) return;
+  tooltip.classList.remove('visible');
+  // 完全隐藏前等待淡出完成
+  setTimeout(() => {
+    if (!tooltip.classList.contains('visible')) {
+      tooltip.style.display = 'none';
+    }
+  }, 200);
 }
 
 loadCicdTopology();
