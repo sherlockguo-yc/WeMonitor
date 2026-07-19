@@ -93,22 +93,26 @@ function updateStatusBadge() {
 
 // ── 渲染 SVG ──
 
-function renderTopology(container) {
-  const W = 1100;
-  const H = 510;
-
-  // 层级标签位置
-  const layers = [
+function renderTopology(container, opts = {}) {
+  const topology = opts.topology || TOPOLOGY;
+  const state = opts.state || ntState;
+  const W = opts.W || 1100;
+  const H = opts.H || 510;
+  const layers = opts.layers || [
     { y: 30,  h: 44, label: '外部' },
     { y: 130, h: 44, label: '入口' },
     { y: 240, h: 52, label: '隧道' },
     { y: 420, h: 44, label: '服务' },
   ];
+  const separators = opts.separators || [102, 207, 356];
+  const tooltipId = opts.tooltipId || 'nt-tooltip';
+  const arrowPrefix = opts.arrowPrefix || '';
+  const getNodeStatusFn = opts.getNodeStatusFn || getNodeStatus;
 
   let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
   // 层级分隔线
-  [102, 207, 356].forEach(y => {
+  separators.forEach(y => {
     svg += `<line x1="40" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,4"/>`;
   });
 
@@ -119,21 +123,21 @@ function renderTopology(container) {
 
   // 定义箭头 marker
   svg += `<defs>
-    <marker id="arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+    <marker id="${arrowPrefix}arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="var(--success)"/>
     </marker>
-    <marker id="arrow-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+    <marker id="${arrowPrefix}arrow-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim)"/>
     </marker>
-    <marker id="arrow-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+    <marker id="${arrowPrefix}arrow-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="var(--danger)"/>
     </marker>
   </defs>`;
 
   // 渲染连线
-  for (const edge of TOPOLOGY.edges) {
-    const from = TOPOLOGY.nodes.find(n => n.id === edge.from);
-    const to = TOPOLOGY.nodes.find(n => n.id === edge.to);
+  for (const edge of topology.edges) {
+    const from = topology.nodes.find(n => n.id === edge.from);
+    const to = topology.nodes.find(n => n.id === edge.to);
     if (!from || !to) continue;
 
     // 计算连线端点（从节点边缘出发）
@@ -141,19 +145,28 @@ function renderTopology(container) {
 
     let color = 'var(--text-dim)';
     let dash = '';
-    let marker = 'url(#arrow-dim)';
+    let marker = `url(#${arrowPrefix}arrow-dim)`;
 
     if (edge.style === 'dashed') dash = 'stroke-dasharray="6,4"';
     if (edge.style === 'dotted') dash = 'stroke-dasharray="3,3"';
 
+    const ap = arrowPrefix;
     // 根据源节点状态调整颜色
-    if (edge.from === 'cf-tunnel' && ntState.tunnel && ntState.tunnel.active) {
+    if (edge.from === 'cf-tunnel' && state.tunnel && state.tunnel.active) {
       color = 'var(--success)';
-      marker = 'url(#arrow-green)';
+      marker = `url(#${ap}arrow-green)`;
     }
-    if (edge.from === 'ufw' && ntState.firewall && ntState.firewall.status !== 'active') {
+    if (edge.from === 'ufw' && state.firewall && state.firewall.status !== 'active') {
       color = 'var(--danger)';
-      marker = 'url(#arrow-danger)';
+      marker = `url(#${ap}arrow-danger)`;
+    }
+    if (edge.from === 'router' && ptState.router && ptState.router.online) {
+      color = 'var(--success)';
+      marker = `url(#${ap}arrow-green)`;
+    }
+    if (edge.from === 'modem' && ptState.modem && ptState.modem.online) {
+      color = 'var(--success)';
+      marker = `url(#${ap}arrow-green)`;
     }
 
     // 箭头收尾缩短几像素，避免 marker 被节点边框挡住
@@ -187,8 +200,8 @@ function renderTopology(container) {
   }
 
   // 渲染节点
-  for (const node of TOPOLOGY.nodes) {
-    const status = getNodeStatus(node);
+  for (const node of topology.nodes) {
+    const status = getNodeStatusFn(node);
     const borderColor = status === 'ok' ? 'var(--success)' :
                         status === 'error' ? 'var(--danger)' :
                         status === 'warn' ? 'var(--warning)' : 'var(--border)';
@@ -232,14 +245,14 @@ function renderTopology(container) {
   svg += `</svg>`;
 
   // Tooltip
-  svg += `<div id="nt-tooltip" class="nt-tooltip" style="display:none;"></div>`;
+  svg += `<div id="${tooltipId}" class="nt-tooltip" style="display:none;"></div>`;
 
   container.innerHTML = svg;
 
   // 绑定 hover 事件
   container.querySelectorAll('.nt-node').forEach(rect => {
-    rect.addEventListener('mouseenter', showTooltip);
-    rect.addEventListener('mouseleave', hideTooltip);
+    rect.addEventListener('mouseenter', (e) => showTooltip(e, topology, getNodeStatusFn, tooltipId));
+    rect.addEventListener('mouseleave', () => hideTooltip(tooltipId));
   });
 }
 
@@ -265,6 +278,15 @@ function getNodeStatus(node) {
     if (!hasAllow) return 'error';
     if (ntState.firewall.status !== 'active') return 'warn';
     return 'ok';
+  }
+
+  if (node.dynamic === 'modem') {
+    if (!ptState.modem) return 'unknown';
+    return ptState.modem.online ? 'ok' : 'error';
+  }
+  if (node.dynamic === 'router') {
+    if (!ptState.router) return 'unknown';
+    return ptState.router.online ? 'ok' : 'error';
   }
 
   if (node.dynamic === 'health') {
@@ -335,12 +357,15 @@ function computeEdgeEndpoints(from, to) {
 
 // ── Tooltip ──
 
-function showTooltip(e) {
+function showTooltip(e, topology, getStatusFn, tooltipId) {
+  topology = topology || TOPOLOGY;
+  getStatusFn = getStatusFn || getNodeStatus;
+  tooltipId = tooltipId || 'nt-tooltip';
   const nodeId = e.target.getAttribute('data-node');
-  const node = TOPOLOGY.nodes.find(n => n.id === nodeId);
+  const node = topology.nodes.find(n => n.id === nodeId);
   if (!node) return;
 
-  const status = getNodeStatus(node);
+  const status = getStatusFn(node);
   const statusText = status === 'ok' ? '正常' :
                      status === 'error' ? '异常' :
                      status === 'warn' ? '警告' :
@@ -349,23 +374,36 @@ function showTooltip(e) {
   const portText = node.port ? `端口: ${node.port}` : '';
   const protoText = node.id === 'qbittorrent' ? '协议: TCP + UDP' : '';
 
-  const tooltip = document.getElementById('nt-tooltip');
-  tooltip.innerHTML = `
-    <div class="nt-tt-name">${node.label.replace('\n', ' ')}</div>
+  const tooltip = document.getElementById(tooltipId);
+  let info = `<div class="nt-tt-name">${node.label.replace('\n', ' ')}</div>
     <div class="nt-tt-info">状态: ${statusText}</div>
     ${portText ? `<div class="nt-tt-info">${portText}</div>` : ''}
-    ${protoText ? `<div class="nt-tt-info">${protoText}</div>` : ''}
-  `;
+    ${protoText ? `<div class="nt-tt-info">${protoText}</div>` : ''}`;
+
+  // 物理拓扑额外信息
+  if (node.id === 'modem' && ptState.modem) {
+    info += `<div class="nt-tt-info">IP: ${ptState.modem.ip}  ·  延迟: ${ptState.modem.latency !== null ? ptState.modem.latency.toFixed(1) + 'ms' : '-'}</div>`;
+    info += `<div class="nt-tt-info">CMCC ONT  ·  LAN×${ptState.modem.ports.lan}  POTS×${ptState.modem.ports.pots}</div>`;
+  }
+  if (node.id === 'router' && ptState.router) {
+    const r = ptState.router;
+    info += `<div class="nt-tt-info">${r.model || '小米路由器'}  ·  固件 ${r.firmware || '-'}</div>`;
+    if (r.uptime) info += `<div class="nt-tt-info">运行: ${formatUptime(r.uptime)}</div>`;
+    if (r.cpu) info += `<div class="nt-tt-info">CPU: ${r.cpu.load}% (${r.cpu.core}核)  ·  内存: ${r.mem ? (r.mem.usage * 100).toFixed(0) + '% / ' + r.mem.total : '-'}</div>`;
+    if (r.wan) info += `<div class="nt-tt-info">WAN: ↓${formatSpeed(r.wan.down)} ↑${formatSpeed(r.wan.up)}</div>`;
+  }
+
+  tooltip.innerHTML = info;
   tooltip.style.display = 'block';
 
-  const container = document.getElementById('nt-diagram');
+  const container = e.target.closest('.nt-diagram');
   const rect = container.getBoundingClientRect();
   tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
   tooltip.style.top = (e.clientY - rect.top - 40) + 'px';
 }
 
-function hideTooltip() {
-  document.getElementById('nt-tooltip').style.display = 'none';
+function hideTooltip(tooltipId) {
+  document.getElementById(tooltipId || 'nt-tooltip').style.display = 'none';
 }
 
 function refreshPage() {
@@ -380,25 +418,81 @@ loadPhysicalTopology();
 
 let ptState = { modem: null, router: null, n150: null };
 
+// 物理拓扑 = 网络拓扑全部节点下移 130px + 前插光猫和路由器
+const PHYSICAL_TOPOLOGY = (function() {
+  const shift = 130;
+  const shifted = TOPOLOGY.nodes.map(n => ({
+    ...n,
+    y: n.y + shift,
+  }));
+  // Internet 节点保持原位置
+  shifted.find(n => n.id === 'internet').y = 30;
+
+  const nodes = [
+    { id: 'modem',   label: '光猫',   x: 470, y: 100, w: 120, h: 44, dynamic: 'modem' },
+    { id: 'router',  label: '路由器', x: 465, y: 175, w: 130, h: 44, dynamic: 'router' },
+    ...shifted,
+  ];
+
+  const edges = [
+    { from: 'internet', to: 'modem',   style: 'solid', label: '' },
+    { from: 'modem',    to: 'router',  style: 'solid', label: '' },
+    { from: 'router',   to: 'cf-cdn',  style: 'solid', label: 'HTTPS' },
+    { from: 'router',   to: 'ufw',     style: 'solid', label: '直连' },
+    ...TOPOLOGY.edges.filter(e => !(e.from === 'internet' && (e.to === 'cf-cdn' || e.to === 'ufw'))),
+  ];
+
+  return { nodes, edges };
+})();
+
+const PT_LAYERS = [
+  { y: 30,  h: 44, label: '外部' },
+  { y: 100, h: 44, label: '接入' },
+  { y: 175, h: 44, label: '路由' },
+  { y: 260, h: 44, label: '入口' },
+  { y: 370, h: 52, label: '隧道' },
+  { y: 550, h: 44, label: '服务' },
+];
+
+const PT_SEPARATORS = [87, 157, 237, 337, 486];
+
 async function loadPhysicalTopology() {
   const container = document.getElementById('pt-diagram');
   if (!container) return;
   container.innerHTML = '<div class="nt-loading">加载物理拓扑...</div>';
 
-  try {
-    const data = await api('/physical-topology');
-    if (!data) {
-      // api() 返回 null 表示请求失败（401/500 等）
-      ptState = { error: true };
-    } else {
-      ptState = data;
-    }
-  } catch (_) {
-    ptState = { error: true };
+  // 并行获取：物理拓扑数据 + 网络拓扑状态
+  const [ptResult, ...ntResults] = await Promise.allSettled([
+    api('/physical-topology'),
+    api('/firewall/status'),
+    api('/tunnel/status'),
+    api('/health'),
+  ]);
+
+  // 物理拓扑数据
+  if (ptResult.status === 'fulfilled' && ptResult.value) {
+    ptState = ptResult.value;
+  } else {
+    ptState = { error: true, modem: null, router: null };
   }
 
+  // 同时更新 ntState（物理拓扑需要检查 tunnel/firewall 状态）
+  ntState.firewall = ntResults[0].status === 'fulfilled' ? ntResults[0].value : null;
+  ntState.tunnel   = ntResults[1].status === 'fulfilled' ? ntResults[1].value : null;
+  ntState.health   = ntResults[2].status === 'fulfilled' ? ntResults[2].value : [];
+
   updatePtBadge();
-  renderPhysicalTopology(container);
+  renderTopology(container, {
+    topology: PHYSICAL_TOPOLOGY,
+    state: ntState,
+    W: 1100,
+    H: 630,
+    layers: PT_LAYERS,
+    separators: PT_SEPARATORS,
+    tooltipId: 'pt-tooltip',
+    arrowPrefix: 'pt-',
+    getNodeStatusFn: getNodeStatus,
+  });
 }
 
 function updatePtBadge() {
@@ -409,127 +503,9 @@ function updatePtBadge() {
     badge.textContent = '数据获取失败';
     return;
   }
-  const allOnline = ptState.modem.online && ptState.router.online && ptState.n150.online;
+  const allOnline = ptState.modem.online && ptState.router.online;
   badge.className = allOnline ? 'status-badge status-healthy' : 'status-badge status-warning';
   badge.textContent = allOnline ? '全部在线' : '部分离线';
-}
-
-function renderPhysicalTopology(container) {
-  const W = 1000;
-  const H = 300;
-
-  // 节点定义（垂直栈：Internet → 光猫 → 路由器 → N150）
-  const nodes = [
-    { id: 'internet', label: 'Internet',    x: 350, y: 20,  w: 120, h: 36 },
-    { id: 'modem',     label: '光猫',        x: 350, y: 90,  w: 120, h: 36 },
-    { id: 'router',    label: '路由器',      x: 350, y: 165, w: 120, h: 36 },
-    { id: 'n150',      label: 'N150 服务器', x: 340, y: 240, w: 140, h: 36 },
-  ];
-
-  let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  svg += `<defs>
-    <marker id="pt-arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--success)"/>
-    </marker>
-    <marker id="pt-arrow-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim)"/>
-    </marker>
-    <marker id="pt-arrow-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--danger)"/>
-    </marker>
-  </defs>`;
-
-  // 连线：Internet → 光猫 → 路由器 → N150
-  const edges = [
-    { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 },
-  ];
-
-  for (const e of edges) {
-    const from = nodes[e.from];
-    const to = nodes[e.to];
-    const sx = from.x + from.w / 2;
-    const sy = from.y + from.h;
-    const ex = to.x + to.w / 2;
-    const ey = to.y;
-
-    let color = 'var(--text-dim)', marker = 'url(#pt-arrow-dim)';
-    const online = nodeOnline(to.id);
-    if (online === true)      { color = 'var(--success)'; marker = 'url(#pt-arrow-green)'; }
-    else if (online === false) { color = 'var(--danger)';  marker = 'url(#pt-arrow-danger)'; }
-
-    svg += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey - 4}" stroke="${color}" stroke-width="2" marker-end="${marker}"/>`;
-  }
-
-  // 节点
-  for (const node of nodes) {
-    const online = nodeOnline(node.id);
-    const borderColor = online === null ? 'var(--border)' :
-                        online ? 'var(--success)' : 'var(--danger)';
-    const bgColor = online === false ? 'var(--danger-bg)' : 'var(--bg-card)';
-
-    svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="6" fill="${bgColor}" stroke="${borderColor}" stroke-width="2"/>`;
-
-    // 状态圆点
-    if (online !== null) {
-      const dotColor = online ? 'var(--success)' : 'var(--danger)';
-      svg += `<circle cx="${node.x + node.w - 14}" cy="${node.y + node.h / 2}" r="5" fill="${dotColor}"/>`;
-    }
-
-    svg += `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 4}" text-anchor="middle" class="nt-node-label">${node.label}</text>`;
-  }
-
-  // 右侧详情面板
-  const dx = 510; // 详情起始 X
-
-  // 光猫详情
-  if (ptState.modem) {
-    const m = ptState.modem;
-    const y = 90;
-    svg += ptDetailLine(dx, y, 'CMCC ONT', true);
-    svg += ptDetailLine(dx, y + 15, `IP: ${m.ip}  ·  延迟: ${m.latency !== null ? m.latency.toFixed(1) + 'ms' : '-'}`);
-    svg += ptDetailLine(dx, y + 28, `LAN ×${m.ports.lan}  ·  POTS ×${m.ports.pots}  ·  USB ×${m.ports.usb}`);
-  }
-
-  // 路由器详情
-  if (ptState.router) {
-    const r = ptState.router;
-    const y = 165;
-    svg += ptDetailLine(dx, y, r.model || '小米路由器', true);
-    const lines = [];
-    lines.push(`固件: ${r.firmware || '-'}  ·  IP: ${r.ip}`);
-    if (r.uptime !== null) lines.push(`运行: ${formatUptime(r.uptime)}`);
-    if (r.cpu) lines.push(`CPU: ${r.cpu.load}% (${r.cpu.core}核)  ·  内存: ${r.mem ? (r.mem.usage * 100).toFixed(0) + '% / ' + r.mem.total : '-'}`);
-    if (r.wan) lines.push(`WAN: ↓${formatSpeed(r.wan.down)}  ↑${formatSpeed(r.wan.up)}`);
-    lines.forEach((l, i) => { svg += ptDetailLine(dx, y + 15 + i * 15, l); });
-  }
-
-  // N150 详情
-  if (ptState.n150) {
-    const n = ptState.n150;
-    const y = 240;
-    svg += ptDetailLine(dx, y, 'N150 服务器', true);
-    const lines = [];
-    lines.push(`IP: ${n.ip}`);
-    if (n.uptime !== null) lines.push(`运行: ${formatUptime(n.uptime)}`);
-    if (n.cpu) lines.push(`CPU: ${n.cpu.usage.toFixed(0)}% (${n.cpu.core}核)  ·  内存: ${n.mem ? n.mem.usage.toFixed(0) + '% / ' + n.mem.total : '-'}`);
-    lines.forEach((l, i) => { svg += ptDetailLine(dx, y + 15 + i * 15, l); });
-  }
-
-  svg += `</svg>`;
-  container.innerHTML = svg;
-}
-
-function ptDetailLine(x, y, text, isTitle) {
-  const cls = isTitle ? 'nt-detail-title' : 'nt-detail-text';
-  return `<text x="${x}" y="${y}" class="${cls}">${escHtml(text)}</text>`;
-}
-
-function nodeOnline(id) {
-  if (id === 'internet') return null;
-  if (id === 'modem') return ptState.modem ? ptState.modem.online : null;
-  if (id === 'router') return ptState.router ? ptState.router.online : null;
-  if (id === 'n150') return ptState.n150 ? ptState.n150.online : null;
-  return null;
 }
 
 function formatUptime(seconds) {
@@ -547,8 +523,4 @@ function formatSpeed(bytesPerSec) {
   if (v >= 1048576) return (v / 1048576).toFixed(1) + 'MB/s';
   if (v >= 1024) return (v / 1024).toFixed(0) + 'KB/s';
   return v + 'B/s';
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
