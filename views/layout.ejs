@@ -24,10 +24,23 @@
           <i data-lucide="layout-dashboard" class="icon-sm"></i>
           <span>概览</span>
         </a>
-        <a href="/system" class="nav-item <%= active === 'system' ? 'active' : '' %>">
-          <i data-lucide="cpu" class="icon-sm"></i>
-          <span>系统资源</span>
-        </a>
+        <%
+          // 系统管理组是否展开：当前在 system 页面时展开
+          const adminGroupActive = ['system'].includes(active);
+        %>
+        <div class="nav-group <%= adminGroupActive ? 'expanded' : '' %>" data-group="admin">
+          <div class="nav-group-toggle" onclick="toggleNavGroup(this.parentElement)">
+            <i data-lucide="server" class="icon-sm"></i>
+            <span>系统管理</span>
+            <i data-lucide="chevron-down" class="icon-sm nav-group-arrow"></i>
+          </div>
+          <div class="nav-group-items">
+            <a href="/system" class="nav-sub-item <%= active === 'system' ? 'active' : '' %>">
+              <i data-lucide="cpu" class="icon-sm"></i>
+              <span>系统资源</span>
+            </a>
+          </div>
+        </div>
         <%
           // 服务管理组是否展开：当前在 settings / services / deploy 任一页面时展开
           const svcGroupActive = ['settings', 'services', 'deploy'].includes(active);
