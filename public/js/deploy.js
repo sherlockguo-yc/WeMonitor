@@ -146,9 +146,9 @@ function renderCard(svc) {
         ${renderCISection(svc.remote && svc.remote.ci)}
       </div>
 
-      <!-- 部署时间线 -->
+      <!-- CD 部署 -->
       <div class="deploy-section">
-        <div class="deploy-section-title">部署时间线</div>
+        <div class="deploy-section-title">CD 部署</div>
         <div class="tl-list">
           ${renderTimeline(svc.local.events)}
         </div>
