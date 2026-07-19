@@ -127,18 +127,16 @@ function renderCard(svc) {
       </span>
     </div>
     <div class="card-body deploy-card-body">
-      <div class="deploy-sections">
-        <!-- 版本对比 -->
-        <div class="deploy-section">
-          <div class="deploy-section-title">版本</div>
-          ${renderVersion(svc.local, svc.remote)}
-        </div>
+      <!-- 版本对比 -->
+      <div class="deploy-section">
+        <div class="deploy-section-title">版本</div>
+        ${renderVersion(svc.local, svc.remote)}
+      </div>
 
-        <!-- CI 状态 -->
-        <div class="deploy-section">
-          <div class="deploy-section-title">CI 构建</div>
-          ${renderCISection(svc.remote && svc.remote.ci)}
-        </div>
+      <!-- CI 状态 -->
+      <div class="deploy-section">
+        <div class="deploy-section-title">CI 构建</div>
+        ${renderCISection(svc.remote && svc.remote.ci)}
       </div>
 
       <!-- 部署时间线 -->
