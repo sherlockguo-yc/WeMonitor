@@ -220,6 +220,11 @@ function renderTopology(container, opts = {}) {
     rect.addEventListener('mouseenter', (e) => showTooltip(e, topology, getNodeStatusFn, tooltipId));
     rect.addEventListener('mouseleave', () => hideTooltip(tooltipId));
   });
+
+  // 状态圆点阻止鼠标事件穿透（避免覆盖节点 rect 的 hover）
+  container.querySelectorAll('.nt-node + circle, .nt-node ~ circle').forEach(circle => {
+    circle.style.pointerEvents = 'none';
+  });
 }
 
 function getNodeStatus(node) {
@@ -327,7 +332,8 @@ function showTooltip(e, topology, getStatusFn, tooltipId) {
   topology = topology || TOPOLOGY;
   getStatusFn = getStatusFn || getNodeStatus;
   tooltipId = tooltipId || 'nt-tooltip';
-  const nodeId = e.target.getAttribute('data-node');
+  // 使用 currentTarget 而非 target，防止鼠标落在子元素（如圆点）上时取不到 data-node
+  const nodeId = e.currentTarget.getAttribute('data-node');
   const node = topology.nodes.find(n => n.id === nodeId);
   if (!node) return;
 
@@ -361,15 +367,20 @@ function showTooltip(e, topology, getStatusFn, tooltipId) {
 
   tooltip.innerHTML = info;
   tooltip.style.display = 'block';
+  // 添加 visible 类触发 CSS opacity 过渡（CSS 中 .nt-tooltip 默认 opacity:0）
+  tooltip.classList.add('visible');
 
-  const container = e.target.closest('.nt-diagram');
+  const container = e.currentTarget.closest('.nt-diagram');
   const rect = container.getBoundingClientRect();
   tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
   tooltip.style.top = (e.clientY - rect.top - 40) + 'px';
 }
 
 function hideTooltip(tooltipId) {
-  document.getElementById(tooltipId || 'nt-tooltip').style.display = 'none';
+  const tooltip = document.getElementById(tooltipId || 'nt-tooltip');
+  if (!tooltip) return;
+  tooltip.classList.remove('visible');
+  tooltip.style.display = 'none';
 }
 
 function refreshPage() {
