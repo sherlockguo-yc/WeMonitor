@@ -374,6 +374,7 @@ function refreshPage() {
 }
 
 loadNetworkTopology();
+loadPhysicalTopology();
 
 // ── 物理拓扑 ──
 
