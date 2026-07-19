@@ -20,18 +20,23 @@ async function loadUsers(skipCache = false) {
       ? '<span class="status-badge status-healthy">已激活</span>'
       : '<span class="status-badge" style="background:var(--warning-bg); color:var(--warning)">待审批</span>';
 
+    const isSelf = u.id === window.CURRENT_USER_ID;
     let actions = '';
     if (u.status === 'pending') {
       actions = `<button class="btn btn-primary btn-sm" onclick="approveUser(${u.id})">审批通过</button>`;
     }
     if (u.status === 'active') {
       if (u.role === 'admin') {
-        actions += `<button class="btn btn-sm" style="color:var(--warning);border-color:var(--warning)" onclick="toggleRole(${u.id},'user')">取消管理员</button>`;
+        if (!isSelf) {
+          actions += `<button class="btn btn-sm" style="color:var(--warning);border-color:var(--warning)" onclick="toggleRole(${u.id},'user')">取消管理员</button>`;
+        }
       } else {
         actions += `<button class="btn btn-primary btn-sm" onclick="toggleRole(${u.id},'admin')">设为管理员</button>`;
       }
     }
-    actions += ` <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">删除</button>`;
+    if (!isSelf) {
+      actions += ` <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">删除</button>`;
+    }
 
     return `
       <tr>
