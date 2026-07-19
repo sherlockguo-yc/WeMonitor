@@ -386,7 +386,12 @@ async function loadPhysicalTopology() {
 
   try {
     const data = await api('/physical-topology');
-    ptState = data;
+    if (!data) {
+      // api() 返回 null 表示请求失败（401/500 等）
+      ptState = { error: true };
+    } else {
+      ptState = data;
+    }
   } catch (_) {
     ptState = { error: true };
   }
