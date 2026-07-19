@@ -1530,6 +1530,11 @@ body {
   color: var(--text-dim);
 }
 
+.nt-legend-sep {
+  color: var(--border);
+  font-size: calc(var(--font-size) * 0.8);
+}
+
 .nt-dot {
   display: inline-block;
   width: 10px;
@@ -1541,6 +1546,17 @@ body {
 .nt-dot-green { background: var(--success); }
 .nt-dot-red   { background: var(--danger); }
 .nt-dot-gray  { background: var(--text-dim); }
+
+/* 线型图例 */
+.nt-line-sample {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top: 2px solid var(--success);
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.nt-line-sample.nt-line-dashed { border-top-style: dashed; }
 
 /* 状态徽章补充 */
 .status-badge.status-warning {
