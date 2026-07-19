@@ -26,6 +26,12 @@ function timeAgo(iso) {
   return `${Math.floor(diff / 86400)} 天前`;
 }
 
+function formatCIAbsoluteTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function tsToTime(ts) {
   const d = new Date(ts * 1000);
   return d.toLocaleTimeString('zh-CN', { hour12: false });
@@ -74,6 +80,7 @@ function renderCISection(ci) {
   if (!ci) return '<div class="deploy-sub-text">CI 状态不可用</div>';
   const info = CI_LABELS[ci.conclusion] || CI_LABELS[ci.status] || { text: ci.status || '未知' };
   const ago = timeAgo(ci.updatedAt);
+  const absTime = formatCIAbsoluteTime(ci.updatedAt);
   const conclusion = ci.conclusion;
   const cls = conclusion === 'success' ? 'ci-success' :
               conclusion === 'failure' ? 'ci-failure' :
@@ -82,7 +89,7 @@ function renderCISection(ci) {
     <i data-lucide="${cls === 'ci-success' ? 'check-circle' : cls === 'ci-failure' ? 'x-circle' : 'loader'}" class="icon-sm"></i>
     <span>${escHtml(ci.name)}</span>
     <span class="ci-status">${info.text}</span>
-    <span class="ci-time">${ago}</span>
+    <span class="ci-time">${ago} · ${absTime}</span>
   </a>`;
 }
 
