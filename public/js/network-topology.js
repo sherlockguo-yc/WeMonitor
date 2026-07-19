@@ -42,8 +42,8 @@ const TOPOLOGY = {
     { from: 'ufw',       to: 'npm-admin',  style: 'solid',  label: ':8443' },
     { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
     { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
-    { from: 'cf-tunnel', to: 'wemusic',    style: 'solid',  label: '' },
-    { from: 'cf-tunnel', to: 'wedownload', style: 'solid',  label: '' },
+    { from: 'cf-tunnel', to: 'wemusic',    style: 'dashed', label: '' },
+    { from: 'cf-tunnel', to: 'wedownload', style: 'dashed', label: '' },
   ],
 };
 
