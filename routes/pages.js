@@ -85,7 +85,7 @@ router.get('/deploy', (req, res) => {
 
 // 网络拓扑概览
 router.get('/network', (req, res) => {
-  res.render('network-topology', { title: '网络拓扑', active: 'network' });
+  res.render('network-topology', { title: '概览', active: 'network' });
 });
 
 // Tunnel 管理
