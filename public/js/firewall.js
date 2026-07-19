@@ -51,12 +51,38 @@ async function loadFirewall() {
   refreshIcons();
 }
 
+// IP/CIDR 格式校验（前端）
+function isValidIpOrCidr(value) {
+  if (!value || value === 'any' || value === 'Anywhere') return true;
+  const cidrMatch = value.match(/^(.+?)\/(\d+)$/);
+  let ip = value, mask = -1;
+  if (cidrMatch) {
+    ip = cidrMatch[1];
+    mask = parseInt(cidrMatch[2], 10);
+  }
+  // IPv4
+  const ipv4 = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    if (!ipv4.slice(1).every(o => parseInt(o, 10) <= 255)) return false;
+    if (mask >= 0) return mask >= 0 && mask <= 32;
+    return true;
+  }
+  // IPv6 简化校验
+  const ipv6 = ip.match(/^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/);
+  if (ipv6) {
+    if (mask >= 0) return mask >= 0 && mask <= 128;
+    return true;
+  }
+  return false;
+}
+
 function showAddRuleForm() {
   fwEditNumber = null;
   document.getElementById('fw-modal-title').textContent = '添加防火墙规则';
   document.getElementById('fw-submit-btn').textContent = '添加';
   document.getElementById('fw-port').value = '';
   document.getElementById('fw-protocol').value = 'tcp';
+  document.getElementById('fw-from').value = '';
   document.getElementById('fw-comment').value = '';
   document.getElementById('fw-modal').style.display = 'flex';
 }
@@ -70,6 +96,7 @@ function editRule(number) {
   document.getElementById('fw-submit-btn').textContent = '保存';
   document.getElementById('fw-port').value = rule.port;
   document.getElementById('fw-protocol').value = rule.protocol || 'tcp';
+  document.getElementById('fw-from').value = (rule.from && rule.from !== 'Anywhere') ? rule.from : '';
   document.getElementById('fw-comment').value = rule.comment || '';
   document.getElementById('fw-modal').style.display = 'flex';
 }
@@ -82,11 +109,16 @@ function closeFwModal() {
 async function submitFwRule() {
   const port = document.getElementById('fw-port').value.trim();
   const protocol = document.getElementById('fw-protocol').value;
+  const from = document.getElementById('fw-from').value.trim();
   const comment = document.getElementById('fw-comment').value.trim();
 
   if (!port) { alert('请输入端口号'); return; }
+  if (from && !isValidIpOrCidr(from)) {
+    alert('来源 IP 格式无效，支持 IPv4/IPv6/CIDR，如 192.168.1.100 或 10.0.0.0/24');
+    return;
+  }
 
-  const body = JSON.stringify({ port, protocol, comment });
+  const body = JSON.stringify({ port, protocol, comment, from });
   let url = '/api/v1/firewall/rules';
   let method = 'POST';
 
