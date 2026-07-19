@@ -370,6 +370,179 @@ function hideTooltip() {
 
 function refreshPage() {
   loadNetworkTopology();
+  loadPhysicalTopology();
 }
 
 loadNetworkTopology();
+
+// ── 物理拓扑 ──
+
+let ptState = { modem: null, router: null, n150: null };
+
+async function loadPhysicalTopology() {
+  const container = document.getElementById('pt-diagram');
+  if (!container) return;
+  container.innerHTML = '<div class="nt-loading">加载物理拓扑...</div>';
+
+  try {
+    const data = await api('/physical-topology');
+    ptState = data;
+  } catch (_) {
+    ptState = { error: true };
+  }
+
+  updatePtBadge();
+  renderPhysicalTopology(container);
+}
+
+function updatePtBadge() {
+  const badge = document.getElementById('pt-status-badge');
+  if (!badge) return;
+  if (ptState.error || !ptState.modem) {
+    badge.className = 'status-badge status-unhealthy';
+    badge.textContent = '数据获取失败';
+    return;
+  }
+  const allOnline = ptState.modem.online && ptState.router.online && ptState.n150.online;
+  badge.className = allOnline ? 'status-badge status-healthy' : 'status-badge status-warning';
+  badge.textContent = allOnline ? '全部在线' : '部分离线';
+}
+
+function renderPhysicalTopology(container) {
+  const W = 1000;
+  const H = 300;
+
+  // 节点定义（垂直栈：Internet → 光猫 → 路由器 → N150）
+  const nodes = [
+    { id: 'internet', label: 'Internet',    x: 350, y: 20,  w: 120, h: 36 },
+    { id: 'modem',     label: '光猫',        x: 350, y: 90,  w: 120, h: 36 },
+    { id: 'router',    label: '路由器',      x: 350, y: 165, w: 120, h: 36 },
+    { id: 'n150',      label: 'N150 服务器', x: 340, y: 240, w: 140, h: 36 },
+  ];
+
+  let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs>
+    <marker id="pt-arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--success)"/>
+    </marker>
+    <marker id="pt-arrow-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim)"/>
+    </marker>
+    <marker id="pt-arrow-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--danger)"/>
+    </marker>
+  </defs>`;
+
+  // 连线：Internet → 光猫 → 路由器 → N150
+  const edges = [
+    { from: 0, to: 1 }, { from: 1, to: 2 }, { from: 2, to: 3 },
+  ];
+
+  for (const e of edges) {
+    const from = nodes[e.from];
+    const to = nodes[e.to];
+    const sx = from.x + from.w / 2;
+    const sy = from.y + from.h;
+    const ex = to.x + to.w / 2;
+    const ey = to.y;
+
+    let color = 'var(--text-dim)', marker = 'url(#pt-arrow-dim)';
+    const online = nodeOnline(to.id);
+    if (online === true)      { color = 'var(--success)'; marker = 'url(#pt-arrow-green)'; }
+    else if (online === false) { color = 'var(--danger)';  marker = 'url(#pt-arrow-danger)'; }
+
+    svg += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey - 4}" stroke="${color}" stroke-width="2" marker-end="${marker}"/>`;
+  }
+
+  // 节点
+  for (const node of nodes) {
+    const online = nodeOnline(node.id);
+    const borderColor = online === null ? 'var(--border)' :
+                        online ? 'var(--success)' : 'var(--danger)';
+    const bgColor = online === false ? 'var(--danger-bg)' : 'var(--bg-card)';
+
+    svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="6" fill="${bgColor}" stroke="${borderColor}" stroke-width="2"/>`;
+
+    // 状态圆点
+    if (online !== null) {
+      const dotColor = online ? 'var(--success)' : 'var(--danger)';
+      svg += `<circle cx="${node.x + node.w - 14}" cy="${node.y + node.h / 2}" r="5" fill="${dotColor}"/>`;
+    }
+
+    svg += `<text x="${node.x + node.w / 2}" y="${node.y + node.h / 2 + 4}" text-anchor="middle" class="nt-node-label">${node.label}</text>`;
+  }
+
+  // 右侧详情面板
+  const dx = 510; // 详情起始 X
+
+  // 光猫详情
+  if (ptState.modem) {
+    const m = ptState.modem;
+    const y = 90;
+    svg += ptDetailLine(dx, y, 'CMCC ONT', true);
+    svg += ptDetailLine(dx, y + 15, `IP: ${m.ip}  ·  延迟: ${m.latency !== null ? m.latency.toFixed(1) + 'ms' : '-'}`);
+    svg += ptDetailLine(dx, y + 28, `LAN ×${m.ports.lan}  ·  POTS ×${m.ports.pots}  ·  USB ×${m.ports.usb}`);
+  }
+
+  // 路由器详情
+  if (ptState.router) {
+    const r = ptState.router;
+    const y = 165;
+    svg += ptDetailLine(dx, y, r.model || '小米路由器', true);
+    const lines = [];
+    lines.push(`固件: ${r.firmware || '-'}  ·  IP: ${r.ip}`);
+    if (r.uptime !== null) lines.push(`运行: ${formatUptime(r.uptime)}`);
+    if (r.cpu) lines.push(`CPU: ${r.cpu.load}% (${r.cpu.core}核)  ·  内存: ${r.mem ? (r.mem.usage * 100).toFixed(0) + '% / ' + r.mem.total : '-'}`);
+    if (r.wan) lines.push(`WAN: ↓${formatSpeed(r.wan.down)}  ↑${formatSpeed(r.wan.up)}`);
+    lines.forEach((l, i) => { svg += ptDetailLine(dx, y + 15 + i * 15, l); });
+  }
+
+  // N150 详情
+  if (ptState.n150) {
+    const n = ptState.n150;
+    const y = 240;
+    svg += ptDetailLine(dx, y, 'N150 服务器', true);
+    const lines = [];
+    lines.push(`IP: ${n.ip}`);
+    if (n.uptime !== null) lines.push(`运行: ${formatUptime(n.uptime)}`);
+    if (n.cpu) lines.push(`CPU: ${n.cpu.usage.toFixed(0)}% (${n.cpu.core}核)  ·  内存: ${n.mem ? n.mem.usage.toFixed(0) + '% / ' + n.mem.total : '-'}`);
+    lines.forEach((l, i) => { svg += ptDetailLine(dx, y + 15 + i * 15, l); });
+  }
+
+  svg += `</svg>`;
+  container.innerHTML = svg;
+}
+
+function ptDetailLine(x, y, text, isTitle) {
+  const cls = isTitle ? 'nt-detail-title' : 'nt-detail-text';
+  return `<text x="${x}" y="${y}" class="${cls}">${escHtml(text)}</text>`;
+}
+
+function nodeOnline(id) {
+  if (id === 'internet') return null;
+  if (id === 'modem') return ptState.modem ? ptState.modem.online : null;
+  if (id === 'router') return ptState.router ? ptState.router.online : null;
+  if (id === 'n150') return ptState.n150 ? ptState.n150.online : null;
+  return null;
+}
+
+function formatUptime(seconds) {
+  if (typeof seconds !== 'number') return '-';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}天 ${h}小时`;
+  if (h > 0) return `${h}小时 ${m}分`;
+  return `${m}分`;
+}
+
+function formatSpeed(bytesPerSec) {
+  const v = parseInt(bytesPerSec) || 0;
+  if (v >= 1048576) return (v / 1048576).toFixed(1) + 'MB/s';
+  if (v >= 1024) return (v / 1024).toFixed(0) + 'KB/s';
+  return v + 'B/s';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}

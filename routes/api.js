@@ -46,6 +46,10 @@ router.post('/tunnel/restart', tunnelApi.restart);
 router.get('/tunnel/logs', tunnelApi.getLogs);
 router.post('/tunnel/route', tunnelApi.addRoute);
 
+// 物理拓扑
+const physicalTopologyApi = require('../lib/api/physical-topology');
+router.get('/physical-topology', physicalTopologyApi.getStatus);
+
 // ── 管理员 API ──
 router.use('/admin', requireAdmin);
 

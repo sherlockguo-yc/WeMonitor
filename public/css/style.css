@@ -1486,6 +1486,23 @@ body {
   user-select: none;
 }
 
+/* 物理拓扑详情文本 */
+.nt-detail-title {
+  font-size: calc(var(--font-size) * 0.82);
+  fill: var(--text);
+  font-family: var(--font);
+  font-weight: 600;
+  pointer-events: none;
+  user-select: none;
+}
+.nt-detail-text {
+  font-size: calc(var(--font-size) * 0.75);
+  fill: var(--text-dim);
+  font-family: var(--font);
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Tooltip */
 .nt-tooltip {
   position: absolute;
