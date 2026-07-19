@@ -10,7 +10,14 @@ function escHtml(s) {
 
 async function loadTunnelStatus() {
   const t0 = performance.now();
-  const res = await fetch('/api/v1/tunnel/status');
+  let res;
+  try {
+    res = await fetch('/api/v1/tunnel/status');
+  } catch (err) {
+    document.getElementById('tunnel-status-badge').textContent = '网络错误';
+    console.error('[tunnel] status fetch failed:', err);
+    return;
+  }
   if (!res.ok) {
     document.getElementById('tunnel-status-badge').textContent = 'API 错误';
     return;
@@ -28,14 +35,21 @@ async function loadTunnelStatus() {
   }
 
   document.getElementById('tunnel-name').textContent = data.name || '--';
-  document.getElementById('tunnel-connections').textContent = data.connections;
+  document.getElementById('tunnel-connections').textContent =
+    data.connections !== undefined ? data.connections : '--';
   document.getElementById('tunnel-locations').textContent =
     data.locations && data.locations.length > 0 ? data.locations.join(', ') : '--';
 
-  if (data.activeSince) {
-    const since = new Date(data.activeSince.replace(' UTC', 'Z'));
-    const diffSec = Math.floor((Date.now() - since.getTime()) / 1000);
-    document.getElementById('tunnel-uptime').textContent = formatUptime(diffSec);
+  // 优先用 ISO 8601 时间戳（服务端已转换），兜底兼容旧的 activeSince 字段
+  const sinceStr = data.activeSinceISO || data.activeSince;
+  if (sinceStr) {
+    const since = new Date(sinceStr);
+    if (!isNaN(since.getTime())) {
+      const diffSec = Math.floor((Date.now() - since.getTime()) / 1000);
+      document.getElementById('tunnel-uptime').textContent = formatUptime(Math.max(0, diffSec));
+    } else {
+      document.getElementById('tunnel-uptime').textContent = '--';
+    }
   } else {
     document.getElementById('tunnel-uptime').textContent = '--';
   }
@@ -93,7 +107,14 @@ async function addTunnelRoute() {
 async function loadTunnelLogs() {
   const t0 = performance.now();
   document.getElementById('tunnel-logs').textContent = '加载中...';
-  const res = await fetch('/api/v1/tunnel/logs?lines=50');
+  let res;
+  try {
+    res = await fetch('/api/v1/tunnel/logs?lines=50');
+  } catch (err) {
+    document.getElementById('tunnel-logs').textContent = '网络错误: ' + err.message;
+    console.error('[tunnel] logs fetch failed:', err);
+    return;
+  }
   const data = await res.json();
   const logEl = document.getElementById('tunnel-logs');
   if (data.lines && data.lines.length > 0) {
@@ -110,7 +131,14 @@ async function loadTunnelRoutes() {
   const tbody = document.getElementById('tunnel-routes-body');
   tbody.innerHTML = '<tr><td colspan="3" class="text-dim">加载中...</td></tr>';
 
-  const res = await fetch('/api/v1/tunnel/routes');
+  let res;
+  try {
+    res = await fetch('/api/v1/tunnel/routes');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="3" class="text-danger">网络错误: ${err.message}</td></tr>`;
+    console.error('[tunnel] routes fetch failed:', err);
+    return;
+  }
   const data = await res.json();
 
   if (!data.success) {
