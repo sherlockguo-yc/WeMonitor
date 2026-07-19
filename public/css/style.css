@@ -183,6 +183,7 @@ body {
 .nav-sub-item {
   display: flex;
   align-items: center;
+  gap: calc(var(--font-size) * 0.7);
   padding: calc(var(--font-size) * 0.55) calc(var(--font-size) * 1.4) calc(var(--font-size) * 0.55) calc(var(--font-size) * 2.6);
   color: var(--text-inverse-dim);
   text-decoration: none;
