@@ -1390,6 +1390,11 @@ body {
   background: var(--success-bg);
 }
 
+.worker-state-badge.worker-state-danger {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
 .worker-active-task,
 .worker-facts,
 .worker-queue,
@@ -1413,6 +1418,10 @@ body {
 
 .worker-active-task.worker-idle svg {
   color: var(--success);
+}
+
+.worker-active-task.worker-interrupted svg {
+  color: var(--danger);
 }
 
 .worker-active-task code,

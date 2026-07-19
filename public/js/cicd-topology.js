@@ -120,6 +120,9 @@ function getWorkerLabelLines() {
   const worker = cicdState.worker;
   if (!worker) return ['Deploy', 'Agent', '状态不可用'];
   const pending = Array.isArray(worker.pending) ? worker.pending.length : 0;
+  if (worker.status === 'interrupted') {
+    return ['Deploy', 'Agent', 'Worker 已中断', pending ? `队列 ${pending}` : ''];
+  }
   if (worker.status === 'working') {
     const phase = { downloading: '下载中', verifying: '校验中', syncing: '同步中', restarting: '重启中' }[worker.phase] || '工作中';
     return ['Deploy', 'Agent', `${worker.project || '任务'} · ${phase}`, pending ? `队列 ${pending}` : ''];
@@ -344,6 +347,7 @@ function getCicdNodeStatus(node) {
 
   if (node.dynamic === 'worker') {
     if (!cicdState.worker) return 'unknown';
+    if (cicdState.worker.status === 'interrupted') return 'error';
     return cicdState.worker.status === 'working' || (cicdState.worker.pending || []).length ? 'warn' : 'ok';
   }
 

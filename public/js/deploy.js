@@ -197,12 +197,13 @@ function renderWorkerSummary(worker) {
 
   const pending = Array.isArray(worker.pending) ? worker.pending : [];
   const isWorking = worker.status === 'working';
-  const phase = worker.phase && PHASE_META[worker.phase] ? PHASE_META[worker.phase].text : '空闲';
-  badge.className = `worker-state-badge ${isWorking ? 'worker-state-warning' : 'worker-state-idle'}`;
-  badge.textContent = isWorking ? `工作中 · ${phase}` : '空闲';
+  const isInterrupted = worker.status === 'interrupted';
+  const phase = isInterrupted ? '已中断' : worker.phase && PHASE_META[worker.phase] ? PHASE_META[worker.phase].text : '空闲';
+  badge.className = `worker-state-badge ${isInterrupted ? 'worker-state-danger' : isWorking ? 'worker-state-warning' : 'worker-state-idle'}`;
+  badge.textContent = isInterrupted ? '已中断' : isWorking ? `工作中 · ${phase}` : '空闲';
 
-  const active = isWorking
-    ? `<div class="worker-active-task"><i data-lucide="${PHASE_META[worker.phase]?.icon || 'bot'}" class="icon-sm"></i><span>${escHtml(worker.project || '未知项目')}</span><code>${escHtml((worker.version || '—').substring(0, 7))}</code><span>${escHtml(phase)}</span></div>`
+  const active = isWorking || isInterrupted
+    ? `<div class="worker-active-task ${isInterrupted ? 'worker-interrupted' : ''}"><i data-lucide="${isInterrupted ? 'circle-pause' : PHASE_META[worker.phase]?.icon || 'bot'}" class="icon-sm"></i><span>${escHtml(worker.project || '未知项目')}</span><code>${escHtml((worker.version || '—').substring(0, 7))}</code><span>${escHtml(isInterrupted ? worker.message || phase : phase)}</span></div>`
     : '<div class="worker-active-task worker-idle"><i data-lucide="circle-check" class="icon-sm"></i><span>无活动任务</span></div>';
   const queue = pending.length
     ? pending.map(task => `<span class="worker-queue-item"><strong>${escHtml(task.project)}</strong><code>${escHtml((task.version || '—').substring(0, 7))}</code></span>`).join('')
