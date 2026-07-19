@@ -30,9 +30,9 @@ const CICD_TOPOLOGY = {
     { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 482, y: 340, w: 148, h: 54 },
 
     // Layer 5: 服务
-    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 456, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
-    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 456, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
-    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 456, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
+    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
+    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
+    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
   ],
 
   // routing: 'direct' = 直线（1:1 垂直管道）, 'ortho' = 正交折线（fan-in/fan-out）
@@ -118,20 +118,20 @@ function getServiceState(serviceId) {
 
 function renderCicdTopology(container) {
   const W = 1100;
-  const H = 558;
+  const H = 588;
 
   const layers = [
     { y: 20,  h: 50, label: '源码' },
     { y: 122, h: 50, label: '构建' },
     { y: 224, h: 50, label: '发布' },
     { y: 340, h: 54, label: '部署' },
-    { y: 456, h: 52, label: '服务' },
+    { y: 488, h: 52, label: '服务' },
   ];
 
   let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">`;
 
   // ── 层级分隔线 ──
-  [100, 204, 310, 430].forEach(y => {
+  [100, 204, 310, 441].forEach(y => {
     svg += `<line x1="38" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,6" opacity="0.65"/>`;
   });
 
