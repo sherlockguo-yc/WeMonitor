@@ -1625,7 +1625,7 @@ body {
   display: inline-block;
   width: 20px;
   height: 0;
-  border-top: 2px solid var(--success);
+  border-top: 2px solid var(--text);
   vertical-align: middle;
   flex-shrink: 0;
 }
@@ -1635,6 +1635,7 @@ body {
 .nt-line-gray   { border-top-color: var(--text-dim); }
 .nt-line-red    { border-top-color: var(--danger); }
 .nt-line-yellow { border-top-color: var(--warning); }
+.nt-line-green  { border-top-color: var(--success); }
 
 /* ── 节点入场动画 ── */
 
