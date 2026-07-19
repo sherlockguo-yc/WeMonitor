@@ -24,6 +24,13 @@ async function loadUsers(skipCache = false) {
     if (u.status === 'pending') {
       actions = `<button class="btn btn-primary btn-sm" onclick="approveUser(${u.id})">审批通过</button>`;
     }
+    if (u.status === 'active') {
+      if (u.role === 'admin') {
+        actions += `<button class="btn btn-sm" style="color:var(--warning);border-color:var(--warning)" onclick="toggleRole(${u.id},'user')">取消管理员</button>`;
+      } else {
+        actions += `<button class="btn btn-primary btn-sm" onclick="toggleRole(${u.id},'admin')">设为管理员</button>`;
+      }
+    }
     actions += ` <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escapeHtml(u.username)}')">删除</button>`;
 
     return `
@@ -47,6 +54,20 @@ async function approveUser(id) {
   } else {
     const err = await res.json();
     alert('审批失败: ' + (err.error || '未知错误'));
+  }
+}
+
+async function toggleRole(id, newRole) {
+  const res = await fetch('/api/v1/admin/users/' + id + '/role', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: newRole })
+  });
+  if (res.ok) {
+    loadUsers(true);
+  } else {
+    const err = await res.json();
+    alert('操作失败: ' + (err.error || '未知错误'));
   }
 }
 

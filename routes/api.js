@@ -64,6 +64,25 @@ router.post('/admin/users/:id/approve', (req, res) => {
   res.json({ approved: true });
 });
 
+router.put('/admin/users/:id/role', (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const { role } = req.body;
+  if (!role || !['admin', 'user'].includes(role)) {
+    return res.status(400).json({ error: '无效的角色' });
+  }
+  const user = stmts.getUserById.get(userId);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  if (user.id === req.session.userId) return res.status(400).json({ error: '不能修改自己的角色' });
+  // 不允许将最后一个管理员降级
+  if (user.role === 'admin' && role === 'user') {
+    const allUsers = stmts.getAllUsers.all();
+    const adminCount = allUsers.filter(u => u.role === 'admin' && u.id !== userId).length;
+    if (adminCount === 0) return res.status(400).json({ error: '不能取消最后一个管理员' });
+  }
+  stmts.setRole.run(role, userId);
+  res.json({ updated: true, role });
+});
+
 router.delete('/admin/users/:id', (req, res) => {
   const userId = parseInt(req.params.id, 10);
   const user = stmts.getUserById.get(userId);
