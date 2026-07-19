@@ -1442,9 +1442,19 @@ body {
 
 .nt-svg {
   width: 100%;
-  max-width: 760px;
+  max-width: 1100px;
   display: block;
   margin: 0 auto;
+}
+
+.nt-layer-label {
+  font-size: calc(var(--font-size) * 0.78);
+  fill: var(--text-dim);
+  font-weight: 600;
+  font-family: var(--font);
+  letter-spacing: 1px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .nt-node {

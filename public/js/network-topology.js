@@ -4,34 +4,48 @@
 
 // ── 静态拓扑定义 ──
 
+// Canvas: W=1100, H=510
+// 4 层结构（自上而下）：外部 → 入口 → 隧道/代理 → 服务
+// 服务分散在底部一排，避免任何线条穿过其它节点
+
 const TOPOLOGY = {
   nodes: [
-    { id: 'internet',   label: 'Internet',       icon: 'globe',       x: 60,  y: 40,  w: 110, h: 44, layer: 'external' },
-    { id: 'cf-cdn',     label: 'Cloudflare CDN', icon: 'cloud',       x: 60,  y: 110, w: 140, h: 44, layer: 'external' },
-    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel', icon: 'orbit',   x: 60,  y: 190, w: 140, h: 52, layer: 'entry',   dynamic: 'tunnel' },
-    { id: 'ufw',        label: 'UFW 防火墙',      icon: 'shield',     x: 260, y: 40,  w: 130, h: 44, layer: 'entry',   dynamic: 'firewall' },
-    { id: 'npm',        label: 'NPM',             icon: 'server',     x: 280, y: 170, w: 90,  h: 44, layer: 'proxy' },
-    { id: 'wemusic',    label: 'WeMusic',         icon: 'music',      x: 440, y: 110, w: 120, h: 44, layer: 'service', dynamic: 'health', port: 5174, healthIdx: 0 },
-    { id: 'wemonitor',  label: 'WeMonitor',       icon: 'activity',   x: 280, y: 250, w: 120, h: 44, layer: 'service', dynamic: 'health', port: 18990, healthIdx: -1 },
-    { id: 'wedownload', label: 'WeDownload',      icon: 'download',   x: 440, y: 230, w: 120, h: 44, layer: 'service', dynamic: 'health', port: 8080, healthIdx: 1 },
-    { id: 'webhook',    label: 'Webhook',         icon: 'webhook',    x: 280, y: 325, w: 120, h: 44, layer: 'service', port: 9001 },
-    { id: 'ssh',        label: 'SSH',             icon: 'terminal',   x: 440, y: 40,  w: 100, h: 44, layer: 'service', dynamic: 'fw-rule', port: 22 },
-    { id: 'npm-admin',  label: 'NPM Admin',       icon: 'settings',   x: 580, y: 40,  w: 120, h: 44, layer: 'service', dynamic: 'fw-rule', port: 8443 },
-    { id: 'qbittorrent',label: 'qBittorrent',     icon: 'download-cloud', x: 580, y: 110, w: 120, h: 44, layer: 'service', dynamic: 'fw-rule', port: 61553 },
+    // Layer 1: Internet（顶部居中）
+    { id: 'internet',   label: 'Internet',          x: 470, y: 30,  w: 120, h: 44 },
+
+    // Layer 2: 入口层
+    { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 60,  y: 130, w: 170, h: 44 },
+    { id: 'ufw',        label: 'UFW 防火墙',         x: 470, y: 130, w: 140, h: 44, dynamic: 'firewall' },
+
+    // Layer 3: 隧道 / 反代
+    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 60,  y: 240, w: 170, h: 52, dynamic: 'tunnel' },
+    { id: 'npm',        label: 'NPM',               x: 470, y: 240, w: 120, h: 44 },
+
+    // Layer 4: 服务（底部一排，从左到右按访问路径分组）
+    // Cloudflare → Tunnel → WeMonitor / Webhook
+    { id: 'wemonitor',  label: 'WeMonitor',         x: 60,  y: 420, w: 130, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
+    { id: 'webhook',    label: 'Webhook',           x: 210, y: 420, w: 110, h: 44, port: 9001 },
+    // Cloudflare → Tunnel → NPM → WeMusic / WeDownload
+    { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
+    { id: 'wedownload', label: 'WeDownload',        x: 500, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
+    // UFW → SSH / qBittorrent / NPM Admin（直连服务）
+    { id: 'ssh',        label: 'SSH',               x: 670, y: 420, w: 100, h: 44, dynamic: 'fw-rule', port: 22 },
+    { id: 'qbittorrent',label: 'qBittorrent',       x: 790, y: 420, w: 140, h: 44, dynamic: 'fw-rule', port: 61553 },
+    { id: 'npm-admin',  label: 'NPM Admin',         x: 950, y: 420, w: 120, h: 44, dynamic: 'fw-rule', port: 8443 },
   ],
 
   edges: [
     { from: 'internet',  to: 'cf-cdn',     style: 'solid',  label: 'HTTPS' },
-    { from: 'cf-cdn',    to: 'cf-tunnel',  style: 'solid',  label: 'TLS Tunnel' },
-    { from: 'internet',  to: 'ufw',        style: 'solid',  label: '直连 IP' },
-    { from: 'cf-tunnel', to: 'npm',        style: 'solid',  label: 'wemusic\nwedownload' },
-    { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: 'wemonitor' },
+    { from: 'internet',  to: 'ufw',        style: 'solid',  label: '直连' },
+    { from: 'cf-cdn',    to: 'cf-tunnel',  style: 'solid',  label: 'TLS' },
+    { from: 'ufw',       to: 'ssh',        style: 'solid',  label: ':22' },
+    { from: 'ufw',       to: 'qbittorrent',style: 'solid',  label: ':61553' },
+    { from: 'ufw',       to: 'npm-admin',  style: 'solid',  label: ':8443' },
+    { from: 'cf-tunnel', to: 'npm',        style: 'solid',  label: '' },
+    { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
     { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
     { from: 'npm',       to: 'wemusic',    style: 'solid',  label: ':5174' },
     { from: 'npm',       to: 'wedownload', style: 'solid',  label: ':8080' },
-    { from: 'npm',       to: 'npm-admin',  style: 'dotted', label: '管理面板' },
-    { from: 'ufw',       to: 'ssh',        style: 'solid',  label: ':22' },
-    { from: 'ufw',       to: 'qbittorrent',style: 'solid',  label: ':61553 TCP/UDP' },
   ],
 };
 
@@ -82,10 +96,28 @@ function updateStatusBadge() {
 // ── 渲染 SVG ──
 
 function renderTopology(container) {
-  const W = 760;
-  const H = 400;
+  const W = 1100;
+  const H = 510;
+
+  // 层级标签位置
+  const layers = [
+    { y: 30,  h: 44, label: '外部' },
+    { y: 130, h: 44, label: '入口' },
+    { y: 240, h: 52, label: '隧道/代理' },
+    { y: 420, h: 44, label: '服务' },
+  ];
 
   let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // 层级分隔线
+  [102, 207, 356].forEach(y => {
+    svg += `<line x1="40" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,4"/>`;
+  });
+
+  // 层级标签（左侧）
+  layers.forEach(layer => {
+    svg += `<text x="42" y="${layer.y + layer.h / 2 + 4}" class="nt-layer-label">${layer.label}</text>`;
+  });
 
   // 定义箭头 marker
   svg += `<defs>
@@ -106,11 +138,6 @@ function renderTopology(container) {
     const to = TOPOLOGY.nodes.find(n => n.id === edge.to);
     if (!from || !to) continue;
 
-    const fx = from.x + from.w / 2;
-    const fy = from.y + from.h / 2;
-    const tx = to.x + to.w / 2;
-    const ty = to.y + to.h / 2;
-
     // 计算连线端点（从节点边缘出发）
     const { sx, sy, ex, ey } = computeEdgeEndpoints(from, to);
 
@@ -122,7 +149,7 @@ function renderTopology(container) {
     if (edge.style === 'dotted') dash = 'stroke-dasharray="3,3"';
 
     // 根据源节点状态调整颜色
-    if (edge.label === 'TLS Tunnel' && ntState.tunnel && ntState.tunnel.active) {
+    if (edge.from === 'cf-tunnel' && ntState.tunnel && ntState.tunnel.active) {
       color = 'var(--success)';
       marker = 'url(#arrow-green)';
     }
@@ -131,15 +158,34 @@ function renderTopology(container) {
       marker = 'url(#arrow-danger)';
     }
 
-    svg += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
+    // 箭头收尾缩短几像素，避免 marker 被节点边框挡住
+    const angle = Math.atan2(ey - sy, ex - sx);
+    const shortenEnd = 4;
+    const ex2 = ex - shortenEnd * Math.cos(angle);
+    const ey2 = ey - shortenEnd * Math.sin(angle);
 
-    // 标签
-    const mx = (sx + ex) / 2;
-    const my = (sy + ey) / 2 - 6;
-    const lines = edge.label.split('\n');
-    lines.forEach((l, i) => {
-      svg += `<text x="${mx}" y="${my + i * 12}" text-anchor="middle" class="nt-edge-label">${l}</text>`;
-    });
+    svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
+
+    // 标签：放在中点偏移位置（沿垂直于连线的方向偏移）
+    if (edge.label) {
+      const mx = (sx + ex) / 2;
+      const my = (sy + ey) / 2;
+      // 垂直方向偏移：根据连线走向决定上下还是左右
+      const isHorizontal = Math.abs(ex - sx) > Math.abs(ey - sy);
+      const labelOffsetX = isHorizontal ? 0 : -8;
+      const labelOffsetY = isHorizontal ? -8 : 0;
+      const lines = edge.label.split('\n');
+      const textWidth = Math.max(...lines.map(l => l.length)) * 6; // 估算宽度
+      // 给标签加白底，避免压线（用 bg-card 与卡片背景一致）
+      const labelH = lines.length * 12 + 4;
+      const labelW = textWidth + 10;
+      const labelX = mx + labelOffsetX - labelW / 2;
+      const labelY = my + labelOffsetY - lines.length * 6;
+      svg += `<rect x="${labelX}" y="${labelY - labelH / 2}" width="${labelW}" height="${labelH}" fill="var(--bg-card)" rx="3"/>`;
+      lines.forEach((l, i) => {
+        svg += `<text x="${mx + labelOffsetX}" y="${my + labelOffsetY + (i - (lines.length - 1) / 2) * 12}" text-anchor="middle" class="nt-edge-label">${l}</text>`;
+      });
+    }
   }
 
   // 渲染节点
