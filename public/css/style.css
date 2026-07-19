@@ -1422,6 +1422,127 @@ body {
 }
 
 /* ===================================================
+   网络拓扑图
+   =================================================== */
+
+.nt-diagram {
+  position: relative;
+  overflow-x: auto;
+  padding: calc(var(--font-size) * 0.5) 0;
+}
+
+.nt-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--text-dim);
+  font-size: calc(var(--font-size) * 0.95);
+}
+
+.nt-svg {
+  width: 100%;
+  max-width: 760px;
+  display: block;
+  margin: 0 auto;
+}
+
+.nt-node {
+  cursor: pointer;
+  transition: filter 0.2s, opacity 0.2s;
+}
+
+.nt-node:hover {
+  filter: brightness(0.96);
+}
+
+.nt-node-label {
+  font-size: calc(var(--font-size) * 0.82);
+  fill: var(--text);
+  font-family: var(--font);
+  pointer-events: none;
+  user-select: none;
+}
+
+.nt-port-label {
+  font-size: calc(var(--font-size) * 0.68);
+  fill: var(--text-dim);
+  font-family: var(--font-mono);
+  pointer-events: none;
+  user-select: none;
+}
+
+.nt-edge-label {
+  font-size: calc(var(--font-size) * 0.68);
+  fill: var(--text-dim);
+  font-family: var(--font);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Tooltip */
+.nt-tooltip {
+  position: absolute;
+  z-index: 50;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: calc(var(--font-size) * 0.6) calc(var(--font-size) * 0.8);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.nt-tt-name {
+  font-weight: 600;
+  font-size: calc(var(--font-size) * 0.88);
+  color: var(--text);
+  margin-bottom: calc(var(--font-size) * 0.2);
+}
+
+.nt-tt-info {
+  font-size: calc(var(--font-size) * 0.78);
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* 图例 */
+.nt-legend {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 1.2);
+  justify-content: center;
+  margin-top: calc(var(--font-size) * 0.8);
+  padding: calc(var(--font-size) * 0.6);
+}
+
+.nt-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 0.4);
+  font-size: calc(var(--font-size) * 0.8);
+  color: var(--text-dim);
+}
+
+.nt-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nt-dot-green { background: var(--success); }
+.nt-dot-red   { background: var(--danger); }
+.nt-dot-gray  { background: var(--text-dim); }
+
+/* 状态徽章补充 */
+.status-badge.status-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+/* ===================================================
    响应式
    =================================================== */
 

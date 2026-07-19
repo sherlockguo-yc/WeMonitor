@@ -1,0 +1,38 @@
+<div class="card">
+  <div class="card-header">
+    <h3>网络拓扑</h3>
+    <span class="status-badge" id="nt-status-badge">加载中...</span>
+  </div>
+  <div class="card-body">
+    <div id="nt-diagram" class="nt-diagram">
+      <div class="nt-loading">加载网络拓扑...</div>
+    </div>
+    <div class="nt-legend">
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-green"></span> 正常</span>
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-red"></span> 异常</span>
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-gray"></span> 未知</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>流量路径说明</h3>
+  </div>
+  <div class="card-body">
+    <table class="data-table">
+      <thead>
+        <tr><th>域名</th><th>入口</th><th>目标服务</th><th>端口</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>wemusic.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → NPM → WeMusic</td><td>80 → 5174</td></tr>
+        <tr><td>wemonitor.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → WeMonitor</td><td>→ 18990</td></tr>
+        <tr><td>wedownload.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → NPM → WeDownload</td><td>80 → 8080</td></tr>
+        <tr><td>wemusic.sherlockguo.com/deploy</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → Webhook</td><td>→ 9001</td></tr>
+        <tr><td>直连 IP</td><td>UFW 防火墙</td><td>SSH / NPM Admin / qBittorrent</td><td>22 / 8443 / 61553</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/js/network-topology.js?v=<%= version %>" defer></script>

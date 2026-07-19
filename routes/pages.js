@@ -83,6 +83,11 @@ router.get('/deploy', (req, res) => {
   res.render('deploy', { title: 'CI/CD', active: 'deploy' });
 });
 
+// 网络拓扑概览
+router.get('/network', (req, res) => {
+  res.render('network-topology', { title: '网络拓扑', active: 'network' });
+});
+
 // Tunnel 管理
 router.get('/tunnel', (req, res) => {
   res.render('tunnel', { title: 'Tunnel', active: 'tunnel' });
