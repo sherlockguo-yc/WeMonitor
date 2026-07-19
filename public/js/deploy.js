@@ -170,6 +170,9 @@ async function refreshPage() {
     console.error('[deploy]', err);
     grid.innerHTML = '<div class="empty-state">加载失败，请刷新重试</div>';
   }
+
+  // 同步刷新 CI/CD 拓扑
+  if (typeof loadCicdTopology === 'function') loadCicdTopology();
 }
 
 // 初始化

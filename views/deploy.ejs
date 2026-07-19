@@ -1,5 +1,34 @@
+<!-- CI/CD 拓扑图 -->
+<div class="card">
+  <div class="card-header">
+    <h3>CI/CD 拓扑</h3>
+    <span class="status-badge" id="cicd-status-badge">加载中...</span>
+  </div>
+  <div class="card-body">
+    <div id="cicd-diagram" class="nt-diagram">
+      <div class="nt-loading">加载 CI/CD 拓扑...</div>
+    </div>
+    <div class="nt-legend">
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-green"></span> 最新</span>
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-yellow"></span> 可更新/部署中</span>
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-red"></span> 异常</span>
+      <span class="nt-legend-item"><span class="nt-dot nt-dot-gray"></span> 未知</span>
+      <span class="nt-legend-sep">|</span>
+      <span class="nt-legend-item"><span class="nt-line-sample nt-line-gray"></span> 默认</span>
+      <span class="nt-legend-item"><span class="nt-line-sample"></span> 正常</span>
+      <span class="nt-legend-item"><span class="nt-line-sample nt-line-red"></span> 异常</span>
+      <span class="nt-legend-item"><span class="nt-line-sample nt-line-yellow"></span> 待更新</span>
+      <span class="nt-legend-sep">|</span>
+      <span class="nt-legend-item"><span class="nt-line-sample"></span> 实线</span>
+      <span class="nt-legend-item"><span class="nt-line-sample nt-line-dashed"></span> 虚线（通知）</span>
+    </div>
+  </div>
+</div>
+
+<!-- 部署状态卡片 -->
 <div class="deploy-grid" id="deploy-grid">
   <div class="empty-state">加载中...</div>
 </div>
 
+<script src="/js/cicd-topology.js?v=<%= version %>" defer></script>
 <script src="/js/deploy.js?v=<%= version %>" defer></script>
