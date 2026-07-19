@@ -15,18 +15,15 @@
       <div class="nt-loading">加载 CI/CD 拓扑...</div>
     </div>
     <div class="nt-legend">
-      <span class="nt-legend-item"><span class="nt-dot nt-dot-green"></span> 最新</span>
-      <span class="nt-legend-item"><span class="nt-dot nt-dot-yellow"></span> 可更新/部署中</span>
-      <span class="nt-legend-item"><span class="nt-dot nt-dot-red"></span> 异常</span>
-      <span class="nt-legend-item"><span class="nt-dot nt-dot-gray"></span> 未知</span>
+      <!-- 状态色：节点边框与连线颜色共用以表示部署状态 -->
+      <span class="nt-legend-item" title="节点最新、部署通道运行正常"><span class="nt-dot nt-dot-green"></span> 最新</span>
+      <span class="nt-legend-item" title="存在可更新版本或正在部署中"><span class="nt-dot nt-dot-yellow"></span> 可更新/部署中</span>
+      <span class="nt-legend-item" title="节点异常或服务已停止"><span class="nt-dot nt-dot-red"></span> 异常</span>
+      <span class="nt-legend-item" title="状态未知或未获取到数据"><span class="nt-dot nt-dot-gray"></span> 未知</span>
       <span class="nt-legend-sep">|</span>
-      <span class="nt-legend-item"><span class="nt-line-sample nt-line-gray"></span> 默认</span>
-      <span class="nt-legend-item"><span class="nt-line-sample"></span> 正常</span>
-      <span class="nt-legend-item"><span class="nt-line-sample nt-line-red"></span> 异常</span>
-      <span class="nt-legend-item"><span class="nt-line-sample nt-line-yellow"></span> 待更新</span>
-      <span class="nt-legend-sep">|</span>
-      <span class="nt-legend-item"><span class="nt-line-sample"></span> 实线</span>
-      <span class="nt-legend-item"><span class="nt-line-sample nt-line-dashed"></span> 虚线（通知）</span>
+      <!-- 线型：表示数据流向的性质 -->
+      <span class="nt-legend-item" title="代码与构建产物实际传输的部署通道，例如 repo→CI→Release→Deploy Agent→服务"><span class="nt-line-sample"></span> 实线：部署数据流</span>
+      <span class="nt-legend-item" title="CI 构建完成后向 N150 发送的 webhook 触发通知，仅传递信号，不传输文件"><span class="nt-line-sample nt-line-dashed"></span> 虚线：CI 通知信号</span>
     </div>
   </div>
 </div>
