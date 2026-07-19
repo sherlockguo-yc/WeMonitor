@@ -34,7 +34,12 @@ function formatCIAbsoluteTime(iso) {
 
 function tsToTime(ts) {
   const d = new Date(ts * 1000);
-  return d.toLocaleTimeString('zh-CN', { hour12: false });
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const DD = String(d.getDate()).padStart(2, '0');
+  const HH = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${MM}-${DD} ${HH}:${mm}:${ss}`;
 }
 
 function stageIcon(stage) {
