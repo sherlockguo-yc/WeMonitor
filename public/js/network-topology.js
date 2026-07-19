@@ -14,17 +14,17 @@ const TOPOLOGY = {
     { id: 'internet',   label: 'Internet',          x: 470, y: 30,  w: 120, h: 44 },
 
     // Layer 2: 入口层
-    { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 60,  y: 130, w: 170, h: 44 },
+    { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 100, y: 130, w: 170, h: 44 },
     { id: 'ufw',        label: 'UFW 防火墙',         x: 470, y: 130, w: 140, h: 44, dynamic: 'firewall' },
 
     // Layer 3: 隧道 / 反代
-    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 60,  y: 240, w: 170, h: 52, dynamic: 'tunnel' },
+    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 100, y: 240, w: 170, h: 52, dynamic: 'tunnel' },
     { id: 'npm',        label: 'NPM',               x: 470, y: 240, w: 120, h: 44 },
 
     // Layer 4: 服务（底部一排，从左到右按访问路径分组）
     // Cloudflare → Tunnel → WeMonitor / Webhook
-    { id: 'wemonitor',  label: 'WeMonitor',         x: 60,  y: 420, w: 130, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
-    { id: 'webhook',    label: 'Webhook',           x: 210, y: 420, w: 110, h: 44, port: 9001 },
+    { id: 'wemonitor',  label: 'WeMonitor',         x: 100, y: 420, w: 130, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
+    { id: 'webhook',    label: 'Webhook',           x: 250, y: 420, w: 110, h: 44, port: 9001 },
     // Cloudflare → Tunnel → NPM → WeMusic / WeDownload
     { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
     { id: 'wedownload', label: 'WeDownload',        x: 500, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
@@ -116,7 +116,7 @@ function renderTopology(container) {
 
   // 层级标签（左侧）
   layers.forEach(layer => {
-    svg += `<text x="42" y="${layer.y + layer.h / 2 + 4}" class="nt-layer-label">${layer.label}</text>`;
+    svg += `<text x="12" y="${layer.y + layer.h / 2 + 4}" class="nt-layer-label">${layer.label}</text>`;
   });
 
   // 定义箭头 marker
