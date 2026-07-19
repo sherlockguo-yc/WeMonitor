@@ -25,7 +25,6 @@ router.post('/metrics', metricsApi.pushMetrics);
 
 // 健康检查
 router.get('/health', healthApi.getHealthStatus);
-router.get('/health/history', healthApi.getHealthHistory);
 
 // 服务管理
 router.get('/services', servicesApi.listServices);
