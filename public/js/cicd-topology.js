@@ -25,9 +25,9 @@ const CICD_TOPOLOGY = {
     { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 224, w: 160, h: 50, service: 'wedownload' },
 
     // Layer 4: 部署（3 个节点均匀分布）
-    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 40,  y: 340, w: 162, h: 54 },
-    { id: 'webhook',      label: 'Webhook',               x: 262, y: 342, w: 148, h: 50, port: 9001 },
-    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 482, y: 340, w: 148, h: 54 },
+    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 80,  y: 340, w: 160, h: 54 },
+    { id: 'webhook',      label: 'Webhook',               x: 320, y: 340, w: 160, h: 54, port: 9001 },
+    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 560, y: 340, w: 160, h: 54 },
 
     // Layer 5: 服务
     { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
