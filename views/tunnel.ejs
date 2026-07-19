@@ -58,6 +58,29 @@
 
 <div class="card">
   <div class="card-header">
+    <h3>子域名路由</h3>
+    <button class="btn btn-secondary btn-sm" onclick="loadTunnelRoutes()">
+      <i data-lucide="rotate-cw" class="icon-sm"></i> 刷新
+    </button>
+  </div>
+  <div class="card-body">
+    <table class="table" id="tunnel-routes-table">
+      <thead>
+        <tr>
+          <th>子域名</th>
+          <th>目标服务</th>
+          <th>路径</th>
+        </tr>
+      </thead>
+      <tbody id="tunnel-routes-body">
+        <tr><td colspan="3" class="text-dim">加载中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
     <h3>最近日志</h3>
     <button class="btn btn-secondary btn-sm" onclick="loadTunnelLogs()">
       <i data-lucide="rotate-cw" class="icon-sm"></i> 刷新

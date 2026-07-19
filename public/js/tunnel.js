@@ -2,6 +2,12 @@
    WeMonitor — Tunnel 管理页
    =================================================== */
 
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
 async function loadTunnelStatus() {
   const t0 = performance.now();
   const res = await fetch('/api/v1/tunnel/status');
@@ -100,10 +106,39 @@ async function loadTunnelLogs() {
   console.log(`[client] tunnel/logs fetch=${Math.round(performance.now() - t0)}ms`);
 }
 
+async function loadTunnelRoutes() {
+  const tbody = document.getElementById('tunnel-routes-body');
+  tbody.innerHTML = '<tr><td colspan="3" class="text-dim">加载中...</td></tr>';
+
+  const res = await fetch('/api/v1/tunnel/routes');
+  const data = await res.json();
+
+  if (!data.success) {
+    tbody.innerHTML = `<tr><td colspan="3" class="text-danger">加载失败: ${data.error || '未知错误'}</td></tr>`;
+    return;
+  }
+
+  if (data.routes.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-dim">暂无路由配置</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.routes.map(r => `
+    <tr>
+      <td><code>${escHtml(r.hostname)}</code></td>
+      <td><code>${escHtml(r.service)}</code></td>
+      <td>${r.path ? `<code>${escHtml(r.path)}</code>` : '<span class="text-dim">全部</span>'}</td>
+    </tr>
+  `).join('');
+  refreshIcons();
+}
+
 function refreshPage() {
   loadTunnelStatus();
   loadTunnelLogs();
+  loadTunnelRoutes();
 }
 
 loadTunnelStatus();
 loadTunnelLogs();
+loadTunnelRoutes();

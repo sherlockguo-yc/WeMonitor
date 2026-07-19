@@ -45,6 +45,7 @@ router.get('/tunnel/status', tunnelApi.getStatus);
 router.post('/tunnel/restart', tunnelApi.restart);
 router.get('/tunnel/logs', tunnelApi.getLogs);
 router.post('/tunnel/route', tunnelApi.addRoute);
+router.get('/tunnel/routes', tunnelApi.getRoutes);
 
 // 物理拓扑
 const physicalTopologyApi = require('../lib/api/physical-topology');
