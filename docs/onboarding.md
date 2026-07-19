@@ -121,15 +121,17 @@ wedownload|sherlockguo-yc/WeDownload|$HOME/wedownload|8080|sha|wedownload.tar.gz
 
 ### 2. `restart.sh`
 
-服务目录下必须有 `restart.sh`，`deploy-agent.sh` 部署完成后会调用它。WeDownload 的 `restart.sh` 示例：
+服务目录下必须有 `restart.sh`，`deploy-agent.sh` 部署完成后会调用它。示例：
 
 ```bash
 #!/bin/bash
 set -e
-DIR="$HOME/wedownload"
-sudo cp "$DIR/config/qbittorrent-nox.service" /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl restart qbittorrent-nox
+DIR="$HOME/<your-project>"
+# 同步配置文件、复制 systemd unit、重启服务等
+# 例如：
+# sudo cp "$DIR/config/my-service.service" /etc/systemd/system/
+# sudo systemctl daemon-reload
+# sudo systemctl restart my-service
 ```
 
 ## 四、接入检查清单

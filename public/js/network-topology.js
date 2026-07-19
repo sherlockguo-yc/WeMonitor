@@ -27,10 +27,9 @@ const TOPOLOGY = {
     // Cloudflare → Tunnel → WeMusic / WeDownload
     { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
     { id: 'wedownload', label: 'WeDownload',        x: 500, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
-    // UFW → SSH / qBittorrent / NPM Admin（直连服务）
+    // UFW → SSH / NPM Admin（直连服务）
     { id: 'ssh',        label: 'SSH',               x: 670, y: 420, w: 100, h: 44, dynamic: 'fw-rule', port: 22 },
-    { id: 'qbittorrent',label: 'qBittorrent',       x: 790, y: 420, w: 140, h: 44, dynamic: 'fw-rule', port: 61553 },
-    { id: 'npm-admin',  label: 'NPM Admin',         x: 950, y: 420, w: 120, h: 44, dynamic: 'fw-rule', port: 8443 },
+    { id: 'npm-admin',  label: 'NPM Admin',         x: 830, y: 420, w: 120, h: 44, dynamic: 'fw-rule', port: 8443 },
   ],
 
   edges: [
@@ -38,7 +37,6 @@ const TOPOLOGY = {
     { from: 'internet',  to: 'ufw',        style: 'solid',  label: '直连' },
     { from: 'cf-cdn',    to: 'cf-tunnel',  style: 'solid',  label: 'TLS' },
     { from: 'ufw',       to: 'ssh',        style: 'solid',  label: ':22' },
-    { from: 'ufw',       to: 'qbittorrent',style: 'solid',  label: ':61553' },
     { from: 'ufw',       to: 'npm-admin',  style: 'solid',  label: ':8443' },
     { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
     { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
