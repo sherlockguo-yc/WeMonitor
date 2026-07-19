@@ -43,6 +43,7 @@ function computeSummary(localState, remote) {
 // GET /api/v1/deploy/status
 router.get('/status', async (req, res) => {
   try {
+    const worker = local.readQueueWorkerState();
     const services = await Promise.all(SERVICES.map(async (svc) => {
       const [localState, remote] = await Promise.all([
         local.getLocalState(svc.dir, svc.port, svc.id),
@@ -56,7 +57,7 @@ router.get('/status', async (req, res) => {
         summary: computeSummary(localState, remote),
       };
     }));
-    res.json({ services });
+    res.json({ services, worker, fetchedAt: Date.now() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

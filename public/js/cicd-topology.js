@@ -27,7 +27,7 @@ const CICD_TOPOLOGY = {
     // Layer 4: 部署（3 个节点均匀分布）
     { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 80,  y: 340, w: 160, h: 54 },
     { id: 'webhook',      label: 'Webhook',               x: 320, y: 340, w: 160, h: 54, port: 9001 },
-    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 560, y: 340, w: 160, h: 54 },
+    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 560, y: 340, w: 160, h: 64, dynamic: 'worker' },
 
     // Layer 5: 服务
     { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
@@ -65,7 +65,7 @@ const CICD_TOPOLOGY = {
 
 // ── 动态状态 ──
 
-let cicdState = { services: [] };
+let cicdState = { services: [], worker: null };
 
 async function loadCicdTopology() {
   const container = document.getElementById('cicd-diagram');
@@ -74,8 +74,10 @@ async function loadCicdTopology() {
   try {
     const result = await api('/deploy/status');
     cicdState.services = result.services || [];
+    cicdState.worker = result.worker || null;
   } catch (e) {
     cicdState.services = [];
+    cicdState.worker = null;
   }
 
   updateCicdBadge();
@@ -91,7 +93,7 @@ function updateCicdBadge() {
   }
 
   const hasError = cicdState.services.some(s => s.summary === 'error' || s.summary === 'stopped');
-  const hasPending = cicdState.services.some(s => s.summary === 'deploying' || s.summary === 'update-available');
+  const hasPending = cicdState.services.some(s => s.summary === 'deploying' || s.summary === 'queued' || s.summary === 'update-available');
   const allOk = cicdState.services.every(s => s.summary === 'up-to-date');
 
   if (allOk) {
@@ -112,6 +114,17 @@ function updateCicdBadge() {
 function getServiceState(serviceId) {
   const svc = cicdState.services.find(s => s.id === serviceId);
   return svc ? svc.summary : 'unknown';
+}
+
+function getWorkerLabelLines() {
+  const worker = cicdState.worker;
+  if (!worker) return ['Deploy', 'Agent', '状态不可用'];
+  const pending = Array.isArray(worker.pending) ? worker.pending.length : 0;
+  if (worker.status === 'working') {
+    const phase = { downloading: '下载中', verifying: '校验中', syncing: '同步中', restarting: '重启中' }[worker.phase] || '工作中';
+    return ['Deploy', 'Agent', `${worker.project || '任务'} · ${phase}`, pending ? `队列 ${pending}` : ''];
+  }
+  return ['Deploy', 'Agent', pending ? `空闲 · 队列 ${pending}` : '空闲'];
 }
 
 // ── 渲染 SVG ──
@@ -296,10 +309,11 @@ function renderCicdTopology(container) {
     }
 
     // 标签文字
-    let labelLines = node.label.split('\n');
+    let labelLines = node.dynamic === 'worker' ? getWorkerLabelLines() : node.label.split('\n');
     if (node.dynamic === 'deploy' && node.port) {
       labelLines = [...labelLines, `:${node.port}`];
     }
+    labelLines = labelLines.filter(Boolean);
     const textX = node.x + 24;
     const textY = node.y + node.h / 2 - (labelLines.length - 1) * 7.5;
     labelLines.forEach((l, i) => {
@@ -328,10 +342,15 @@ function renderCicdTopology(container) {
 function getCicdNodeStatus(node) {
   if (!node.dynamic && !node.service) return 'static';
 
+  if (node.dynamic === 'worker') {
+    if (!cicdState.worker) return 'unknown';
+    return cicdState.worker.status === 'working' || (cicdState.worker.pending || []).length ? 'warn' : 'ok';
+  }
+
   if (node.dynamic === 'deploy') {
     const state = getServiceState(node.service);
     if (state === 'up-to-date') return 'ok';
-    if (state === 'deploying' || state === 'update-available') return 'warn';
+    if (state === 'deploying' || state === 'queued' || state === 'update-available') return 'warn';
     if (state === 'error' || state === 'stopped') return 'error';
     return 'unknown';
   }
@@ -566,10 +585,26 @@ function showCicdTooltip(e) {
 
   const svc = node.service ? cicdState.services.find(s => s.id === node.service) : null;
 
-  if (node.dynamic === 'deploy' && svc) {
+  if (node.dynamic === 'worker') {
+    const worker = cicdState.worker;
+    if (!worker) {
+      statusText = '队列状态不可用';
+    } else {
+      const pending = Array.isArray(worker.pending) ? worker.pending : [];
+      statusText = worker.status === 'working'
+        ? `${worker.project || '未知项目'} · ${getWorkerLabelLines()[2] || '工作中'}`
+        : '空闲';
+      extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">PID</span> ${worker.pid || '—'}</div>`;
+      extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">队列</span> ${pending.length} 项</div>`;
+      if (worker.version) {
+        extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">版本</span> <code style="font-family:var(--font-mono);font-size:0.92em;background:rgba(0,0,0,0.04);padding:1px 5px;border-radius:3px;">${worker.version.slice(0, 8)}</code></div>`;
+      }
+    }
+  } else if (node.dynamic === 'deploy' && svc) {
     const summaryMap = {
       'up-to-date': '最新',
       'update-available': '可更新',
+      'queued': '等待队列',
       'deploying': '部署中',
       'error': '异常',
       'stopped': '已停止',

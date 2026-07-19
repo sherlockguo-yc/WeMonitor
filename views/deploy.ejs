@@ -28,6 +28,19 @@
   </div>
 </div>
 
+<section class="worker-summary-card card" id="worker-summary" aria-live="polite">
+  <div class="worker-summary-head">
+    <div>
+      <div class="worker-summary-kicker">部署队列</div>
+      <h3><i data-lucide="bot"></i> Queue Worker</h3>
+    </div>
+    <span class="worker-state-badge" id="worker-state-badge">加载中</span>
+  </div>
+  <div class="worker-summary-body" id="worker-summary-body">
+    <span class="worker-summary-empty">正在读取 worker 状态...</span>
+  </div>
+</section>
+
 <!-- 部署状态卡片 -->
 <div class="deploy-grid" id="deploy-grid">
   <div class="empty-state">加载中...</div>

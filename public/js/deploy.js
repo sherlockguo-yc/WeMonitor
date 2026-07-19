@@ -131,27 +131,89 @@ function renderVersion(local, remote) {
   </div>`;
 }
 
+const PHASE_META = {
+  queued: { text: '等待队列', icon: 'clock-3' },
+  downloading: { text: '下载中', icon: 'download' },
+  verifying: { text: '校验中', icon: 'shield-check' },
+  syncing: { text: '同步中', icon: 'package-check' },
+  restarting: { text: '重启中', icon: 'refresh-cw' },
+  complete: { text: '已完成', icon: 'circle-check' },
+  interrupted: { text: '已中断', icon: 'circle-pause' },
+};
+
+function formatDuration(startedAt, finishedAt) {
+  const start = Number(startedAt);
+  const end = Number(finishedAt) || Math.floor(Date.now() / 1000);
+  if (!start || end < start) return '—';
+  const seconds = end - start;
+  if (seconds < 60) return `${seconds} 秒`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`;
+  return `${Math.floor(seconds / 3600)} 小时 ${Math.floor((seconds % 3600) / 60)} 分`;
+}
+
+function taskKind(deploy) {
+  if (deploy && deploy.active) return { task: deploy.active, kind: 'active' };
+  if (deploy && deploy.pending) return { task: deploy.pending, kind: 'queued' };
+  if (deploy && deploy.last) return { task: deploy.last, kind: deploy.last.status || 'complete' };
+  return null;
+}
+
 function renderDeploymentState(deploy) {
-  if (!deploy) return '';
-  const task = deploy.active || deploy.pending || deploy.last;
-  if (!task) return '';
+  const current = taskKind(deploy);
+  if (!current) return '<div class="deploy-state-empty">暂无队列任务</div>';
 
-  const phaseLabels = {
-    queued: '等待队列', downloading: '下载中', verifying: '校验中',
-    syncing: '同步中', restarting: '重启中', complete: '已完成', interrupted: '已中断',
-  };
-  const isActive = Boolean(deploy.active);
-  const isPending = Boolean(deploy.pending) && !isActive;
-  const stateText = isActive ? phaseLabels[task.phase] || '部署中' :
-    isPending ? '等待队列' : task.status === 'failed' ? '最近失败' :
-    task.status === 'interrupted' ? '最近中断' : phaseLabels[task.phase] || '最近部署';
-  const attempt = task.attempt > 0 ? ` · 第 ${task.attempt} 次尝试` : '';
-  const message = task.message ? ` · ${escHtml(task.message)}` : '';
-  const version = task.version ? ` · ${escHtml(task.version.substring(0, 7))}` : '';
+  const { task, kind } = current;
+  const phase = kind === 'queued' ? 'queued' : task.phase || kind;
+  const meta = PHASE_META[phase] || { text: kind === 'failed' ? '最近失败' : '状态未知', icon: 'circle-help' };
+  const isError = kind === 'failed' || kind === 'interrupted';
+  const statusClass = isError ? 'deploy-state-danger' :
+    kind === 'active' || kind === 'queued' ? 'deploy-state-warning' : 'deploy-state-success';
+  const trigger = triggerLabel(task.trigger) || '未知来源';
+  const duration = task.startedAt ? formatDuration(task.startedAt, task.finishedAt) : '尚未开始';
+  const attempt = Number(task.attempt) || 0;
+  const message = task.message || (isError ? '未记录详细错误' : '');
+  const title = `${meta.text}\n版本：${task.version || '—'}\n触发：${trigger}\n${message}`;
 
-  return `<div class="deploy-sub-text" title="${escHtml(task.message || '')}">
-    ${escHtml(stateText)}${version}${attempt}${message}
+  return `<div class="deploy-state-bar ${statusClass}" title="${escHtml(title)}">
+    <span class="deploy-state-icon"><i data-lucide="${meta.icon}" class="icon-sm"></i></span>
+    <span class="deploy-state-phase">${escHtml(meta.text)}</span>
+    <span class="deploy-state-version">${escHtml((task.version || '—').substring(0, 7))}</span>
+    <span class="deploy-state-meta">${escHtml(trigger)} · ${escHtml(duration)}${attempt ? ` · 第 ${attempt} 次` : ''}</span>
+    ${message ? `<span class="deploy-state-message">${escHtml(message)}</span>` : ''}
   </div>`;
+}
+
+function renderWorkerSummary(worker) {
+  const badge = document.getElementById('worker-state-badge');
+  const body = document.getElementById('worker-summary-body');
+  if (!badge || !body) return;
+
+  if (!worker) {
+    badge.className = 'worker-state-badge';
+    badge.textContent = '状态不可用';
+    body.innerHTML = '<span class="worker-summary-empty">未读取到 worker 状态文件</span>';
+    return;
+  }
+
+  const pending = Array.isArray(worker.pending) ? worker.pending : [];
+  const isWorking = worker.status === 'working';
+  const phase = worker.phase && PHASE_META[worker.phase] ? PHASE_META[worker.phase].text : '空闲';
+  badge.className = `worker-state-badge ${isWorking ? 'worker-state-warning' : 'worker-state-idle'}`;
+  badge.textContent = isWorking ? `工作中 · ${phase}` : '空闲';
+
+  const active = isWorking
+    ? `<div class="worker-active-task"><i data-lucide="${PHASE_META[worker.phase]?.icon || 'bot'}" class="icon-sm"></i><span>${escHtml(worker.project || '未知项目')}</span><code>${escHtml((worker.version || '—').substring(0, 7))}</code><span>${escHtml(phase)}</span></div>`
+    : '<div class="worker-active-task worker-idle"><i data-lucide="circle-check" class="icon-sm"></i><span>无活动任务</span></div>';
+  const queue = pending.length
+    ? pending.map(task => `<span class="worker-queue-item"><strong>${escHtml(task.project)}</strong><code>${escHtml((task.version || '—').substring(0, 7))}</code></span>`).join('')
+    : '<span class="worker-queue-empty">没有待处理任务</span>';
+  const details = isWorking
+    ? `<span>PID ${escHtml(String(worker.pid || '—'))}</span><span>已运行 ${escHtml(formatDuration(worker.startedAt))}</span>`
+    : `<span>上次心跳 ${worker.updatedAt ? escHtml(tsToTime(worker.updatedAt)) : '—'}</span>`;
+
+  body.innerHTML = `${active}
+    <div class="worker-facts">${details}<span>队列 ${pending.length} 项</span></div>
+    <div class="worker-queue"><span class="worker-queue-label">待部署</span>${queue}</div>`;
 }
 
 function renderCard(svc) {
@@ -205,12 +267,14 @@ async function refreshPage() {
     const res = await fetch('/api/v1/deploy/status');
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
+    renderWorkerSummary(data.worker);
     grid.innerHTML = (data.services || []).map(renderCard).join('');
 
     // 渲染 Lucide 图标
     if (typeof lucide !== 'undefined') lucide.createIcons();
   } catch (err) {
     console.error('[deploy]', err);
+    renderWorkerSummary(null);
     grid.innerHTML = '<div class="empty-state">加载失败，请刷新重试</div>';
   }
 
