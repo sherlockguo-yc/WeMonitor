@@ -22,13 +22,16 @@ router.use((req, res, next) => {
   next();
 });
 
-// 计算服务整体状态
+// 计算服务整体状态：以持久化队列为准，旧事件仅作为兼容回退。
 function computeSummary(localState, remote) {
+  const deploy = localState.deploy;
+  if (deploy && deploy.active) return 'deploying';
+  if (deploy && deploy.pending) return 'queued';
   if (!localState.alive) return 'stopped';
+  if (deploy && deploy.last && ['failed', 'interrupted'].includes(deploy.last.status)) return 'error';
 
   const last = localState.events && localState.events[localState.events.length - 1];
   if (last && last.status === 'error') return 'error';
-  if (last && last.status === 'started') return 'deploying';
 
   const rv = remote && remote.release && remote.release.version;
   const lv = localState.version;
@@ -42,7 +45,7 @@ router.get('/status', async (req, res) => {
   try {
     const services = await Promise.all(SERVICES.map(async (svc) => {
       const [localState, remote] = await Promise.all([
-        local.getLocalState(svc.dir, svc.port),
+        local.getLocalState(svc.dir, svc.port, svc.id),
         github.getRemoteState(svc.repo),
       ]);
       return {

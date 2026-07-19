@@ -3,6 +3,7 @@
 const STATUS_LABELS = {
   'up-to-date':       { text: '已是最新',   cls: 'status-healthy',  icon: 'check-circle' },
   'update-available': { text: '有新版本',   cls: 'status-degraded', icon: 'arrow-up-circle' },
+  'queued':           { text: '排队中...',  cls: 'status-degraded', icon: 'clock-3' },
   'deploying':        { text: '部署中...',  cls: 'status-degraded', icon: 'loader' },
   'error':            { text: '部署出错',   cls: 'status-unhealthy',icon: 'alert-circle' },
   'stopped':          { text: '服务未运行', cls: 'status-unhealthy',icon: 'x-circle' },
@@ -43,12 +44,18 @@ function tsToTime(ts) {
 }
 
 function stageIcon(stage) {
-  const map = { check: 'search', download: 'download', deploy: 'package-plus', restart: 'refresh-cw' };
+  const map = {
+    queue: 'clock-3', worker: 'bot', check: 'search', download: 'download',
+    verify: 'shield-check', deploy: 'package-plus', restart: 'refresh-cw', healthcheck: 'heart-pulse',
+  };
   return map[stage] || 'circle';
 }
 
 function stageLabel(stage) {
-  const map = { check: '检查更新', download: '下载产物', deploy: '部署', restart: '重启' };
+  const map = {
+    queue: '等待队列', worker: '部署 worker', check: '检查更新', download: '下载产物',
+    verify: '校验产物', deploy: '同步文件', restart: '重启服务', healthcheck: '健康检查',
+  };
   return map[stage] || stage;
 }
 
@@ -124,6 +131,29 @@ function renderVersion(local, remote) {
   </div>`;
 }
 
+function renderDeploymentState(deploy) {
+  if (!deploy) return '';
+  const task = deploy.active || deploy.pending || deploy.last;
+  if (!task) return '';
+
+  const phaseLabels = {
+    queued: '等待队列', downloading: '下载中', verifying: '校验中',
+    syncing: '同步中', restarting: '重启中', complete: '已完成', interrupted: '已中断',
+  };
+  const isActive = Boolean(deploy.active);
+  const isPending = Boolean(deploy.pending) && !isActive;
+  const stateText = isActive ? phaseLabels[task.phase] || '部署中' :
+    isPending ? '等待队列' : task.status === 'failed' ? '最近失败' :
+    task.status === 'interrupted' ? '最近中断' : phaseLabels[task.phase] || '最近部署';
+  const attempt = task.attempt > 0 ? ` · 第 ${task.attempt} 次尝试` : '';
+  const message = task.message ? ` · ${escHtml(task.message)}` : '';
+  const version = task.version ? ` · ${escHtml(task.version.substring(0, 7))}` : '';
+
+  return `<div class="deploy-sub-text" title="${escHtml(task.message || '')}">
+    ${escHtml(stateText)}${version}${attempt}${message}
+  </div>`;
+}
+
 function renderCard(svc) {
   const status = STATUS_LABELS[svc.summary] || STATUS_LABELS['unknown'];
 
@@ -154,6 +184,7 @@ function renderCard(svc) {
       <!-- CD 部署 -->
       <div class="deploy-section">
         <div class="deploy-section-title">CD 部署</div>
+        ${renderDeploymentState(svc.local.deploy)}
         <div class="tl-list">
           ${renderTimeline(svc.local.events)}
         </div>
