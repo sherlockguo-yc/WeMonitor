@@ -18,6 +18,8 @@
       <span class="nt-legend-item" title="链路中断或异常"><span class="nt-line-sample nt-line-red"></span> 异常</span>
       <span class="nt-legend-sep">|</span>
       <span class="nt-legend-item" title="实线：实际网络链路"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
+      <span class="nt-legend-sep">|</span>
+      <span class="nt-legend-item" style="color:var(--text-dim)" title="预览与编辑器共享同一份 JSON 配置：data/topology.json">数据源: data/topology.json（与编辑器共享）</span>
     </div>
   </div>
 </div>
@@ -48,8 +50,6 @@
 
 <!-- toggle 函数必须在 editor.js 之前定义，避免编辑器脚本加载失败导致函数未定义 -->
 <script>
-  var _editorReady = false;
-
   function switchToEditor() {
     document.getElementById('topology-view').style.display = 'none';
     document.getElementById('info-cards').style.display = 'none';
@@ -57,18 +57,25 @@
     ec.style.display = '';
 
     var root = document.getElementById('topology-editor-root');
-    if (_editorReady && window.mountTopologyEditor) {
-      if (!window._editorMounted) {
+    if (window._editorMounted) return;
+
+    function tryMount(attempt) {
+      attempt = attempt || 0;
+      if (window.mountTopologyEditor) {
         try {
           window.mountTopologyEditor('topology-editor-root');
           window._editorMounted = true;
         } catch(e) {
           root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger)">编辑器启动失败: ' + e.message + '</div>';
         }
+      } else if (attempt < 50) {
+        if (attempt === 0) root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim)">编辑器加载中...</div>';
+        setTimeout(function() { tryMount(attempt + 1); }, 100);
+      } else {
+        root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger)">编辑器脚本加载超时（>5s）<br><small>请检查浏览器控制台网络请求</small></div>';
       }
-    } else {
-      root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim)">编辑器加载中...<br><small style="opacity:0.6">如长时间无响应，请刷新页面</small></div>';
     }
+    tryMount();
   }
 
   function switchToView() {

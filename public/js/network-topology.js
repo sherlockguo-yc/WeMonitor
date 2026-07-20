@@ -29,6 +29,7 @@ async function loadNetworkTopology() {
     topoStatus.tunnel = tunnelRes.status === 'fulfilled' ? tunnelRes.value : null;
     topoStatus.health = healthRes.status === 'fulfilled' ? healthRes.value : [];
 
+    updateStatusBadge();
     renderTopology(container);
   } catch (err) {
     container.innerHTML = '<div class="nt-loading">加载失败: ' + err.message + '</div>';
@@ -234,4 +235,14 @@ function renderTopology(container) {
 }
 
 function refreshPage() { loadNetworkTopology(); }
+
+function updateStatusBadge() {
+  var badge = document.getElementById('nt-status-badge');
+  if (!badge) return;
+  var nodeCount = topoConfig?.nodes?.length || 0;
+  var edgeCount = topoConfig?.edges?.length || 0;
+  badge.className = 'status-badge status-healthy';
+  badge.textContent = '已加载 · ' + nodeCount + ' 节点 / ' + edgeCount + ' 连线';
+}
+
 loadNetworkTopology();
