@@ -55,11 +55,21 @@ router.get('/physical-topology', physicalTopologyApi.getStatus);
 const fs = require('fs');
 const path = require('path');
 const TOPO_CONFIG = path.join(__dirname, '..', 'data', 'topology.json');
+const TOPO_DEFAULT = path.join(__dirname, '..', 'lib', 'default-topology.json');
+
+function readTopoConfig() {
+  if (!fs.existsSync(TOPO_CONFIG)) {
+    // 首次：从默认配置复制
+    const dir = path.dirname(TOPO_CONFIG);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.copyFileSync(TOPO_DEFAULT, TOPO_CONFIG);
+  }
+  return JSON.parse(fs.readFileSync(TOPO_CONFIG, 'utf-8'));
+}
 
 router.get('/topology-config', (req, res) => {
   try {
-    const raw = fs.readFileSync(TOPO_CONFIG, 'utf-8');
-    res.json(JSON.parse(raw));
+    res.json(readTopoConfig());
   } catch (err) {
     res.status(500).json({ error: '读取拓扑配置失败' });
   }

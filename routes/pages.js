@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const { requireAuth, requireActive, requireAdmin, register, login } = require('../lib/auth');
 const config = require('../config');
 
@@ -92,9 +93,9 @@ router.get('/backup', (req, res) => {
 });
 
 
-// 网络拓扑概览
+// 网络拓扑编辑器（React）
 router.get('/network', (req, res) => {
-  res.render('network-topology', { title: '概览', active: 'network' });
+  res.sendFile(path.join(__dirname, '..', 'public', 'topology-editor', 'index.html'));
 });
 
 // Tunnel 管理

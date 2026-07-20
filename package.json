@@ -4,9 +4,12 @@
   "description": "轻量级 N150 服务器监控系统",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "cd topology-editor && npx vite build"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "@xyflow/react": "^12.11.2",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.0.0",
     "better-sqlite3-session-store": "^0.1.0",
@@ -14,6 +17,9 @@
     "express": "^4.21.0",
     "express-ejs-layouts": "^2.5.1",
     "express-session": "^1.19.0",
-    "systeminformation": "^5.23.0"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "systeminformation": "^5.23.0",
+    "vite": "^6.4.3"
   }
 }
