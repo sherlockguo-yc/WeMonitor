@@ -2,24 +2,22 @@
   <div class="card-header">
     <h3>网络拓扑</h3>
     <span class="status-badge" id="nt-status-badge">加载中...</span>
+    <a href="/topology-editor/" class="btn btn-sm" style="margin-left:auto">编辑拓扑</a>
   </div>
   <div class="card-body">
     <div id="nt-diagram" class="nt-diagram">
       <div class="nt-loading">加载网络拓扑...</div>
     </div>
     <div class="nt-legend">
-      <!-- 节点状态色 -->
       <span class="nt-legend-item" title="节点运行正常"><span class="nt-dot nt-dot-green"></span> 正常</span>
       <span class="nt-legend-item" title="节点异常或服务中断"><span class="nt-dot nt-dot-red"></span> 异常</span>
       <span class="nt-legend-item" title="状态未知或未获取到数据"><span class="nt-dot nt-dot-gray"></span> 未知</span>
       <span class="nt-legend-sep">|</span>
-      <!-- 连线状态色 -->
       <span class="nt-legend-item" title="链路状态未检测"><span class="nt-line-sample nt-line-gray"></span> 未检测</span>
       <span class="nt-legend-item" title="链路正常可达"><span class="nt-line-sample nt-line-green"></span> 在线</span>
       <span class="nt-legend-item" title="链路中断或异常"><span class="nt-line-sample nt-line-red"></span> 异常</span>
       <span class="nt-legend-sep">|</span>
-      <!-- 线型含义 -->
-      <span class="nt-legend-item" title="左列：公网访问路径（Internet → CF CDN → CF Tunnel → N150 → 服务）；右列：局域网访问路径（手机/电脑 → 路由器 → UFW → N150 → 服务）"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
+      <span class="nt-legend-item" title="左列：公网访问（Internet → CF CDN → CF Tunnel → N150）；右列：局域网访问（手机/电脑 → 路由器 → UFW → N150）"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
     </div>
   </div>
 </div>
@@ -34,9 +32,9 @@
         <tr><th>访问方式</th><th>路径</th><th>说明</th></tr>
       </thead>
       <tbody>
-        <tr><td>公网（域名访问）</td><td>Internet → CF CDN → CF Tunnel → N150</td><td>外部用户访问 wemusic.sherlockguo.com 等域名，经 Cloudflare CDN + Tunnel 到达 N150，<strong>不经过家庭网络（光猫/路由器）</strong></td></tr>
-        <tr><td>局域网（IP 直连）</td><td>手机/电脑 → 路由器 → UFW → N150</td><td>同一局域网下通过 N150 内网 IP 192.168.31.102 直接访问服务</td></tr>
-        <tr><td>家庭网络出口</td><td>N150 → 路由器 → 光猫 → ISP → Internet</td><td>N150 主动出站到公网（建立 Cloudflare Tunnel、系统更新等），光猫/路由器/ISP 是 N150 上网的唯一出口</td></tr>
+        <tr><td>公网（域名访问）</td><td>Internet → CF CDN → CF Tunnel → N150</td><td>外部用户访问域名，经 Cloudflare CDN + Tunnel 到达 N150，<strong>不经过家庭网络</strong></td></tr>
+        <tr><td>局域网（IP 直连）</td><td>手机/电脑 → 路由器 → UFW → N150</td><td>同局域网下通过 N150 内网 IP 直接访问服务</td></tr>
+        <tr><td>家庭网络出口</td><td>N150 → 路由器 → 光猫 → ISP → Internet</td><td>N150 主动出站到公网（建立 CF Tunnel、系统更新等）</td></tr>
       </tbody>
     </table>
   </div>

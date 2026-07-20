@@ -93,9 +93,9 @@ router.get('/backup', (req, res) => {
 });
 
 
-// 网络拓扑编辑器（React）
+// 网络拓扑概览（静态展示 + 编辑按钮）
 router.get('/network', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'topology-editor', 'index.html'));
+  res.render('network-topology', { title: '概览', active: 'network' });
 });
 
 // Tunnel 管理

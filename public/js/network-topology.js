@@ -1,549 +1,237 @@
 /* ===================================================
-   WeMonitor — 网络拓扑图
+   WeMonitor — 网络拓扑图（动态版，从配置读取）
    =================================================== */
 
-// ── 静态拓扑定义 ──
-
-// Canvas: W=1100, H=510
-// 4 层结构（自上而下）：外部 → 入口 → 隧道/代理 → 服务
-// 服务分散在底部一排，避免任何线条穿过其它节点
-
-const TOPOLOGY = {
-  nodes: [
-    // Layer 1: Internet（顶部居中）
-    { id: 'internet',   label: 'Internet',          x: 470, y: 30,  w: 120, h: 44 },
-
-    // Layer 2: 入口层
-    { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 100, y: 130, w: 170, h: 44 },
-    { id: 'ufw',        label: 'UFW 防火墙',         x: 470, y: 130, w: 140, h: 44, dynamic: 'firewall' },
-
-    // Layer 3: 隧道
-    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 100, y: 240, w: 170, h: 52, dynamic: 'tunnel' },
-
-    // Layer 4: 服务（底部一排，从左到右按访问路径分组，间距统一 20px）
-    // Cloudflare → Tunnel → WeMonitor / Webhook
-    { id: 'wemonitor',  label: 'WeMonitor',         x: 100, y: 420, w: 130, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
-    { id: 'webhook',    label: 'Webhook',           x: 250, y: 420, w: 110, h: 44, port: 9001 },
-    // Cloudflare → Tunnel → WeMusic / WeDownload
-    { id: 'wemusic',    label: 'WeMusic',           x: 380, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
-    { id: 'wedownload', label: 'WeDownload',        x: 520, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
-    // Tunnel → SSH（通过 Cloudflare Zero Trust Access）
-    { id: 'ssh',        label: 'SSH',               x: 680, y: 420, w: 100, h: 44, dynamic: 'tunnel' },
-  ],
-
-  edges: [
-    { from: 'internet',  to: 'cf-cdn',     style: 'solid',  label: 'HTTPS' },
-    { from: 'internet',  to: 'ufw',        style: 'solid',  label: '直连' },
-    { from: 'cf-cdn',    to: 'cf-tunnel',  style: 'solid',  label: 'TLS' },
-    { from: 'cf-tunnel', to: 'ssh',        style: 'dashed', label: 'ssh.sherlockguo.com' },
-    { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
-    { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
-    { from: 'cf-tunnel', to: 'wemusic',    style: 'dashed', label: '' },
-    { from: 'cf-tunnel', to: 'wedownload', style: 'dashed', label: '' },
-  ],
-};
-
-// ── 动态状态 ──
-
-let ntState = { firewall: null, tunnel: null, health: [] };
+let topoStatus = { physical: null, firewall: null, tunnel: null, health: [] };
+let topoConfig = null;
 
 async function loadNetworkTopology() {
   const container = document.getElementById('nt-diagram');
   container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
 
-  // 合并视图：物理拓扑（含光猫/路由器 + 完整网络链路）
-  await loadPhysicalTopology();
+  try {
+    const [confRes, ptRes, fwRes, tunnelRes, healthRes] = await Promise.allSettled([
+      api('/topology-config'),
+      api('/physical-topology'),
+      api('/firewall/status'),
+      api('/tunnel/status'),
+      api('/health'),
+    ]);
+
+    if (confRes.status !== 'fulfilled' || !confRes.value) {
+      container.innerHTML = '<div class="nt-loading">加载拓扑配置失败</div>';
+      return;
+    }
+
+    topoConfig = confRes.value;
+    topoStatus.physical = ptRes.status === 'fulfilled' ? ptRes.value : null;
+    topoStatus.firewall = fwRes.status === 'fulfilled' ? fwRes.value : null;
+    topoStatus.tunnel = tunnelRes.status === 'fulfilled' ? tunnelRes.value : null;
+    topoStatus.health = healthRes.status === 'fulfilled' ? healthRes.value : [];
+
+    renderTopology(container);
+  } catch (err) {
+    container.innerHTML = '<div class="nt-loading">加载失败: ' + err.message + '</div>';
+  }
 }
 
-// ── 渲染 SVG ──
-
-function renderTopology(container, opts = {}) {
-  const topology = opts.topology || TOPOLOGY;
-  const state = opts.state || ntState;
-  const W = opts.W || 1100;
-  const H = opts.H || 510;
-  const layers = opts.layers || [
-    { y: 30,  h: 44, label: '外部' },
-    { y: 130, h: 44, label: '入口' },
-    { y: 240, h: 52, label: '隧道' },
-    { y: 420, h: 44, label: '服务' },
-  ];
-  const separators = opts.separators || [102, 207, 356];
-  const tooltipId = opts.tooltipId || 'nt-tooltip';
-  const arrowPrefix = opts.arrowPrefix || '';
-  const getNodeStatusFn = opts.getNodeStatusFn || getNodeStatus;
-
-  let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-
-  // 层级分隔线
-  separators.forEach(y => {
-    svg += `<line x1="40" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="2,4"/>`;
-  });
-
-  // 层级标签（左侧）
-  layers.forEach(layer => {
-    svg += `<text x="12" y="${layer.y + layer.h / 2 + 4}" class="nt-layer-label">${layer.label}</text>`;
-  });
-
-  // 定义箭头 marker
-  svg += `<defs>
-    <marker id="${arrowPrefix}arrow-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--success)"/>
-    </marker>
-    <marker id="${arrowPrefix}arrow-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim)"/>
-    </marker>
-    <marker id="${arrowPrefix}arrow-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="var(--danger)"/>
-    </marker>
-  </defs>`;
-
-  // 渲染连线
-  for (const edge of topology.edges) {
-    const from = topology.nodes.find(n => n.id === edge.from);
-    const to = topology.nodes.find(n => n.id === edge.to);
-    if (!from || !to) continue;
-
-    // 计算连线端点（从节点边缘出发）
-    const { sx, sy, ex, ey } = computeEdgeEndpoints(from, to);
-
-    let color = 'var(--text-dim)';
-    let dash = '';
-    let marker = `url(#${arrowPrefix}arrow-dim)`;
-
-    if (edge.style === 'dashed') dash = 'stroke-dasharray="6,4"';
-    if (edge.style === 'dotted') dash = 'stroke-dasharray="3,3"';
-
-    const ap = arrowPrefix;
-    // 根据源节点状态调整颜色
-    if (edge.from === 'cf-tunnel' && state.tunnel && state.tunnel.active) {
-      color = 'var(--success)';
-      marker = `url(#${ap}arrow-green)`;
-    }
-    if (edge.from === 'ufw' && state.firewall) {
-      if (state.firewall.status === 'active') {
-        color = 'var(--success)';
-        marker = `url(#${ap}arrow-green)`;
-      } else {
-        color = 'var(--danger)';
-        marker = `url(#${ap}arrow-danger)`;
-      }
-    }
-    if (edge.from === 'router' && ptState.router && ptState.router.online) {
-      color = 'var(--success)';
-      marker = `url(#${ap}arrow-green)`;
-    }
-    if (edge.from === 'modem' && ptState.modem && ptState.modem.online) {
-      color = 'var(--success)';
-      marker = `url(#${ap}arrow-green)`;
-    }
-    if (edge.from === 'n150' && ptState.n150 && ptState.n150.online) {
-      color = 'var(--success)';
-      marker = `url(#${ap}arrow-green)`;
-    }
-
-    // 箭头收尾缩短几像素，避免 marker 被节点边框挡住
-    const angle = Math.atan2(ey - sy, ex - sx);
-    const shortenEnd = 4;
-    const ex2 = ex - shortenEnd * Math.cos(angle);
-    const ey2 = ey - shortenEnd * Math.sin(angle);
-
-    svg += `<line x1="${sx}" y1="${sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
-
-    // 标签：放在中点偏移位置（沿垂直于连线的方向偏移）
-    if (edge.label) {
-      const mx = (sx + ex) / 2;
-      const my = (sy + ey) / 2;
-      // 垂直方向偏移：根据连线走向决定上下还是左右
-      const isHorizontal = Math.abs(ex - sx) > Math.abs(ey - sy);
-      const labelOffsetX = isHorizontal ? 0 : -8;
-      const labelOffsetY = isHorizontal ? -8 : 0;
-      const lines = edge.label.split('\n');
-      const textWidth = Math.max(...lines.map(l => l.length)) * 6; // 估算宽度
-      // 给标签加白底，避免压线（用 bg-card 与卡片背景一致）
-      const labelH = lines.length * 12 + 4;
-      const labelW = textWidth + 10;
-      const labelX = mx + labelOffsetX - labelW / 2;
-      const labelY = my + labelOffsetY - lines.length * 6;
-      svg += `<rect x="${labelX}" y="${labelY - labelH / 2}" width="${labelW}" height="${labelH}" fill="var(--bg-card)" rx="3"/>`;
-      lines.forEach((l, i) => {
-        svg += `<text x="${mx + labelOffsetX}" y="${my + labelOffsetY + (i - (lines.length - 1) / 2) * 12}" text-anchor="middle" class="nt-edge-label">${l}</text>`;
-      });
-    }
-  }
-
-  // 渲染节点
-  for (const node of topology.nodes) {
-    const status = getNodeStatusFn(node);
-    const borderColor = status === 'ok' ? 'var(--success)' :
-                        status === 'error' ? 'var(--danger)' :
-                        status === 'warn' ? 'var(--warning)' : 'var(--border)';
-    const bgColor = status === 'error' ? 'var(--danger-bg)' :
-                    status === 'warn' ? 'var(--warning-bg)' : 'var(--bg-card)';
-
-    const rx = node.w > 100 ? 'var(--radius)' : 'var(--radius)';
-
-    // 背景
-    svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="${rx}" fill="${bgColor}" stroke="${borderColor}" stroke-width="2" class="nt-node" data-node="${node.id}"/>`;
-
-    // 图标（用简单的几何表示）
-    const iconX = node.x + 12;
-    const iconY = node.y + node.h / 2;
-
-    // 状态圆点
-    const dotX = node.x + node.w - 14;
-    const dotY = node.y + node.h / 2;
-    const dotColor = status === 'ok' ? 'var(--success)' :
-                     status === 'error' ? 'var(--danger)' :
-                     status === 'warn' ? 'var(--warning)' : 'var(--text-dim)';
-    
-    if (node.dynamic) {
-      svg += `<circle cx="${dotX}" cy="${dotY}" r="5" fill="${dotColor}"/>`;
-    }
-
-    // 标签
-    const labelLines = node.label.split('\n');
-    const textX = node.x + 30;
-    const textY = node.y + node.h / 2 - (labelLines.length - 1) * 7;
-    labelLines.forEach((l, i) => {
-      svg += `<text x="${textX}" y="${textY + i * 14}" class="nt-node-label">${l}</text>`;
-    });
-
-    // 端口号（如果有）
-    if (node.port) {
-      svg += `<text x="${node.x + node.w - 24}" y="${node.y + 12}" text-anchor="end" class="nt-port-label">:${node.port}</text>`;
-    }
-  }
-
-  // UFW 端口条已移除：端口信息已通过 UFW→服务的实线标签展示
-
-  svg += `</svg>`;
-
-  // Tooltip
-  svg += `<div id="${tooltipId}" class="nt-tooltip" style="display:none;"></div>`;
-
-  container.innerHTML = svg;
-
-  // 绑定 hover 事件
-  container.querySelectorAll('.nt-node').forEach(rect => {
-    rect.addEventListener('mouseenter', (e) => showTooltip(e, topology, getNodeStatusFn, tooltipId));
-    rect.addEventListener('mouseleave', () => hideTooltip(tooltipId));
-  });
-
-  // 状态圆点阻止鼠标事件穿透（避免覆盖节点 rect 的 hover）
-  container.querySelectorAll('.nt-node + circle, .nt-node ~ circle').forEach(circle => {
-    circle.style.pointerEvents = 'none';
-  });
-}
+// ── 节点状态计算 ──
 
 function getNodeStatus(node) {
-  if (!node.dynamic) return 'static';
+  const d = node.data || {};
+  if (!d.dynamic) return 'static';
 
-  if (node.dynamic === 'tunnel') {
-    if (!ntState.tunnel) return 'unknown';
-    return ntState.tunnel.active ? 'ok' : 'error';
+  switch (d.dynamic) {
+    case 'modem':
+      if (!topoStatus.physical?.modem) return 'unknown';
+      return topoStatus.physical.modem.online ? 'ok' : 'error';
+    case 'router':
+      if (!topoStatus.physical?.router) return 'unknown';
+      return topoStatus.physical.router.online ? 'ok' : 'error';
+    case 'n150':
+      if (!topoStatus.physical?.n150) return 'unknown';
+      return topoStatus.physical.n150.online ? 'ok' : 'error';
+    case 'firewall':
+      if (!topoStatus.firewall) return 'unknown';
+      return topoStatus.firewall.status === 'active' ? 'ok' : 'error';
+    case 'tunnel':
+      if (!topoStatus.tunnel) return 'unknown';
+      return topoStatus.tunnel.active ? 'ok' : 'error';
+    case 'health':
+      if (d.healthIdx === -1) return 'ok';
+      if (Array.isArray(topoStatus.health)) {
+        const nameMap = { 0: 'WeMusic', 1: 'WeDownload' };
+        const svc = topoStatus.health.find(h => h.name === nameMap[d.healthIdx]);
+        if (!svc) return 'unknown';
+        return svc.status === 'healthy' ? 'ok' : 'error';
+      }
+      return 'unknown';
   }
-
-  if (node.dynamic === 'firewall') {
-    if (!ntState.firewall) return 'unknown';
-    return ntState.firewall.status === 'active' ? 'ok' : 'error';
-  }
-
-  if (node.dynamic === 'fw-rule') {
-    // 检查防火墙中该端口是否有 ALLOW 规则
-    if (!ntState.firewall || !ntState.firewall.rules) return 'unknown';
-    const rules = ntState.firewall.rules;
-    const hasAllow = rules.some(r => r.port == node.port && r.action === 'ALLOW');
-    // 防火墙未启用但规则存在 → warn；防火墙启用且规则存在 → ok；无规则 → error
-    if (!hasAllow) return 'error';
-    if (ntState.firewall.status !== 'active') return 'warn';
-    return 'ok';
-  }
-
-  if (node.dynamic === 'modem') {
-    if (!ptState.modem) return 'unknown';
-    return ptState.modem.online ? 'ok' : 'error';
-  }
-  if (node.dynamic === 'router') {
-    if (!ptState.router) return 'unknown';
-    return ptState.router.online ? 'ok' : 'error';
-  }
-  if (node.dynamic === 'n150') {
-    if (!ptState.n150) return 'unknown';
-    return ptState.n150.online ? 'ok' : 'error';
-  }
-
-  if (node.dynamic === 'health') {
-    if (!Array.isArray(ntState.health) || ntState.health.length === 0) return 'unknown';
-
-    // WeMonitor 自身的健康状态不在 health 列表中（它监控别人），默认视为 ok
-    if (node.healthIdx === -1) return 'ok';
-
-    // 按服务名匹配（WeMonitor 监控的是 WeMusic、WeDownload）
-    const nameMap = { 0: 'WeMusic', 1: 'WeDownload' };
-    const serviceName = nameMap[node.healthIdx];
-    const svc = ntState.health.find(h => h.name === serviceName);
-    if (!svc) return 'unknown';
-    return svc.status === 'healthy' ? 'ok' : 'error';
-  }
-
   return 'static';
 }
 
 // ── 连线端点计算 ──
 
 function computeEdgeEndpoints(from, to) {
-  const fcx = from.x + from.w / 2;
-  const fcy = from.y + from.h / 2;
-  const tcx = to.x + to.w / 2;
-  const tcy = to.y + to.h / 2;
-
-  const dx = tcx - fcx;
-  const dy = tcy - fcy;
+  const fw = from.data?.width || 140;
+  const fh = 44;
+  const tw = to.data?.width || 140;
+  const th = 44;
+  const fx = from.position.x, fy = from.position.y;
+  const tx = to.position.x, ty = to.position.y;
+  const fcx = fx + fw / 2, fcy = fy + fh / 2;
+  const tcx = tx + tw / 2, tcy = ty + th / 2;
+  const dx = tcx - fcx, dy = tcy - fcy;
 
   let sx, sy, ex, ey;
-
-  // 起点/终点严格在边的中点（不能是角）
-  // 只有线明显水平（|dx| > 5*|dy|）时用左右边，否则用上下边
-  // 这样从上往下的连接自然从上边中点进入
   if (Math.abs(dx) > Math.abs(dy) * 5) {
-    // 水平方向为主：从左右边中点出发，到左右边中点
-    if (dx > 0) {
-      sx = from.x + from.w;
-      ex = to.x;
-    } else {
-      sx = from.x;
-      ex = to.x + to.w;
-    }
-    sy = fcy;  // from 边中点
-    ey = tcy;  // to 边中点
+    if (dx > 0) { sx = fx + fw; ex = tx; }
+    else { sx = fx; ex = tx + tw; }
+    sy = fcy; ey = tcy;
   } else {
-    // 垂直方向为主（含中等斜度）：从上下边中点出发，到上下边中点
-    if (dy > 0) {
-      sy = from.y + from.h;
-      ey = to.y;
-    } else {
-      sy = from.y;
-      ey = to.y + to.h;
-    }
-    sx = fcx;  // from 边中点
-    ex = tcx;  // to 边中点
+    if (dy > 0) { sy = fy + fh; ey = ty; }
+    else { sy = fy; ey = ty + th; }
+    sx = fcx; ex = tcx;
   }
-
   return { sx, sy, ex, ey };
 }
 
-// ── Tooltip ──
+// ── 渲染 SVG ──
 
-function showTooltip(e, topology, getStatusFn, tooltipId) {
-  topology = topology || TOPOLOGY;
-  getStatusFn = getStatusFn || getNodeStatus;
-  tooltipId = tooltipId || 'nt-tooltip';
-  // 使用 currentTarget 而非 target，防止鼠标落在子元素（如圆点）上时取不到 data-node
-  const nodeId = e.currentTarget.getAttribute('data-node');
-  const node = topology.nodes.find(n => n.id === nodeId);
-  if (!node) return;
+function renderTopology(container) {
+  if (!topoConfig) return;
+  const { nodes, edges } = topoConfig;
 
-  const status = getStatusFn(node);
-  const statusText = status === 'ok' ? '正常' :
-                     status === 'error' ? '异常' :
-                     status === 'warn' ? '警告' :
-                     status === 'unknown' ? '未知' : '静态';
-
-  const portText = node.port ? `端口: ${node.port}` : '';
-  const protoText = node.id === 'qbittorrent' ? '协议: TCP + UDP' : '';
-
-  const tooltip = document.getElementById(tooltipId);
-  let info = `<div class="nt-tt-name">${node.label.replace('\n', ' ')}</div>
-    <div class="nt-tt-info">状态: ${statusText}</div>
-    ${portText ? `<div class="nt-tt-info">${portText}</div>` : ''}
-    ${protoText ? `<div class="nt-tt-info">${protoText}</div>` : ''}`;
-
-  // 物理拓扑额外信息
-  if (node.id === 'modem' && ptState.modem) {
-    info += `<div class="nt-tt-info">IP: ${ptState.modem.ip}  ·  延迟: ${ptState.modem.latency !== null ? ptState.modem.latency.toFixed(1) + 'ms' : '-'}</div>`;
-    info += `<div class="nt-tt-info">CMCC ONT  ·  LAN×${ptState.modem.ports.lan}  POTS×${ptState.modem.ports.pots}</div>`;
+  // 计算画布范围
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const n of nodes) {
+    const w = n.data?.width || 140;
+    minX = Math.min(minX, n.position.x);
+    minY = Math.min(minY, n.position.y);
+    maxX = Math.max(maxX, n.position.x + w);
+    maxY = Math.max(maxY, n.position.y + 44);
   }
-  if (node.id === 'router' && ptState.router) {
-    const r = ptState.router;
-    info += `<div class="nt-tt-info">${r.model || '小米路由器'}  ·  固件 ${r.firmware || '-'}</div>`;
-    if (r.uptime) info += `<div class="nt-tt-info">运行: ${formatUptime(r.uptime)}</div>`;
-    if (r.cpu) info += `<div class="nt-tt-info">CPU: ${r.cpu.load}% (${r.cpu.core}核)  ·  内存: ${r.mem ? (r.mem.usage * 100).toFixed(0) + '% / ' + r.mem.total : '-'}</div>`;
-    if (r.wan) info += `<div class="nt-tt-info">WAN: ↓${formatSpeed(r.wan.down)} ↑${formatSpeed(r.wan.up)}</div>`;
-  }
-  if (node.id === 'n150' && ptState.n150) {
-    const n = ptState.n150;
-    info += `<div class="nt-tt-info">IP: ${n.ip}</div>`;
-    if (n.cpu) info += `<div class="nt-tt-info">CPU: ${n.cpu.usage.toFixed(1)}% (${n.cpu.core}核)</div>`;
-    if (n.mem) info += `<div class="nt-tt-info">内存: ${n.mem.usage.toFixed(0)}% / ${n.mem.total}</div>`;
-    if (n.uptime) info += `<div class="nt-tt-info">运行: ${formatUptime(n.uptime)}</div>`;
-  }
+  const pad = 40;
+  const W = maxX - minX + pad * 2;
+  const H = Math.max(maxY - minY + pad * 2, 400);
+  const ox = minX - pad;
+  const oy = minY - pad;
 
-  tooltip.innerHTML = info;
-  tooltip.style.display = 'block';
-  // 添加 visible 类触发 CSS opacity 过渡（CSS 中 .nt-tooltip 默认 opacity:0）
-  tooltip.classList.add('visible');
+  let svg = `<svg class="nt-svg" viewBox="${ox} ${oy} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
-  const container = e.currentTarget.closest('.nt-diagram');
-  const rect = container.getBoundingClientRect();
-  tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
-  tooltip.style.top = (e.clientY - rect.top - 40) + 'px';
-}
+  // 箭头 markers
+  svg += `<defs>
+    <marker id="arr-green" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--success)"/>
+    </marker>
+    <marker id="arr-dim" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim)"/>
+    </marker>
+    <marker id="arr-danger" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="var(--danger)"/>
+    </marker>
+  </defs>`;
 
-function hideTooltip(tooltipId) {
-  const tooltip = document.getElementById(tooltipId || 'nt-tooltip');
-  if (!tooltip) return;
-  tooltip.classList.remove('visible');
-  tooltip.style.display = 'none';
-}
+  // 渲染边
+  for (const edge of edges) {
+    const from = nodes.find(n => n.id === edge.source);
+    const to = nodes.find(n => n.id === edge.target);
+    if (!from || !to) continue;
 
-function refreshPage() {
-  loadNetworkTopology();
-}
+    const ep = computeEdgeEndpoints(from, to);
+    let color = 'var(--text-dim)', marker = 'url(#arr-dim)', dash = '';
 
-loadNetworkTopology();
+    // 边颜色
+    const fromStatus = getNodeStatus(from);
+    if (fromStatus === 'ok') { color = 'var(--success)'; marker = 'url(#arr-green)'; }
+    if (fromStatus === 'error') { color = 'var(--danger)'; marker = 'url(#arr-danger)'; }
 
-// ── 物理拓扑 ──
+    const angle = Math.atan2(ep.ey - ep.sy, ep.ex - ep.sx);
+    const ex2 = ep.ex - 4 * Math.cos(angle);
+    const ey2 = ep.ey - 4 * Math.sin(angle);
 
-let ptState = { modem: null, router: null, n150: null };
+    svg += `<line x1="${ep.sx}" y1="${ep.sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
 
-// 两路并行的网络拓扑
-// 左列（公网访问，不经过家庭网络）：Internet → CF CDN → CF Tunnel → N150 → 服务
-// 右列（家庭网络）：Internet → ISP → 光猫 → 路由器 → 手机/电脑，路由器 → UFW → N150 → 服务
-const PHYSICAL_TOPOLOGY = {
-  nodes: [
-    // Layer 1: 外部 (y:30)
-    { id: 'internet',   label: 'Internet',              x: 470, y: 30,  w: 120, h: 44 },
-
-    // Layer 2: 公网入口 (y:115) — 左公网右 ISP
-    { id: 'cf-cdn',     label: 'Cloudflare CDN',        x: 30,  y: 115, w: 170, h: 44 },
-    { id: 'isp',        label: '中国移动',               x: 740, y: 115, w: 150, h: 44 },
-
-    // Layer 3: 公网通道 (y:210) — 左隧道右光猫
-    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',    x: 30,  y: 210, w: 170, h: 52, dynamic: 'tunnel' },
-    { id: 'modem',      label: '光猫',                   x: 750, y: 210, w: 120, h: 44, dynamic: 'modem' },
-
-    // Layer 4: 服务器 (y:310) — N150 + UFW 防火墙墙 + 路由器
-    { id: 'n150',       label: 'N150 服务器',            x: 30,  y: 310, w: 250, h: 48, dynamic: 'n150' },
-    { id: 'ufw',        label: 'UFW',                    x: 310, y: 316, w: 100, h: 36, dynamic: 'firewall' },
-    { id: 'router',     label: '路由器',                 x: 460, y: 310, w: 130, h: 44, dynamic: 'router' },
-
-    // Layer 5: 局域网 (y:400) — LAN 设备
-    { id: 'local',      label: '手机 / 电脑',            x: 460, y: 400, w: 130, h: 44 },
-
-    // Layer 6: 服务 (y:490) — 底部展开
-    { id: 'wemonitor',  label: 'WeMonitor',             x: 80,  y: 490, w: 120, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
-    { id: 'webhook',    label: 'Webhook',               x: 230, y: 490, w: 100, h: 44, port: 9001 },
-    { id: 'wemusic',    label: 'WeMusic',               x: 360, y: 490, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
-    { id: 'wedownload', label: 'WeDownload',            x: 510, y: 490, w: 120, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
-    { id: 'ssh',        label: 'SSH',                   x: 660, y: 490, w: 100, h: 44, dynamic: 'tunnel' },
-  ],
-  edges: [
-    // ── 公网访问路径（左列，不经过家庭网络）──
-    { from: 'internet',  to: 'cf-cdn',    style: 'solid', label: '' },
-    { from: 'cf-cdn',    to: 'cf-tunnel', style: 'solid', label: 'TLS' },
-    { from: 'cf-tunnel', to: 'n150',      style: 'solid', label: '' },
-
-    // ── 家庭网络（右列，N150 出站 + LAN 设备联网）──
-    { from: 'internet',  to: 'isp',       style: 'solid', label: 'LAN 出口' },
-    { from: 'isp',       to: 'modem',     style: 'solid', label: '' },
-    { from: 'modem',     to: 'router',    style: 'solid', label: '' },
-
-    // ── 局域网访问（右列）──
-    { from: 'router',    to: 'local',     style: 'solid', label: '' },
-    { from: 'router',    to: 'ufw',       style: 'solid', label: '' },
-
-    // ── 防火墙 → N150 → 服务 ──
-    { from: 'ufw',       to: 'n150',      style: 'solid', label: '' },
-  ],
-};
-
-const PT_LAYERS = [
-  { y: 30,  h: 44, label: '外部' },
-  { y: 115, h: 44, label: '公网入口' },
-  { y: 210, h: 52, label: '公网通道' },
-  { y: 310, h: 48, label: '服务器' },
-  { y: 400, h: 44, label: '局域网' },
-  { y: 490, h: 44, label: '服务' },
-];
-
-const PT_SEPARATORS = [90, 182, 283, 373, 460];
-
-async function loadPhysicalTopology() {
-  const container = document.getElementById('nt-diagram');
-  if (!container) return;
-  container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
-
-  // 并行获取：物理拓扑数据 + 网络拓扑状态
-  const [ptResult, ...ntResults] = await Promise.allSettled([
-    api('/physical-topology'),
-    api('/firewall/status'),
-    api('/tunnel/status'),
-    api('/health'),
-  ]);
-
-  // 物理拓扑数据
-  if (ptResult.status === 'fulfilled' && ptResult.value) {
-    ptState = ptResult.value;
-  } else {
-    ptState = { error: true, modem: null, router: null };
+    // 标签
+    if (edge.label) {
+      const mx = (ep.sx + ep.ex) / 2, my = (ep.sy + ep.ey) / 2;
+      const isH = Math.abs(ep.ex - ep.sx) > Math.abs(ep.ey - ep.sy);
+      const lx = mx + (isH ? 0 : -8), ly = my + (isH ? -8 : 0);
+      const lines = edge.label.split('\n');
+      const tw = Math.max(...lines.map(l => l.length)) * 6 + 10;
+      const th = lines.length * 12 + 4;
+      svg += `<rect x="${lx - tw / 2}" y="${ly - th / 2}" width="${tw}" height="${th}" fill="var(--bg-card)" rx="3"/>`;
+      lines.forEach((l, i) => {
+        svg += `<text x="${lx}" y="${ly + (i - (lines.length - 1) / 2) * 12}" text-anchor="middle" class="nt-edge-label">${l}</text>`;
+      });
+    }
   }
 
-  // 同时更新 ntState（物理拓扑需要检查 tunnel/firewall 状态）
-  ntState.firewall = ntResults[0].status === 'fulfilled' ? ntResults[0].value : null;
-  ntState.tunnel   = ntResults[1].status === 'fulfilled' ? ntResults[1].value : null;
-  ntState.health   = ntResults[2].status === 'fulfilled' ? ntResults[2].value : [];
+  // 渲染节点
+  for (const node of nodes) {
+    const d = node.data || {};
+    const w = d.width || 140, h = 44;
+    const x = node.position.x, y = node.position.y;
+    const status = getNodeStatus(node);
 
-  updatePtBadge();
+    const bc = status === 'ok' ? 'var(--success)' : status === 'error' ? 'var(--danger)' : status === 'warn' ? 'var(--warning)' : 'var(--border)';
+    const bg = status === 'error' ? 'var(--danger-bg)' : status === 'warn' ? 'var(--warning-bg)' : 'var(--bg-card)';
 
-  // N150 → 服务边（运行时带端口标签）
-  const svcEdges = [
-    { from: 'n150', to: 'wemonitor',  style: 'solid', label: ':18990' },
-    { from: 'n150', to: 'webhook',    style: 'solid', label: ':9001' },
-    { from: 'n150', to: 'wemusic',    style: 'solid', label: ':5174' },
-    { from: 'n150', to: 'wedownload', style: 'solid', label: ':8080' },
-    { from: 'n150', to: 'ssh',        style: 'solid', label: ':22' },
-  ];
+    svg += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="var(--radius)" fill="${bg}" stroke="${bc}" stroke-width="2" class="nt-node" data-node="${node.id}"/>`;
 
-  renderTopology(container, {
-    topology: { ...PHYSICAL_TOPOLOGY, edges: [...PHYSICAL_TOPOLOGY.edges, ...svcEdges] },
-    state: ntState,
-    W: 1100,
-    H: 580,
-    layers: PT_LAYERS,
-    separators: PT_SEPARATORS,
-    tooltipId: 'nt-tooltip',
-    arrowPrefix: 'pt-',
-    getNodeStatusFn: getNodeStatus,
+    // 状态圆点
+    if (d.dynamic) {
+      const dc = status === 'ok' ? 'var(--success)' : status === 'error' ? 'var(--danger)' : status === 'warn' ? 'var(--warning)' : 'var(--text-dim)';
+      svg += `<circle cx="${x + w - 14}" cy="${y + h / 2}" r="5" fill="${dc}" style="pointer-events:none"/>`;
+    }
+
+    // 标签
+    const lines = (d.label || '').split('\n');
+    const tx = x + 30, ty = y + h / 2 - (lines.length - 1) * 7;
+    lines.forEach((l, i) => {
+      svg += `<text x="${tx}" y="${ty + i * 14}" class="nt-node-label">${l}</text>`;
+    });
+
+    // 端口
+    if (d.port) {
+      svg += `<text x="${x + w - 24}" y="${y + 12}" text-anchor="end" class="nt-port-label">:${d.port}</text>`;
+    }
+  }
+
+  svg += '</svg>';
+
+  // Tooltip
+  svg += '<div id="nt-tooltip" class="nt-tooltip" style="display:none;"></div>';
+
+  container.innerHTML = svg;
+
+  // Tooltip 事件
+  container.querySelectorAll('.nt-node').forEach(rect => {
+    rect.addEventListener('mouseenter', (e) => {
+      const nodeId = e.currentTarget.getAttribute('data-node');
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node) return;
+      const d = node.data || {};
+      const status = getNodeStatus(node);
+      const statusText = status === 'ok' ? '正常' : status === 'error' ? '异常' : status === 'warn' ? '警告' : status === 'unknown' ? '未知' : '静态';
+      const portText = d.port ? `<div class="nt-tt-info">端口: ${d.port}</div>` : '';
+      const dynText = d.dynamic ? `<div class="nt-tt-info">监控: ${d.dynamic}</div>` : '';
+
+      const tooltip = document.getElementById('nt-tooltip');
+      tooltip.innerHTML = `<div class="nt-tt-name">${(d.label || '').replace('\n', ' ')}</div><div class="nt-tt-info">状态: ${statusText}</div>${portText}${dynText}`;
+      tooltip.style.display = 'block';
+      tooltip.classList.add('visible');
+      const cRect = container.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - cRect.left + 12) + 'px';
+      tooltip.style.top = (e.clientY - cRect.top - 40) + 'px';
+    });
+    rect.addEventListener('mouseleave', () => {
+      const tooltip = document.getElementById('nt-tooltip');
+      tooltip.classList.remove('visible');
+      tooltip.style.display = 'none';
+    });
   });
 }
 
-function updatePtBadge() {
-  const badge = document.getElementById('nt-status-badge');
-  if (!badge) return;
-  if (ptState.error || !ptState.modem) {
-    badge.className = 'status-badge status-unhealthy';
-    badge.textContent = '数据获取失败';
-    return;
-  }
-  const allOnline = ptState.modem.online && ptState.router.online && ptState.n150?.online;
-  badge.className = allOnline ? 'status-badge status-healthy' : 'status-badge status-warning';
-  badge.textContent = allOnline ? '全部在线' : '部分离线';
-}
-
-function formatUptime(seconds) {
-  if (typeof seconds !== 'number') return '-';
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d > 0) return `${d}天 ${h}小时`;
-  if (h > 0) return `${h}小时 ${m}分`;
-  return `${m}分`;
-}
-
-function formatSpeed(bytesPerSec) {
-  const v = parseInt(bytesPerSec) || 0;
-  if (v >= 1048576) return (v / 1048576).toFixed(1) + 'MB/s';
-  if (v >= 1024) return (v / 1024).toFixed(0) + 'KB/s';
-  return v + 'B/s';
-}
+function refreshPage() { loadNetworkTopology(); }
+loadNetworkTopology();
