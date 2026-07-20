@@ -182,14 +182,14 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
         stroke: '#71717a',
         grid: { show: false },
         values: xValues,
-        font: 'calc(var(--font-size) * 0.9) var(--font)',
+        font: '12px system-ui, -apple-system, sans-serif',
       },
       {
         stroke: '#71717a',
         grid: { stroke: '#f0f0f5', width: 1 },
         size: yAxisOpts.unit === '%' ? 40 : 55,
         values: yValues,
-        font: 'calc(var(--font-size) * 0.9) var(--font)',
+        font: '12px system-ui, -apple-system, sans-serif',
       }
     ],
     series,
