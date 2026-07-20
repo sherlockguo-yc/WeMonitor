@@ -211,21 +211,7 @@ function renderTopology(container, opts = {}) {
     }
   }
 
-  // UFW 防火墙端口条：在节点下方显示开放的端口号
-  const ufwNode = topology.nodes.find(n => n.id === 'ufw');
-  if (ufwNode && state.firewall && state.firewall.rules && state.firewall.rules.length > 0) {
-    const allowPorts = state.firewall.rules
-      .filter(r => r.action === 'ALLOW')
-      .map(r => r.port)
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .sort((a, b) => parseInt(a) - parseInt(b));
-    if (allowPorts.length > 0) {
-      const portText = allowPorts.join('  ');
-      const stripX = ufwNode.x + ufwNode.w / 2;
-      const stripY = ufwNode.y + ufwNode.h + 15;
-      svg += `<text x="${stripX}" y="${stripY}" text-anchor="middle" class="nt-port-strip">${portText}</text>`;
-    }
-  }
+  // UFW 端口条已移除：端口信息已通过 UFW→服务的实线标签展示
 
   svg += `</svg>`;
 
@@ -471,14 +457,13 @@ async function loadPhysicalTopology() {
 
   updatePtBadge();
 
-  // LAN 直连边：从 UFW 到各服务，标签标注内网 IP
-  const lanIp = ptState.n150?.ip || '192.168.31.102';
+  // LAN 直连边：从 UFW 到各服务，标签只标注端口
   const lanEdges = [
-    { from: 'ufw', to: 'wemonitor',  style: 'solid', label: `${lanIp}\n:18990` },
-    { from: 'ufw', to: 'webhook',    style: 'solid', label: `${lanIp}\n:9001` },
-    { from: 'ufw', to: 'wemusic',    style: 'solid', label: `${lanIp}\n:5174` },
-    { from: 'ufw', to: 'wedownload', style: 'solid', label: `${lanIp}\n:8080` },
-    { from: 'ufw', to: 'ssh',        style: 'solid', label: `${lanIp}\n:22` },
+    { from: 'ufw', to: 'wemonitor',  style: 'solid', label: ':18990' },
+    { from: 'ufw', to: 'webhook',    style: 'solid', label: ':9001' },
+    { from: 'ufw', to: 'wemusic',    style: 'solid', label: ':5174' },
+    { from: 'ufw', to: 'wedownload', style: 'solid', label: ':8080' },
+    { from: 'ufw', to: 'ssh',        style: 'solid', label: ':22' },
   ];
 
   renderTopology(container, {
