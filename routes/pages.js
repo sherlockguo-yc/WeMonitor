@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireActive, requireAdmin, register, login } = require('../lib/auth');
+const config = require('../config');
 
 // ── 公开页面 ──
 
@@ -90,7 +91,14 @@ router.get('/network', (req, res) => {
 
 // Tunnel 管理
 router.get('/tunnel', (req, res) => {
-  res.render('tunnel', { title: 'Tunnel', active: 'tunnel' });
+  // 从默认服务列表提取可用的服务地址（用于添加路由时的下拉选择）
+  const services = (config.defaultServices || [])
+    .filter(s => s.health_target)
+    .map(s => {
+      const port = s.health_target.split(':').pop();
+      return { name: s.name, url: `http://localhost:${port}` };
+    });
+  res.render('tunnel', { title: 'Tunnel', active: 'tunnel', services });
 });
 
 // ── 管理员页面 ──

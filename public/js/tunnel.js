@@ -82,25 +82,121 @@ async function restartTunnel() {
   refreshIcons();
 }
 
-async function addTunnelRoute() {
-  const hostname = document.getElementById('route-hostname').value.trim();
-  if (!hostname) { alert('请输入子域名'); return; }
+// ── 添加路由弹窗 ──
 
-  const res = await fetch('/api/v1/tunnel/route', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ hostname })
-  });
-  const data = await res.json();
+function showAddRouteModal() {
+  const modal = document.getElementById('add-route-modal');
+  modal.style.display = 'flex';
+  document.getElementById('modal-hostname').value = '';
+  document.getElementById('modal-service-select').value = '';
+  document.getElementById('modal-service-custom').style.display = 'none';
+  document.getElementById('modal-service-custom').value = '';
+  document.getElementById('modal-route-error').style.display = 'none';
+  document.getElementById('modal-hostname').focus();
+}
 
-  const result = document.getElementById('route-result');
-  if (data.success) {
-    result.textContent = '✅ DNS 路由已添加: ' + hostname;
-    result.style.color = 'var(--success)';
-    document.getElementById('route-hostname').value = '';
+function closeAddRouteModal() {
+  document.getElementById('add-route-modal').style.display = 'none';
+}
+
+function onServiceSelectChange() {
+  const select = document.getElementById('modal-service-select');
+  const customInput = document.getElementById('modal-service-custom');
+  if (select.value === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
   } else {
-    result.textContent = '❌ 添加失败: ' + (data.error || data.stderr || '未知错误');
-    result.style.color = 'var(--danger)';
+    customInput.style.display = 'none';
+    customInput.value = '';
+  }
+}
+
+// 点击遮罩关闭
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'add-route-modal') {
+    closeAddRouteModal();
+  }
+});
+
+// ESC 关闭
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('add-route-modal');
+    if (modal.style.display !== 'none') {
+      closeAddRouteModal();
+    }
+  }
+});
+
+async function submitAddRoute() {
+  const hostname = document.getElementById('modal-hostname').value.trim();
+  const select = document.getElementById('modal-service-select');
+  const customInput = document.getElementById('modal-service-custom');
+  const errEl = document.getElementById('modal-route-error');
+  const btn = document.getElementById('btn-submit-route');
+
+  errEl.style.display = 'none';
+
+  // 校验
+  if (!hostname) {
+    errEl.textContent = '请输入子域名';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!hostname.endsWith('.sherlockguo.com') && hostname !== 'sherlockguo.com') {
+    errEl.textContent = '子域名必须以 .sherlockguo.com 结尾';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  let service;
+  if (select.value === '__custom__') {
+    service = customInput.value.trim();
+    if (!service) {
+      errEl.textContent = '请输入自定义服务地址';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!/^https?:\/\/.+/.test(service)) {
+      errEl.textContent = '服务地址需要以 http:// 或 https:// 开头';
+      errEl.style.display = 'block';
+      return;
+    }
+  } else if (select.value) {
+    service = select.value;
+  } else {
+    errEl.textContent = '请选择服务地址';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i data-lucide="loader" class="icon-sm"></i> 添加中...';
+  refreshIcons();
+
+  try {
+    const res = await fetch('/api/v1/tunnel/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hostname, service })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      closeAddRouteModal();
+      // 刷新路由列表
+      loadTunnelRoutes();
+    } else {
+      errEl.textContent = '添加失败: ' + (data.error || data.stderr || '未知错误');
+      errEl.style.display = 'block';
+    }
+  } catch (err) {
+    errEl.textContent = '网络错误: ' + err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="plus" class="icon-sm"></i> 添加';
+    refreshIcons();
   }
 }
 

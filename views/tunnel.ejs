@@ -41,31 +41,56 @@
 
 <div class="card">
   <div class="card-header">
-    <h3>添加子域名路由</h3>
-  </div>
-  <div class="card-body">
-    <div class="form-inline">
-      <div class="form-group" style="flex:1;">
-        <input type="text" id="route-hostname" class="form-input" placeholder="blog.sherlockguo.com">
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="addTunnelRoute()">
+    <h3>子域名路由</h3>
+    <div style="display:flex;align-items:center;gap:calc(var(--font-size)*0.5);">
+      <button class="btn btn-primary btn-sm" onclick="showAddRouteModal()">
         <i data-lucide="plus" class="icon-sm"></i> 添加
       </button>
+      <button class="btn btn-secondary btn-sm" onclick="loadTunnelRoutes()">
+        <i data-lucide="rotate-cw" class="icon-sm"></i> 刷新
+      </button>
     </div>
-    <span class="action-hint" id="route-result"></span>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header">
-    <h3>子域名路由</h3>
-    <button class="btn btn-secondary btn-sm" onclick="loadTunnelRoutes()">
-      <i data-lucide="rotate-cw" class="icon-sm"></i> 刷新
-    </button>
   </div>
   <div class="card-body">
     <div id="tunnel-routes-container">
       <div class="text-dim" style="padding:calc(var(--font-size)*2) 0;text-align:center;">加载中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 添加路由弹窗 -->
+<div class="modal-mask" id="add-route-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>添加子域名路由</h3>
+      <button class="btn-icon" onclick="closeAddRouteModal()" aria-label="关闭">
+        <i data-lucide="x" class="icon-sm"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>子域名</label>
+        <input type="text" id="modal-hostname" class="form-input" placeholder="blog.sherlockguo.com" autocomplete="off">
+        <div class="form-hint text-dim" style="font-size:calc(var(--font-size)*0.78);margin-top:calc(var(--font-size)*0.25);">必须以 .sherlockguo.com 结尾</div>
+      </div>
+      <div class="form-group">
+        <label>服务地址</label>
+        <select id="modal-service-select" class="form-select" style="width:100%;" onchange="onServiceSelectChange()">
+          <option value="">选择已有服务...</option>
+          <% if (typeof services !== 'undefined' && services.length) { services.forEach(s => { %>
+            <option value="<%= s.url %>"><%= s.name %> &mdash; <%= s.url %></option>
+          <% }); } %>
+          <option value="__custom__">自定义地址...</option>
+        </select>
+        <input type="text" id="modal-service-custom" class="form-input" placeholder="http://localhost:端口号" style="display:none;margin-top:calc(var(--font-size)*0.5);" autocomplete="off">
+      </div>
+      <div id="modal-route-error" class="text-danger" style="font-size:calc(var(--font-size)*0.85);display:none;margin-top:calc(var(--font-size)*0.5);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeAddRouteModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitAddRoute()" id="btn-submit-route">
+        <i data-lucide="plus" class="icon-sm"></i> 添加
+      </button>
     </div>
   </div>
 </div>
