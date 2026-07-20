@@ -187,7 +187,8 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
       {
         stroke: '#71717a',
         grid: { stroke: '#f0f0f5', width: 1 },
-        size: yAxisOpts.unit === '%' ? 40 : 55,
+        size: yAxisOpts.unit === '%' ? 40 : 75,
+        gap: 8,
         values: yValues,
         font: '12px system-ui, -apple-system, sans-serif',
       }
