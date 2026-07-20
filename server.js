@@ -4,6 +4,18 @@ const systemCollector = require('./lib/collector/system');
 const healthCollector = require('./lib/collector/health');
 const scraper = require('./lib/collector/scraper');
 const cleaner = require('./lib/cleaner');
+const cronManager = require('./lib/cron');
+
+// ── 初始化 cron 管理器 ──
+
+cronManager.init().then(jobs => {
+  console.log(`[cron] Initialized with ${jobs.length} job(s)`);
+}).catch(err => {
+  console.error('[cron] Init error:', err.message);
+});
+
+// ── 定时清理 cron 运行历史 ──
+setInterval(() => cronManager.cleanupHistory(), 3600000); // 每小时
 
 // ── 启动采集器 ──
 

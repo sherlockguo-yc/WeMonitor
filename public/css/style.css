@@ -1899,6 +1899,63 @@ body {
 }
 
 /* ===================================================
+   Alert / 警告横幅
+   =================================================== */
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--font-size) * 0.6);
+  padding: calc(var(--font-size) * 0.7) calc(var(--font-size) * 1);
+  border-radius: var(--radius);
+  font-size: calc(var(--font-size) * 0.9);
+}
+
+.alert-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+/* ===================================================
+   表单辅助
+   =================================================== */
+
+.form-hint {
+  font-size: calc(var(--font-size) * 0.8);
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* ===================================================
+   文本工具
+   =================================================== */
+
+.text-dim {
+  color: var(--text-dim);
+}
+
+/* ===================================================
+   定时任务专用样式
+   =================================================== */
+
+.cron-expr {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: calc(var(--font-size) * 0.85);
+  background: var(--bg);
+  padding: calc(var(--font-size) * 0.15) calc(var(--font-size) * 0.5);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.cron-cmd {
+  font-family: var(--font-mono);
+  font-size: calc(var(--font-size) * 0.8);
+  color: var(--text-dim);
+}
+
+/* ===================================================
    响应式
    =================================================== */
 

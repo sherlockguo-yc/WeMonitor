@@ -51,6 +51,17 @@ router.get('/tunnel/routes', tunnelApi.getRoutes);
 const physicalTopologyApi = require('../lib/api/physical-topology');
 router.get('/physical-topology', physicalTopologyApi.getStatus);
 
+// ── 定时任务管理 ──
+const cronApi = require('../lib/api/cron');
+router.get('/cron/jobs', cronApi.listJobs);
+router.post('/cron/jobs', cronApi.createJob);
+router.put('/cron/jobs/:id', cronApi.updateJob);
+router.delete('/cron/jobs/:id', cronApi.deleteJob);
+router.post('/cron/jobs/:id/toggle', cronApi.toggleJob);
+router.get('/cron/jobs/:id/history', cronApi.getHistory);
+router.post('/cron/sync', cronApi.forceSync);
+router.get('/cron/sync-status', cronApi.syncStatus);
+
 // ── 管理员 API ──
 router.use('/admin', requireAdmin);
 

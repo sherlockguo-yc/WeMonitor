@@ -25,8 +25,8 @@
           <span>概览</span>
         </a>
         <%
-          // 系统管理组是否展开：当前在 system 页面时展开
-          const adminGroupActive = ['system'].includes(active);
+          // 系统管理组是否展开：当前在 system / cron 页面时展开
+          const adminGroupActive = ['system', 'cron'].includes(active);
         %>
         <div class="nav-group <%= adminGroupActive ? 'expanded' : '' %>" data-group="admin">
           <div class="nav-group-toggle" onclick="toggleNavGroup(this.parentElement)">
@@ -38,6 +38,10 @@
             <a href="/system" class="nav-sub-item <%= active === 'system' ? 'active' : '' %>">
               <i data-lucide="cpu" class="icon-sm"></i>
               <span>系统资源</span>
+            </a>
+            <a href="/cron" class="nav-sub-item <%= active === 'cron' ? 'active' : '' %>">
+              <i data-lucide="clock" class="icon-sm"></i>
+              <span>定时任务</span>
             </a>
           </div>
         </div>

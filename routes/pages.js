@@ -67,6 +67,10 @@ router.get('/system', (req, res) => {
   res.render('system', { title: '系统资源', active: 'system' });
 });
 
+router.get('/cron', (req, res) => {
+  res.render('cron', { title: '定时任务', active: 'cron' });
+});
+
 router.get('/services', (req, res) => {
   res.render('services', { title: '服务状态', active: 'services' });
 });

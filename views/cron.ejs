@@ -1,0 +1,93 @@
+<!-- 同步状态警告 -->
+<div id="sync-warning" class="alert alert-warning" style="display:none; margin-bottom: 16px;">
+  <i data-lucide="alert-triangle" class="icon-sm"></i>
+  <span id="sync-warning-text">系统 crontab 与 WeMonitor 配置不一致</span>
+  <button class="btn btn-sm" onclick="forceSync()" style="margin-left: auto;">同步到系统</button>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>定时任务</h3>
+    <button class="btn btn-primary btn-sm" onclick="showJobForm()">+ 新增任务</button>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>调度表达式</th>
+            <th>命令</th>
+            <th>启用</th>
+            <th>上次运行</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="cron-jobs-body">
+          <tr><td colspan="6" class="empty-state">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 新增/编辑任务模态框 -->
+<div class="modal-mask" id="cron-modal" style="display:none;">
+  <div class="modal-box" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 id="cron-modal-title">新增定时任务</h3>
+      <button class="btn-icon" onclick="closeCronModal()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>任务名称</label>
+        <input type="text" id="cron-name" class="form-input" placeholder="如：自动备份数据">
+      </div>
+      <div class="form-group">
+        <label>调度表达式（Cron）</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="cron-schedule" class="form-input" placeholder="*/5 * * * *" style="flex: 1;" oninput="updateSchedulePreview()">
+          <select id="cron-preset" class="form-select" onchange="applyPreset()" style="width: 140px;">
+            <option value="">常用预设</option>
+            <option value="* * * * *">每分钟</option>
+            <option value="*/5 * * * *">每 5 分钟</option>
+            <option value="*/15 * * * *">每 15 分钟</option>
+            <option value="*/30 * * * *">每 30 分钟</option>
+            <option value="0 * * * *">每小时</option>
+            <option value="0 */2 * * *">每 2 小时</option>
+            <option value="0 */6 * * *">每 6 小时</option>
+            <option value="0 0 * * *">每天 0 点</option>
+            <option value="0 3 * * *">每天 3 点</option>
+            <option value="0 0 * * 0">每周日 0 点</option>
+            <option value="0 0 1 * *">每月 1 日 0 点</option>
+          </select>
+        </div>
+        <div id="schedule-preview" class="form-hint" style="margin-top: 4px;"></div>
+      </div>
+      <div class="form-group">
+        <label>命令</label>
+        <textarea id="cron-command" class="form-input" rows="3" placeholder="如：/bin/bash $HOME/backup.sh" style="resize: vertical; font-family: monospace; font-size: 13px;"></textarea>
+        <div class="form-hint" style="margin-top: 4px;">支持环境变量（$HOME 等），命令将以 /bin/bash 执行</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCronModal()">取消</button>
+      <button class="btn btn-primary" id="cron-submit-btn" onclick="submitJob()">创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- 运行历史模态框 -->
+<div class="modal-mask" id="history-modal" style="display:none;">
+  <div class="modal-box" style="max-width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
+    <div class="modal-header">
+      <h3 id="history-modal-title">运行历史</h3>
+      <button class="btn-icon" onclick="closeHistoryModal()"><i data-lucide="x" class="icon-sm"></i></button>
+    </div>
+    <div class="modal-body" style="overflow-y: auto; flex: 1;" id="history-body">
+      加载中...
+    </div>
+  </div>
+</div>
+
+<script src="/js/cron.js?v=<%= version %>" defer></script>

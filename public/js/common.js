@@ -280,6 +280,8 @@ const CACHE_TTL = {
   '/admin/users': 120000,
   '/tunnel/status': 30000,
   '/tunnel/logs': 30000,
+  '/cron/jobs': 15000,
+  '/cron/jobs/': 15000,
 };
 
 function _getTTL(path) {
