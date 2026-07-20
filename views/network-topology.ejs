@@ -1,8 +1,10 @@
-<div class="card">
+<link rel="stylesheet" href="/topology-editor/wemonitor.css">
+
+<div class="card" id="topology-view">
   <div class="card-header">
     <h3>网络拓扑</h3>
     <span class="status-badge" id="nt-status-badge">加载中...</span>
-    <a href="/topology-editor/" class="btn btn-sm" style="margin-left:auto">编辑拓扑</a>
+    <button class="btn btn-sm" onclick="switchToEditor()" style="margin-left:auto">编辑拓扑</button>
   </div>
   <div class="card-body">
     <div id="nt-diagram" class="nt-diagram">
@@ -17,27 +19,52 @@
       <span class="nt-legend-item" title="链路正常可达"><span class="nt-line-sample nt-line-green"></span> 在线</span>
       <span class="nt-legend-item" title="链路中断或异常"><span class="nt-line-sample nt-line-red"></span> 异常</span>
       <span class="nt-legend-sep">|</span>
-      <span class="nt-legend-item" title="左列：公网访问（Internet → CF CDN → CF Tunnel → N150）；右列：局域网访问（手机/电脑 → 路由器 → UFW → N150）"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
+      <span class="nt-legend-item" title="实线：实际网络链路"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
     </div>
   </div>
 </div>
 
-<div class="card">
+<div class="card" id="editor-card" style="display:none">
   <div class="card-header">
-    <h3>流量路径说明</h3>
+    <h3>拓扑编辑器</h3>
+    <button class="btn btn-sm" onclick="switchToView()" style="margin-left:auto">← 返回概览</button>
   </div>
+  <div class="card-body" style="padding:0">
+    <div id="topology-editor-root" style="height:75vh;width:100%"></div>
+  </div>
+</div>
+
+<div class="card" id="info-cards">
+  <div class="card-header"><h3>流量路径说明</h3></div>
   <div class="card-body">
     <table class="data-table">
-      <thead>
-        <tr><th>访问方式</th><th>路径</th><th>说明</th></tr>
-      </thead>
+      <thead><tr><th>访问方式</th><th>路径</th><th>说明</th></tr></thead>
       <tbody>
-        <tr><td>公网（域名访问）</td><td>Internet → CF CDN → CF Tunnel → N150</td><td>外部用户访问域名，经 Cloudflare CDN + Tunnel 到达 N150，<strong>不经过家庭网络</strong></td></tr>
-        <tr><td>局域网（IP 直连）</td><td>手机/电脑 → 路由器 → UFW → N150</td><td>同局域网下通过 N150 内网 IP 直接访问服务</td></tr>
-        <tr><td>家庭网络出口</td><td>N150 → 路由器 → 光猫 → ISP → Internet</td><td>N150 主动出站到公网（建立 CF Tunnel、系统更新等）</td></tr>
+        <tr><td>公网（域名）</td><td>Internet → CF CDN → CF Tunnel → N150</td><td>外部用户访问域名，经 Cloudflare CDN + Tunnel 到达 N150，<strong>不经过家庭网络</strong></td></tr>
+        <tr><td>局域网（IP）</td><td>手机/电脑 → 路由器 → UFW → N150</td><td>同局域网下通过 N150 内网 IP 直接访问服务</td></tr>
+        <tr><td>N150 出站</td><td>N150 → 路由器 → 光猫 → ISP → Internet</td><td>N150 主动出站到公网（建立 CF Tunnel、系统更新）</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
+<script src="/topology-editor/editor.js"></script>
 <script src="/js/network-topology.js?v=<%= version %>" defer></script>
+<script>
+  function switchToEditor() {
+    document.getElementById('topology-view').style.display = 'none';
+    document.getElementById('info-cards').style.display = 'none';
+    var ec = document.getElementById('editor-card');
+    ec.style.display = '';
+    if (window.mountTopologyEditor && !window._editorMounted) {
+      window.mountTopologyEditor('topology-editor-root');
+      window._editorMounted = true;
+    }
+  }
+  function switchToView() {
+    document.getElementById('editor-card').style.display = 'none';
+    document.getElementById('topology-view').style.display = '';
+    document.getElementById('info-cards').style.display = '';
+    refreshPage();
+  }
+</script>

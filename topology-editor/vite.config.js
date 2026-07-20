@@ -8,5 +8,11 @@ export default defineConfig({
   build: {
     outDir: '../public/topology-editor',
     emptyOutDir: true,
+    lib: {
+      entry: './src/main-embed.jsx',
+      name: 'TopologyEditor',
+      formats: ['iife'],
+      fileName: () => 'editor.js',
+    },
   },
 });
