@@ -135,9 +135,17 @@ export default function App() {
       setStatusData(st);
       const withStatus = computeStatuses(topo.nodes, st);
       setNodes(withStatus);
-      setEdges(topo.edges.map((e, i) => ({
-        ...e, id: e.id || `e-${i}`, type: 'smoothstep', animated: false,
-      })));
+      setEdges(topo.edges.map((e, i) => {
+        const { style: _, lineStyle, ...rest } = e;
+        return {
+          ...rest,
+          id: e.id || `e-${i}`,
+          type: 'smoothstep',
+          animated: false,
+          data: { lineStyle: lineStyle || e.style || 'solid' },
+          style: (lineStyle || e.style) === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
+        };
+      }));
       setMsg('');
     } catch (err) {
       setMsg('加载失败: ' + err.message);
@@ -164,7 +172,7 @@ export default function App() {
           id: n.id, type: n.type, position: n.position,
           data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width },
         })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', style: e.style || 'solid' })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid' })),
       };
       await saveTopology(topo);
       setMsg('已保存 → 刷新概览页查看');
@@ -174,7 +182,7 @@ export default function App() {
   }, [nodes, edges]);
 
   const onConnect = useCallback((params) => {
-    setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', style: 'solid' }, eds));
+    setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid' } }, eds));
   }, [setEdges]);
 
   // 从面板拖入节点

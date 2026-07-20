@@ -16,19 +16,19 @@
     { "id": "ssh",        "type": "topology", "position": {"x":660,"y":490}, "data": { "label": "SSH",        "port":22,    "dynamic":"tunnel",             "width":100 }}
   ],
   "edges": [
-    { "id": "e-pub1","source":"internet",  "target":"cf-cdn",    "label":"","style":"solid" },
-    { "id": "e-pub2","source":"cf-cdn",    "target":"cf-tunnel", "label":"TLS","style":"solid" },
-    { "id": "e-pub3","source":"cf-tunnel", "target":"n150",      "label":"","style":"solid" },
-    { "id": "e-lan1","source":"internet",  "target":"isp",       "label":"LAN 出口","style":"solid" },
-    { "id": "e-lan2","source":"isp",       "target":"modem",     "label":"","style":"solid" },
-    { "id": "e-lan3","source":"modem",     "target":"router",    "label":"","style":"solid" },
-    { "id": "e-lan4","source":"router",    "target":"local",     "label":"","style":"solid" },
-    { "id": "e-lan5","source":"router",    "target":"ufw",       "label":"","style":"solid" },
-    { "id": "e-lan6","source":"ufw",       "target":"n150",      "label":"","style":"solid" },
-    { "id": "e-svc1","source":"n150",      "target":"wemonitor", "label":":18990","style":"solid" },
-    { "id": "e-svc2","source":"n150",      "target":"webhook",   "label":":9001","style":"solid" },
-    { "id": "e-svc3","source":"n150",      "target":"wemusic",   "label":":5174","style":"solid" },
-    { "id": "e-svc4","source":"n150",      "target":"wedownload","label":":8080","style":"solid" },
-    { "id": "e-svc5","source":"n150",      "target":"ssh",       "label":":22","style":"solid" }
+    { "id": "e-pub1","source":"internet",  "target":"cf-cdn",    "label":"","lineStyle":"solid" },
+    { "id": "e-pub2","source":"cf-cdn",    "target":"cf-tunnel", "label":"TLS","lineStyle":"solid" },
+    { "id": "e-pub3","source":"cf-tunnel", "target":"n150",      "label":"","lineStyle":"solid" },
+    { "id": "e-lan1","source":"internet",  "target":"isp",       "label":"LAN 出口","lineStyle":"solid" },
+    { "id": "e-lan2","source":"isp",       "target":"modem",     "label":"","lineStyle":"solid" },
+    { "id": "e-lan3","source":"modem",     "target":"router",    "label":"","lineStyle":"solid" },
+    { "id": "e-lan4","source":"router",    "target":"local",     "label":"","lineStyle":"solid" },
+    { "id": "e-lan5","source":"router",    "target":"ufw",       "label":"","lineStyle":"solid" },
+    { "id": "e-lan6","source":"ufw",       "target":"n150",      "label":"","lineStyle":"solid" },
+    { "id": "e-svc1","source":"n150",      "target":"wemonitor", "label":":18990","lineStyle":"solid" },
+    { "id": "e-svc2","source":"n150",      "target":"webhook",   "label":":9001","lineStyle":"solid" },
+    { "id": "e-svc3","source":"n150",      "target":"wemusic",   "label":":5174","lineStyle":"solid" },
+    { "id": "e-svc4","source":"n150",      "target":"wedownload","label":":8080","lineStyle":"solid" },
+    { "id": "e-svc5","source":"n150",      "target":"ssh",       "label":":22","lineStyle":"solid" }
   ]
 }
