@@ -407,59 +407,67 @@ loadNetworkTopology();
 
 let ptState = { modem: null, router: null, n150: null };
 
-// 8 层完整网络拓扑
-// 路径1（公网）：Internet → ISP → 光猫 → 路由器 → CF CDN → CF Tunnel → N150 → 服务
-// 路径2（局域网）：本地设备 → 路由器 → UFW → N150 → 服务
+// 两路并行的网络拓扑
+// 左列（公网访问，不经过家庭网络）：Internet → CF CDN → CF Tunnel → N150 → 服务
+// 右列（家庭网络）：Internet → ISP → 光猫 → 路由器 → 手机/电脑，路由器 → UFW → N150 → 服务
 const PHYSICAL_TOPOLOGY = {
   nodes: [
     // Layer 1: 外部 (y:30)
-    { id: 'internet',   label: 'Internet',          x: 470, y: 30,  w: 120, h: 44 },
-    // Layer 2: ISP (y:105)
-    { id: 'isp',        label: '中国移动',           x: 455, y: 105, w: 150, h: 44 },
-    // Layer 3: 接入 (y:185)
-    { id: 'modem',      label: '光猫',               x: 470, y: 185, w: 120, h: 44, dynamic: 'modem' },
-    // Layer 4: 路由 (y:270) —— 公网/局域网分叉点
-    { id: 'router',     label: '路由器',             x: 350, y: 270, w: 130, h: 44, dynamic: 'router' },
-    { id: 'local',      label: '手机 / 电脑',         x: 700, y: 270, w: 130, h: 44 },
-    // Layer 5: 公网入口 (y:365)
-    { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 100, y: 365, w: 170, h: 44 },
-    // Layer 6: 通道 (y:455) —— 左隧道右防火墙
-    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 100, y: 455, w: 170, h: 52, dynamic: 'tunnel' },
-    { id: 'ufw',        label: 'UFW 防火墙',         x: 470, y: 455, w: 140, h: 44, dynamic: 'firewall' },
-    // Layer 7: 主机 (y:565) —— 隧道和防火墙在此汇聚
-    { id: 'n150',       label: 'N150 服务器',        x: 200, y: 565, w: 450, h: 48, dynamic: 'n150' },
-    // Layer 8: 服务 (y:670)
-    { id: 'wemonitor',  label: 'WeMonitor',         x: 80,  y: 670, w: 120, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
-    { id: 'webhook',    label: 'Webhook',           x: 230, y: 670, w: 100, h: 44, port: 9001 },
-    { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 670, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
-    { id: 'wedownload', label: 'WeDownload',        x: 510, y: 670, w: 120, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
-    { id: 'ssh',        label: 'SSH',               x: 660, y: 670, w: 100, h: 44, dynamic: 'tunnel' },
+    { id: 'internet',   label: 'Internet',              x: 470, y: 30,  w: 120, h: 44 },
+
+    // Layer 2: 公网入口 (y:115) — 左公网右 ISP
+    { id: 'cf-cdn',     label: 'Cloudflare CDN',        x: 30,  y: 115, w: 170, h: 44 },
+    { id: 'isp',        label: '中国移动',               x: 740, y: 115, w: 150, h: 44 },
+
+    // Layer 3: 公网通道 (y:210) — 左隧道右光猫
+    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',    x: 30,  y: 210, w: 170, h: 52, dynamic: 'tunnel' },
+    { id: 'modem',      label: '光猫',                   x: 750, y: 210, w: 120, h: 44, dynamic: 'modem' },
+
+    // Layer 4: 服务器 (y:310) — N150 + UFW 防火墙墙 + 路由器
+    { id: 'n150',       label: 'N150 服务器',            x: 30,  y: 310, w: 250, h: 48, dynamic: 'n150' },
+    { id: 'ufw',        label: 'UFW',                    x: 310, y: 316, w: 100, h: 36, dynamic: 'firewall' },
+    { id: 'router',     label: '路由器',                 x: 460, y: 310, w: 130, h: 44, dynamic: 'router' },
+
+    // Layer 5: 局域网 (y:400) — LAN 设备
+    { id: 'local',      label: '手机 / 电脑',            x: 460, y: 400, w: 130, h: 44 },
+
+    // Layer 6: 服务 (y:490) — 底部展开
+    { id: 'wemonitor',  label: 'WeMonitor',             x: 80,  y: 490, w: 120, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
+    { id: 'webhook',    label: 'Webhook',               x: 230, y: 490, w: 100, h: 44, port: 9001 },
+    { id: 'wemusic',    label: 'WeMusic',               x: 360, y: 490, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
+    { id: 'wedownload', label: 'WeDownload',            x: 510, y: 490, w: 120, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
+    { id: 'ssh',        label: 'SSH',                   x: 660, y: 490, w: 100, h: 44, dynamic: 'tunnel' },
   ],
   edges: [
-    // ── 公网路径（左列）──
-    { from: 'internet',  to: 'isp',       style: 'solid', label: '' },
-    { from: 'isp',       to: 'modem',     style: 'solid', label: '' },
-    { from: 'modem',     to: 'router',    style: 'solid', label: '' },
-    { from: 'router',    to: 'cf-cdn',    style: 'solid', label: 'HTTPS' },
+    // ── 公网访问路径（左列，不经过家庭网络）──
+    { from: 'internet',  to: 'cf-cdn',    style: 'solid', label: '' },
     { from: 'cf-cdn',    to: 'cf-tunnel', style: 'solid', label: 'TLS' },
     { from: 'cf-tunnel', to: 'n150',      style: 'solid', label: '' },
-    // ── 局域网路径（右列）──
-    { from: 'router',    to: 'local',     style: 'solid', label: 'LAN' },
+
+    // ── 家庭网络（右列，N150 出站 + LAN 设备联网）──
+    { from: 'internet',  to: 'isp',       style: 'solid', label: 'LAN 出口' },
+    { from: 'isp',       to: 'modem',     style: 'solid', label: '' },
+    { from: 'modem',     to: 'router',    style: 'solid', label: '' },
+
+    // ── 局域网访问（右列）──
+    { from: 'router',    to: 'local',     style: 'solid', label: '' },
+    { from: 'router',    to: 'ufw',       style: 'solid', label: '' },
+
+    // ── 防火墙 → N150 → 服务 ──
+    { from: 'ufw',       to: 'n150',      style: 'solid', label: '' },
   ],
 };
 
 const PT_LAYERS = [
   { y: 30,  h: 44, label: '外部' },
-  { y: 105, h: 44, label: 'ISP' },
-  { y: 185, h: 44, label: '接入' },
-  { y: 270, h: 44, label: '路由' },
-  { y: 365, h: 44, label: '公网入口' },
-  { y: 455, h: 52, label: '通道' },
-  { y: 565, h: 48, label: '主机' },
-  { y: 670, h: 44, label: '服务' },
+  { y: 115, h: 44, label: '公网入口' },
+  { y: 210, h: 52, label: '公网通道' },
+  { y: 310, h: 48, label: '服务器' },
+  { y: 400, h: 44, label: '局域网' },
+  { y: 490, h: 44, label: '服务' },
 ];
 
-const PT_SEPARATORS = [90, 167, 250, 340, 432, 536, 642];
+const PT_SEPARATORS = [90, 182, 283, 373, 460];
 
 async function loadPhysicalTopology() {
   const container = document.getElementById('nt-diagram');
@@ -488,24 +496,20 @@ async function loadPhysicalTopology() {
 
   updatePtBadge();
 
-  // 局域网路径 + N150 → 服务边（运行时生成，带端口标签）
-  const extraEdges = [
-    // 局域网：本地设备 → UFW → N150
-    { from: 'local', to: 'ufw',    style: 'solid', label: '' },
-    { from: 'ufw',   to: 'n150',   style: 'solid', label: '' },
-    // N150 映射到各服务（端口标签在服务节点上已有，这里加在 N150→服务边上）
-    { from: 'n150',  to: 'wemonitor',  style: 'solid', label: ':18990' },
-    { from: 'n150',  to: 'webhook',    style: 'solid', label: ':9001' },
-    { from: 'n150',  to: 'wemusic',    style: 'solid', label: ':5174' },
-    { from: 'n150',  to: 'wedownload', style: 'solid', label: ':8080' },
-    { from: 'n150',  to: 'ssh',        style: 'solid', label: ':22' },
+  // N150 → 服务边（运行时带端口标签）
+  const svcEdges = [
+    { from: 'n150', to: 'wemonitor',  style: 'solid', label: ':18990' },
+    { from: 'n150', to: 'webhook',    style: 'solid', label: ':9001' },
+    { from: 'n150', to: 'wemusic',    style: 'solid', label: ':5174' },
+    { from: 'n150', to: 'wedownload', style: 'solid', label: ':8080' },
+    { from: 'n150', to: 'ssh',        style: 'solid', label: ':22' },
   ];
 
   renderTopology(container, {
-    topology: { ...PHYSICAL_TOPOLOGY, edges: [...PHYSICAL_TOPOLOGY.edges, ...extraEdges] },
+    topology: { ...PHYSICAL_TOPOLOGY, edges: [...PHYSICAL_TOPOLOGY.edges, ...svcEdges] },
     state: ntState,
     W: 1100,
-    H: 770,
+    H: 580,
     layers: PT_LAYERS,
     separators: PT_SEPARATORS,
     tooltipId: 'nt-tooltip',
