@@ -1753,6 +1753,16 @@ body {
   user-select: none;
 }
 
+.nt-port-strip {
+  font-size: calc(var(--font-size) * 0.68);
+  fill: var(--text-dim);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  user-select: none;
+}
+
 
 
 /* ── Tooltip ── */
