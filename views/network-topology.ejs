@@ -1,5 +1,3 @@
-<link rel="stylesheet" href="/topology-editor/wemonitor.css">
-
 <div class="card" id="topology-view">
   <div class="card-header">
     <h3>网络拓扑</h3>
@@ -48,19 +46,31 @@
   </div>
 </div>
 
-<script src="/topology-editor/editor.js"></script>
-<script src="/js/network-topology.js?v=<%= version %>" defer></script>
+<!-- toggle 函数必须在 editor.js 之前定义，避免编辑器脚本加载失败导致函数未定义 -->
 <script>
+  var _editorReady = false;
+
   function switchToEditor() {
     document.getElementById('topology-view').style.display = 'none';
     document.getElementById('info-cards').style.display = 'none';
     var ec = document.getElementById('editor-card');
     ec.style.display = '';
-    if (window.mountTopologyEditor && !window._editorMounted) {
-      window.mountTopologyEditor('topology-editor-root');
-      window._editorMounted = true;
+
+    var root = document.getElementById('topology-editor-root');
+    if (_editorReady && window.mountTopologyEditor) {
+      if (!window._editorMounted) {
+        try {
+          window.mountTopologyEditor('topology-editor-root');
+          window._editorMounted = true;
+        } catch(e) {
+          root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger)">编辑器启动失败: ' + e.message + '</div>';
+        }
+      }
+    } else {
+      root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim)">编辑器加载中...<br><small style="opacity:0.6">如长时间无响应，请刷新页面</small></div>';
     }
   }
+
   function switchToView() {
     document.getElementById('editor-card').style.display = 'none';
     document.getElementById('topology-view').style.display = '';
@@ -68,3 +78,7 @@
     refreshPage();
   }
 </script>
+
+<link rel="stylesheet" href="/topology-editor/wemonitor.css?v=<%= version %>">
+<script src="/topology-editor/editor.js?v=<%= version %>" defer onload="_editorReady=true" onerror="document.getElementById('topology-editor-root').innerHTML='<div style=padding:40px;text-align:center;color:var(--danger)>编辑器脚本加载失败，请检查部署是否完整</div>'"></script>
+<script src="/js/network-topology.js?v=<%= version %>" defer></script>
