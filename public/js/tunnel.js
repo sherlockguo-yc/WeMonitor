@@ -128,21 +128,17 @@ async function loadTunnelLogs() {
 }
 
 async function loadTunnelRoutes() {
-  const tbody = document.getElementById('tunnel-routes-body');
-  tbody.innerHTML = '<tr><td colspan="3" class="text-dim">加载中...</td></tr>';
+  const container = document.getElementById('tunnel-routes-container');
+  container.innerHTML = '<div class="text-dim" style="padding:calc(var(--font-size)*2) 0;text-align:center;">加载中...</div>';
 
   try {
     const res = await fetch('/api/v1/tunnel/routes');
 
-    // 检查 Content-Type，避免把 HTML 当 JSON 解析（如 401/404 页面）
     const ct = res.headers.get('content-type') || '';
     if (!res.ok) {
       let errMsg = `HTTP ${res.status}`;
       if (ct.includes('application/json')) {
-        try {
-          const errData = await res.json();
-          errMsg = errData.error || errMsg;
-        } catch (_) { /* keep status code */ }
+        try { const errData = await res.json(); errMsg = errData.error || errMsg; } catch (_) {}
       }
       throw new Error(errMsg);
     }
@@ -150,25 +146,52 @@ async function loadTunnelRoutes() {
     const data = await res.json();
 
     if (!data.success) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-danger">加载失败: ${data.error || '未知错误'}</td></tr>`;
+      container.innerHTML = `<div class="text-danger" style="padding:calc(var(--font-size)*2) 0;text-align:center;">加载失败: ${escHtml(data.error || '未知错误')}</div>`;
       return;
     }
 
     if (data.routes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-dim">暂无路由配置</td></tr>';
+      container.innerHTML = '<div class="text-dim" style="padding:calc(var(--font-size)*2) 0;text-align:center;">暂无路由配置</div>';
       return;
     }
 
-    tbody.innerHTML = data.routes.map(r => `
-      <tr>
-        <td><code>${escHtml(r.hostname)}</code></td>
-        <td><code>${escHtml(r.service)}</code></td>
-        <td>${r.path ? `<code>${escHtml(r.path)}</code>` : '<span class="text-dim">全部</span>'}</td>
-      </tr>
-    `).join('');
+    // 按 hostname 分组，保持原始顺序
+    const groups = [];
+    const seen = new Map();
+    for (const r of data.routes) {
+      if (seen.has(r.hostname)) {
+        groups[seen.get(r.hostname)].routes.push(r);
+      } else {
+        seen.set(r.hostname, groups.length);
+        groups.push({ hostname: r.hostname, service: r.service, routes: [r] });
+      }
+    }
+
+    container.innerHTML = groups.map(g => {
+      const pathBadges = g.routes.map(r => {
+        if (r.path) {
+          return `<span class="route-path-badge">${escHtml(r.path)}</span>`;
+        }
+        return `<span class="route-path-badge route-path-catchall">全部路由</span>`;
+      }).join('');
+
+      return `
+        <div class="route-group-card">
+          <div class="route-group-top">
+            <div class="route-group-domain">
+              <i data-lucide="globe" class="icon-sm route-group-icon"></i>
+              <span class="route-group-hostname">${escHtml(g.hostname)}</span>
+            </div>
+            <code class="route-group-service">${escHtml(g.service)}</code>
+          </div>
+          <div class="route-group-paths">${pathBadges}</div>
+        </div>
+      `;
+    }).join('');
+
     refreshIcons();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="3" class="text-danger">加载失败: ${err.message}</td></tr>`;
+    container.innerHTML = `<div class="text-danger" style="padding:calc(var(--font-size)*2) 0;text-align:center;">加载失败: ${escHtml(err.message)}</div>`;
     console.error('[tunnel] routes fetch failed:', err);
   }
 }
