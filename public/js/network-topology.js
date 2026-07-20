@@ -20,16 +20,16 @@ const TOPOLOGY = {
     // Layer 3: 隧道
     { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 100, y: 240, w: 170, h: 52, dynamic: 'tunnel' },
 
-    // Layer 4: 服务（底部一排，从左到右按访问路径分组）
+    // Layer 4: 服务（底部一排，从左到右按访问路径分组，间距统一 20px）
     // Cloudflare → Tunnel → WeMonitor / Webhook
     { id: 'wemonitor',  label: 'WeMonitor',         x: 100, y: 420, w: 130, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
     { id: 'webhook',    label: 'Webhook',           x: 250, y: 420, w: 110, h: 44, port: 9001 },
     // Cloudflare → Tunnel → WeMusic / WeDownload
-    { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
-    { id: 'wedownload', label: 'WeDownload',        x: 500, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
+    { id: 'wemusic',    label: 'WeMusic',           x: 380, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
+    { id: 'wedownload', label: 'WeDownload',        x: 520, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
     // UFW → SSH / NPM Admin（直连服务）
-    { id: 'ssh',        label: 'SSH',               x: 670, y: 420, w: 100, h: 44, dynamic: 'fw-rule', port: 22 },
-    { id: 'npm-admin',  label: 'NPM Admin',         x: 830, y: 420, w: 120, h: 44, dynamic: 'fw-rule', port: 8443 },
+    { id: 'ssh',        label: 'SSH',               x: 680, y: 420, w: 100, h: 44, dynamic: 'fw-rule', port: 22 },
+    { id: 'npm-admin',  label: 'NPM Admin',         x: 800, y: 420, w: 120, h: 44, dynamic: 'fw-rule', port: 8443 },
   ],
 
   edges: [
