@@ -17,6 +17,9 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
+      - name: Build topology editor
+        run: npm run build
+
       - name: Get version
         id: ver
         run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
