@@ -51,7 +51,37 @@ router.get('/tunnel/routes', tunnelApi.getRoutes);
 const physicalTopologyApi = require('../lib/api/physical-topology');
 router.get('/physical-topology', physicalTopologyApi.getStatus);
 
-// ── 数据备份管理 ──const backupApi = require('../lib/api/backup');router.get('/backup/services', backupApi.listBackupServices);router.patch('/backup/services/:name/toggle', backupApi.toggleBackup);
+// 拓扑画板配置
+const fs = require('fs');
+const path = require('path');
+const TOPO_CONFIG = path.join(__dirname, '..', 'data', 'topology.json');
+
+router.get('/topology-config', (req, res) => {
+  try {
+    const raw = fs.readFileSync(TOPO_CONFIG, 'utf-8');
+    res.json(JSON.parse(raw));
+  } catch (err) {
+    res.status(500).json({ error: '读取拓扑配置失败' });
+  }
+});
+
+router.post('/topology-config', (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || !data.nodes || !data.edges) {
+      return res.status(400).json({ error: '数据格式无效：需要 nodes 和 edges' });
+    }
+    fs.writeFileSync(TOPO_CONFIG, JSON.stringify(data, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: '保存拓扑配置失败: ' + err.message });
+  }
+});
+
+// ── 数据备份管理 ──
+const backupApi = require('../lib/api/backup');
+router.get('/backup/services', backupApi.listBackupServices);
+router.patch('/backup/services/:name/toggle', backupApi.toggleBackup);
 // ── 定时任务管理 ──
 const cronApi = require('../lib/api/cron');
 router.get('/cron/jobs', cronApi.listJobs);
