@@ -27,9 +27,8 @@ const TOPOLOGY = {
     // Cloudflare → Tunnel → WeMusic / WeDownload
     { id: 'wemusic',    label: 'WeMusic',           x: 380, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
     { id: 'wedownload', label: 'WeDownload',        x: 520, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
-    // UFW → SSH / NPM Admin（直连服务）
+    // UFW → SSH（直连服务）
     { id: 'ssh',        label: 'SSH',               x: 680, y: 420, w: 100, h: 44, dynamic: 'fw-rule', port: 22 },
-    { id: 'npm-admin',  label: 'NPM Admin',         x: 800, y: 420, w: 120, h: 44, dynamic: 'fw-rule', port: 8443 },
   ],
 
   edges: [
@@ -37,7 +36,6 @@ const TOPOLOGY = {
     { from: 'internet',  to: 'ufw',        style: 'solid',  label: '直连' },
     { from: 'cf-cdn',    to: 'cf-tunnel',  style: 'solid',  label: 'TLS' },
     { from: 'ufw',       to: 'ssh',        style: 'solid',  label: ':22' },
-    { from: 'ufw',       to: 'npm-admin',  style: 'solid',  label: ':8443' },
     { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
     { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
     { from: 'cf-tunnel', to: 'wemusic',    style: 'dashed', label: '' },
@@ -291,7 +289,9 @@ function computeEdgeEndpoints(from, to) {
   let sx, sy, ex, ey;
 
   // 起点/终点严格在边的中点（不能是角）
-  if (Math.abs(dx) > Math.abs(dy)) {
+  // 只有线明显水平（|dx| > 2*|dy|）时用左右边，否则用上下边
+  // 这样从上往下的连接自然从上边中点进入
+  if (Math.abs(dx) > Math.abs(dy) * 2) {
     // 水平方向为主：从左右边中点出发，到左右边中点
     if (dx > 0) {
       sx = from.x + from.w;
@@ -303,7 +303,7 @@ function computeEdgeEndpoints(from, to) {
     sy = fcy;  // from 边中点
     ey = tcy;  // to 边中点
   } else {
-    // 垂直方向为主：从上下边中点出发，到上下边中点
+    // 垂直方向为主（含中等斜度）：从上下边中点出发，到上下边中点
     if (dy > 0) {
       sy = from.y + from.h;
       ey = to.y;
