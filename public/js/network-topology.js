@@ -27,15 +27,15 @@ const TOPOLOGY = {
     // Cloudflare → Tunnel → WeMusic / WeDownload
     { id: 'wemusic',    label: 'WeMusic',           x: 380, y: 420, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
     { id: 'wedownload', label: 'WeDownload',        x: 520, y: 420, w: 140, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
-    // UFW → SSH（直连服务）
-    { id: 'ssh',        label: 'SSH',               x: 680, y: 420, w: 100, h: 44, dynamic: 'fw-rule', port: 22 },
+    // Tunnel → SSH（通过 Cloudflare Zero Trust Access）
+    { id: 'ssh',        label: 'SSH',               x: 680, y: 420, w: 100, h: 44, dynamic: 'tunnel' },
   ],
 
   edges: [
     { from: 'internet',  to: 'cf-cdn',     style: 'solid',  label: 'HTTPS' },
     { from: 'internet',  to: 'ufw',        style: 'solid',  label: '直连' },
     { from: 'cf-cdn',    to: 'cf-tunnel',  style: 'solid',  label: 'TLS' },
-    { from: 'ufw',       to: 'ssh',        style: 'solid',  label: ':22' },
+    { from: 'cf-tunnel', to: 'ssh',        style: 'dashed', label: 'ssh.sherlockguo.com' },
     { from: 'cf-tunnel', to: 'wemonitor',  style: 'dashed', label: '' },
     { from: 'cf-tunnel', to: 'webhook',    style: 'dashed', label: '/deploy' },
     { from: 'cf-tunnel', to: 'wemusic',    style: 'dashed', label: '' },
