@@ -185,6 +185,24 @@ export default function App() {
     setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid' } }, eds));
   }, [setEdges]);
 
+  // 双击节点改标签
+  const onNodeDoubleClick = useCallback((e, node) => {
+    const newLabel = prompt('修改标签（多行用 \\n 分隔）:', (node.data.label || '').replace(/\n/g, '\\n'));
+    if (newLabel != null) {
+      setNodes(nds => nds.map(n =>
+        n.id === node.id ? { ...n, data: { ...n.data, label: newLabel.replace(/\\n/g, '\n') } } : n
+      ));
+    }
+  }, [setNodes]);
+
+  // 双击边改标签
+  const onEdgeDoubleClick = useCallback((e, edge) => {
+    const newLabel = prompt('修改连线标签:', edge.label || '');
+    if (newLabel != null) {
+      setEdges(eds => eds.map(ed => ed.id === edge.id ? { ...ed, label: newLabel } : ed));
+    }
+  }, [setEdges]);
+
   // 从面板拖入节点
   const onDragOver = useCallback((e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }, []);
   const onDrop = useCallback((e) => {
@@ -213,7 +231,7 @@ export default function App() {
         }}>
           <span style={{ fontWeight: 600 }}>网络拓扑编辑器</span>
           <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-            左侧面板拖入节点 · 节点端口拖线连接 · 双击改标签 · Delete 删除
+            拖入节点 · 从下方圆点拖线 · 双击节点/连线改标签 · 选中按 Delete 删除
           </span>
           <div style={{ flex: 1 }} />
           <button onClick={load} style={btnStyle}>刷新</button>
@@ -237,6 +255,8 @@ export default function App() {
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
+                onNodeDoubleClick={onNodeDoubleClick}
+                onEdgeDoubleClick={onEdgeDoubleClick}
                 onInit={setRfInstance}
                 onDragOver={onDragOver}
                 onDrop={onDrop}

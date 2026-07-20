@@ -1,13 +1,17 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 
-// 节点状态色
 function statusColor(status) {
   if (status === 'ok') return 'var(--success, #10b981)';
   if (status === 'error') return 'var(--danger, #ef4444)';
   if (status === 'warn') return 'var(--warning, #f59e0b)';
   return 'var(--text-dim, #a1a1aa)';
 }
+
+const handleStyle = {
+  width: 8, height: 8, background: 'var(--accent, #6366f1)',
+  border: '1.5px solid var(--bg-card, #fff)',
+};
 
 export default function TopologyNode({ data, selected }) {
   const { label, port, status, isDynamic } = data;
@@ -19,31 +23,26 @@ export default function TopologyNode({ data, selected }) {
     : 'var(--bg-card, #fff)';
 
   const w = data.width || 140;
-  const h = 44;
 
   return (
     <div
       style={{
-        width: w,
-        minHeight: h,
-        padding: '6px 12px',
-        borderRadius: 8,
-        border: `2px solid ${borderColor}`,
-        background: bgColor,
+        width: w, minHeight: 44,
+        padding: '6px 12px', borderRadius: 8,
+        border: `2px solid ${borderColor}`, background: bgColor,
         fontSize: 'calc(var(--font-size, 14px) * 0.84)',
-        fontWeight: 500,
-        color: 'var(--text, #18181b)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        position: 'relative',
+        fontWeight: 500, color: 'var(--text, #18181b)',
+        display: 'flex', alignItems: 'center', gap: 8,
+        position: 'relative', cursor: 'pointer',
         boxShadow: selected ? '0 0 0 2px rgba(99,102,241,0.3)' : undefined,
       }}
+      title="双击修改标签 / 从下方圆点拖线连接"
     >
-      <Handle type="target" position={Position.Top} style={{ visibility: 'hidden' }} />
-      <Handle type="source" position={Position.Bottom} style={{ visibility: 'hidden' }} />
-      <Handle type="target" position={Position.Left} style={{ visibility: 'hidden' }} />
-      <Handle type="source" position={Position.Right} style={{ visibility: 'hidden' }} />
+      {/* 入站 Handle（上方）*/}
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+
+      {/* 出站 Handle（下方）*/}
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {lines.map((l, i) => (
@@ -53,31 +52,24 @@ export default function TopologyNode({ data, selected }) {
         ))}
       </div>
 
-      {/* 端口标签 */}
+      {/* 端口 */}
       {port && (
-        <span
-          style={{
-            fontSize: 'calc(var(--font-size, 14px) * 0.7)',
-            color: 'var(--text-dim, #a1a1aa)',
-            fontFamily: 'monospace',
-            fontWeight: 500,
-            flexShrink: 0,
-            marginLeft: 4,
-          }}
-        >
+        <span style={{
+          fontSize: 'calc(var(--font-size, 14px) * 0.7)',
+          color: 'var(--text-dim, #a1a1aa)',
+          fontFamily: 'monospace', fontWeight: 500,
+          flexShrink: 0, marginLeft: 4,
+        }}>
           :{port}
         </span>
       )}
 
-      {/* 状态圆点 */}
+      {/* 状态 */}
       {isDynamic && (
-        <div
-          style={{
-            width: 10, height: 10, borderRadius: '50%',
-            background: color,
-            flexShrink: 0,
-          }}
-        />
+        <div style={{
+          width: 10, height: 10, borderRadius: '50%',
+          background: color, flexShrink: 0,
+        }} />
       )}
     </div>
   );
