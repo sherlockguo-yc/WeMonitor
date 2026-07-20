@@ -87,6 +87,10 @@ router.get('/firewall', (req, res) => {
 router.get('/deploy', (req, res) => {
   res.render('deploy', { title: 'CI/CD', active: 'deploy' });
 });
+router.get('/backup', (req, res) => {
+  res.render('backup', { title: 'Data Backup', active: 'backup' });
+});
+
 
 // 网络拓扑概览
 router.get('/network', (req, res) => {

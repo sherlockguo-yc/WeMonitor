@@ -47,7 +47,7 @@
         </div>
         <%
           // 服务管理组是否展开：当前在 settings / services / deploy 任一页面时展开
-          const svcGroupActive = ['settings', 'services', 'deploy'].includes(active);
+          const svcGroupActive = ['settings', 'services', 'deploy', 'backup'].includes(active);
         %>
         <div class="nav-group <%= svcGroupActive ? 'expanded' : '' %>" data-group="services">
           <div class="nav-group-toggle" onclick="toggleNavGroup(this.parentElement)">
@@ -63,6 +63,11 @@
             <a href="/services" class="nav-sub-item <%= active === 'services' ? 'active' : '' %>">
               <i data-lucide="activity" class="icon-sm"></i>
               <span>服务状态</span>
+            </a>
+
+            <a href="/backup" class="nav-sub-item <%= active === 'backup' ? 'active' : '' %>">
+              <i data-lucide="database-backup" class="icon-sm"></i>
+              <span>数据备份</span>
             </a>
             <a href="/deploy" class="nav-sub-item <%= active === 'deploy' ? 'active' : '' %>">
               <i data-lucide="rocket" class="icon-sm"></i>

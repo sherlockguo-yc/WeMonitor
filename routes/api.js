@@ -51,6 +51,7 @@ router.get('/tunnel/routes', tunnelApi.getRoutes);
 const physicalTopologyApi = require('../lib/api/physical-topology');
 router.get('/physical-topology', physicalTopologyApi.getStatus);
 
+// ── 数据备份管理 ──const backupApi = require('../lib/api/backup');router.get('/backup/services', backupApi.listBackupServices);router.patch('/backup/services/:name/toggle', backupApi.toggleBackup);
 // ── 定时任务管理 ──
 const cronApi = require('../lib/api/cron');
 router.get('/cron/jobs', cronApi.listJobs);
