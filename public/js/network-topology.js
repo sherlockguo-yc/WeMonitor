@@ -137,6 +137,10 @@ function renderTopology(container, opts = {}) {
       color = 'var(--success)';
       marker = `url(#${ap}arrow-green)`;
     }
+    if (edge.from === 'n150' && ptState.n150 && ptState.n150.online) {
+      color = 'var(--success)';
+      marker = `url(#${ap}arrow-green)`;
+    }
 
     // 箭头收尾缩短几像素，避免 marker 被节点边框挡住
     const angle = Math.atan2(ey - sy, ex - sx);
@@ -264,6 +268,10 @@ function getNodeStatus(node) {
     if (!ptState.router) return 'unknown';
     return ptState.router.online ? 'ok' : 'error';
   }
+  if (node.dynamic === 'n150') {
+    if (!ptState.n150) return 'unknown';
+    return ptState.n150.online ? 'ok' : 'error';
+  }
 
   if (node.dynamic === 'health') {
     if (!Array.isArray(ntState.health) || ntState.health.length === 0) return 'unknown';
@@ -363,6 +371,13 @@ function showTooltip(e, topology, getStatusFn, tooltipId) {
     if (r.cpu) info += `<div class="nt-tt-info">CPU: ${r.cpu.load}% (${r.cpu.core}核)  ·  内存: ${r.mem ? (r.mem.usage * 100).toFixed(0) + '% / ' + r.mem.total : '-'}</div>`;
     if (r.wan) info += `<div class="nt-tt-info">WAN: ↓${formatSpeed(r.wan.down)} ↑${formatSpeed(r.wan.up)}</div>`;
   }
+  if (node.id === 'n150' && ptState.n150) {
+    const n = ptState.n150;
+    info += `<div class="nt-tt-info">IP: ${n.ip}</div>`;
+    if (n.cpu) info += `<div class="nt-tt-info">CPU: ${n.cpu.usage.toFixed(1)}% (${n.cpu.core}核)</div>`;
+    if (n.mem) info += `<div class="nt-tt-info">内存: ${n.mem.usage.toFixed(0)}% / ${n.mem.total}</div>`;
+    if (n.uptime) info += `<div class="nt-tt-info">运行: ${formatUptime(n.uptime)}</div>`;
+  }
 
   tooltip.innerHTML = info;
   tooltip.style.display = 'block';
@@ -392,43 +407,59 @@ loadNetworkTopology();
 
 let ptState = { modem: null, router: null, n150: null };
 
-// 物理拓扑 = 网络拓扑全部节点下移 130px + 前插光猫和路由器
-const PHYSICAL_TOPOLOGY = (function() {
-  const shift = 130;
-  const shifted = TOPOLOGY.nodes.map(n => ({
-    ...n,
-    y: n.y + shift,
-  }));
-  // Internet 节点保持原位置
-  shifted.find(n => n.id === 'internet').y = 30;
-
-  const nodes = [
-    { id: 'modem',   label: '光猫',   x: 470, y: 100, w: 120, h: 44, dynamic: 'modem' },
-    { id: 'router',  label: '路由器', x: 465, y: 175, w: 130, h: 44, dynamic: 'router' },
-    ...shifted,
-  ];
-
-  const edges = [
-    { from: 'internet', to: 'modem',   style: 'solid', label: '' },
-    { from: 'modem',    to: 'router',  style: 'solid', label: '' },
-    { from: 'router',   to: 'cf-cdn',  style: 'solid', label: 'HTTPS' },
-    { from: 'router',   to: 'ufw',     style: 'solid', label: '直连' },
-    ...TOPOLOGY.edges.filter(e => !(e.from === 'internet' && (e.to === 'cf-cdn' || e.to === 'ufw'))),
-  ];
-
-  return { nodes, edges };
-})();
+// 8 层完整网络拓扑
+// 路径1（公网）：Internet → ISP → 光猫 → 路由器 → CF CDN → CF Tunnel → N150 → 服务
+// 路径2（局域网）：本地设备 → 路由器 → UFW → N150 → 服务
+const PHYSICAL_TOPOLOGY = {
+  nodes: [
+    // Layer 1: 外部 (y:30)
+    { id: 'internet',   label: 'Internet',          x: 470, y: 30,  w: 120, h: 44 },
+    // Layer 2: ISP (y:105)
+    { id: 'isp',        label: '中国移动',           x: 455, y: 105, w: 150, h: 44 },
+    // Layer 3: 接入 (y:185)
+    { id: 'modem',      label: '光猫',               x: 470, y: 185, w: 120, h: 44, dynamic: 'modem' },
+    // Layer 4: 路由 (y:270) —— 公网/局域网分叉点
+    { id: 'router',     label: '路由器',             x: 350, y: 270, w: 130, h: 44, dynamic: 'router' },
+    { id: 'local',      label: '手机 / 电脑',         x: 700, y: 270, w: 130, h: 44 },
+    // Layer 5: 公网入口 (y:365)
+    { id: 'cf-cdn',     label: 'Cloudflare CDN',    x: 100, y: 365, w: 170, h: 44 },
+    // Layer 6: 通道 (y:455) —— 左隧道右防火墙
+    { id: 'cf-tunnel',  label: 'Cloudflare\nTunnel',x: 100, y: 455, w: 170, h: 52, dynamic: 'tunnel' },
+    { id: 'ufw',        label: 'UFW 防火墙',         x: 470, y: 455, w: 140, h: 44, dynamic: 'firewall' },
+    // Layer 7: 主机 (y:565) —— 隧道和防火墙在此汇聚
+    { id: 'n150',       label: 'N150 服务器',        x: 200, y: 565, w: 450, h: 48, dynamic: 'n150' },
+    // Layer 8: 服务 (y:670)
+    { id: 'wemonitor',  label: 'WeMonitor',         x: 80,  y: 670, w: 120, h: 44, dynamic: 'health', port: 18990, healthIdx: -1 },
+    { id: 'webhook',    label: 'Webhook',           x: 230, y: 670, w: 100, h: 44, port: 9001 },
+    { id: 'wemusic',    label: 'WeMusic',           x: 360, y: 670, w: 120, h: 44, dynamic: 'health', port: 5174, healthIdx: 0 },
+    { id: 'wedownload', label: 'WeDownload',        x: 510, y: 670, w: 120, h: 44, dynamic: 'health', port: 8080, healthIdx: 1 },
+    { id: 'ssh',        label: 'SSH',               x: 660, y: 670, w: 100, h: 44, dynamic: 'tunnel' },
+  ],
+  edges: [
+    // ── 公网路径（左列）──
+    { from: 'internet',  to: 'isp',       style: 'solid', label: '' },
+    { from: 'isp',       to: 'modem',     style: 'solid', label: '' },
+    { from: 'modem',     to: 'router',    style: 'solid', label: '' },
+    { from: 'router',    to: 'cf-cdn',    style: 'solid', label: 'HTTPS' },
+    { from: 'cf-cdn',    to: 'cf-tunnel', style: 'solid', label: 'TLS' },
+    { from: 'cf-tunnel', to: 'n150',      style: 'solid', label: '' },
+    // ── 局域网路径（右列）──
+    { from: 'router',    to: 'local',     style: 'solid', label: 'LAN' },
+  ],
+};
 
 const PT_LAYERS = [
   { y: 30,  h: 44, label: '外部' },
-  { y: 100, h: 44, label: '接入' },
-  { y: 175, h: 44, label: '路由' },
-  { y: 260, h: 44, label: '入口' },
-  { y: 370, h: 52, label: '隧道' },
-  { y: 550, h: 44, label: '服务' },
+  { y: 105, h: 44, label: 'ISP' },
+  { y: 185, h: 44, label: '接入' },
+  { y: 270, h: 44, label: '路由' },
+  { y: 365, h: 44, label: '公网入口' },
+  { y: 455, h: 52, label: '通道' },
+  { y: 565, h: 48, label: '主机' },
+  { y: 670, h: 44, label: '服务' },
 ];
 
-const PT_SEPARATORS = [87, 157, 237, 337, 486];
+const PT_SEPARATORS = [90, 167, 250, 340, 432, 536, 642];
 
 async function loadPhysicalTopology() {
   const container = document.getElementById('nt-diagram');
@@ -457,20 +488,24 @@ async function loadPhysicalTopology() {
 
   updatePtBadge();
 
-  // LAN 直连边：从 UFW 到各服务，标签只标注端口
-  const lanEdges = [
-    { from: 'ufw', to: 'wemonitor',  style: 'solid', label: ':18990' },
-    { from: 'ufw', to: 'webhook',    style: 'solid', label: ':9001' },
-    { from: 'ufw', to: 'wemusic',    style: 'solid', label: ':5174' },
-    { from: 'ufw', to: 'wedownload', style: 'solid', label: ':8080' },
-    { from: 'ufw', to: 'ssh',        style: 'solid', label: ':22' },
+  // 局域网路径 + N150 → 服务边（运行时生成，带端口标签）
+  const extraEdges = [
+    // 局域网：本地设备 → UFW → N150
+    { from: 'local', to: 'ufw',    style: 'solid', label: '' },
+    { from: 'ufw',   to: 'n150',   style: 'solid', label: '' },
+    // N150 映射到各服务（端口标签在服务节点上已有，这里加在 N150→服务边上）
+    { from: 'n150',  to: 'wemonitor',  style: 'solid', label: ':18990' },
+    { from: 'n150',  to: 'webhook',    style: 'solid', label: ':9001' },
+    { from: 'n150',  to: 'wemusic',    style: 'solid', label: ':5174' },
+    { from: 'n150',  to: 'wedownload', style: 'solid', label: ':8080' },
+    { from: 'n150',  to: 'ssh',        style: 'solid', label: ':22' },
   ];
 
   renderTopology(container, {
-    topology: { ...PHYSICAL_TOPOLOGY, edges: [...PHYSICAL_TOPOLOGY.edges, ...lanEdges] },
+    topology: { ...PHYSICAL_TOPOLOGY, edges: [...PHYSICAL_TOPOLOGY.edges, ...extraEdges] },
     state: ntState,
     W: 1100,
-    H: 630,
+    H: 770,
     layers: PT_LAYERS,
     separators: PT_SEPARATORS,
     tooltipId: 'nt-tooltip',
@@ -487,7 +522,7 @@ function updatePtBadge() {
     badge.textContent = '数据获取失败';
     return;
   }
-  const allOnline = ptState.modem.online && ptState.router.online;
+  const allOnline = ptState.modem.online && ptState.router.online && ptState.n150?.online;
   badge.className = allOnline ? 'status-badge status-healthy' : 'status-badge status-warning';
   badge.textContent = allOnline ? '全部在线' : '部分离线';
 }

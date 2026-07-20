@@ -19,8 +19,7 @@
       <span class="nt-legend-item" title="链路中断或异常"><span class="nt-line-sample nt-line-red"></span> 异常</span>
       <span class="nt-legend-sep">|</span>
       <!-- 线型含义 -->
-      <span class="nt-legend-item" title="公网/内网实际可达的网络链路，如 Internet→光猫→路由器→CDN→Tunnel、UFW→直连服务"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
-      <span class="nt-legend-item" title="Cloudflare Tunnel 通过同一条隧道按域名分流到各内部服务，属于逻辑虚拟路由"><span class="nt-line-sample nt-line-dashed"></span> 虚线：Tunnel 虚拟路由</span>
+      <span class="nt-legend-item" title="Internet → ISP → 光猫 → 路由器 → CF CDN → CF Tunnel → N150 → 服务（公网路径），或 本地设备 → 路由器 → UFW → N150 → 服务（局域网路径）"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
     </div>
   </div>
 </div>
@@ -32,14 +31,16 @@
   <div class="card-body">
     <table class="data-table">
       <thead>
-        <tr><th>域名</th><th>入口</th><th>目标服务</th><th>端口</th></tr>
+        <tr><th>访问方式</th><th>路径</th><th>端口</th></tr>
       </thead>
       <tbody>
-        <tr><td>wemusic.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → WeMusic</td><td>→ 5174</td></tr>
-        <tr><td>wemonitor.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → WeMonitor</td><td>→ 18990</td></tr>
-        <tr><td>wedownload.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → WeDownload</td><td>→ 8080</td></tr>
-        <tr><td>wemusic.sherlockguo.com/deploy</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → Webhook</td><td>→ 9001</td></tr>
-        <tr><td>ssh.sherlockguo.com</td><td>Cloudflare CDN</td><td>Cloudflare Tunnel → SSH</td><td>→ 22 (Zero Trust)</td></tr>
+        <tr><td>公网（域名）</td><td>Internet → ISP → 光猫 → 路由器 → CF CDN → Tunnel → N150 → 服务</td><td>各域名的 443（CDN 处理）</td></tr>
+        <tr><td>公网 — wemusic</td><td>… → Tunnel → N150</td><td>→ 5174</td></tr>
+        <tr><td>公网 — wemonitor</td><td>… → Tunnel → N150</td><td>→ 18990</td></tr>
+        <tr><td>公网 — wedownload</td><td>… → Tunnel → N150</td><td>→ 8080</td></tr>
+        <tr><td>公网 — webhook</td><td>… → Tunnel（/deploy）→ N150</td><td>→ 9001</td></tr>
+        <tr><td>公网 — SSH</td><td>… → Tunnel → N150</td><td>→ 22（Zero Trust）</td></tr>
+        <tr><td>局域网（IP 直连）</td><td>手机/电脑 → 路由器 → UFW → N150 → 服务</td><td>192.168.31.102:port</td></tr>
       </tbody>
     </table>
   </div>
