@@ -296,9 +296,9 @@ function computeEdgeEndpoints(from, to) {
   let sx, sy, ex, ey;
 
   // 起点/终点严格在边的中点（不能是角）
-  // 只有线明显水平（|dx| > 3*|dy|）时用左右边，否则用上下边
+  // 只有线明显水平（|dx| > 5*|dy|）时用左右边，否则用上下边
   // 这样从上往下的连接自然从上边中点进入
-  if (Math.abs(dx) > Math.abs(dy) * 3) {
+  if (Math.abs(dx) > Math.abs(dy) * 5) {
     // 水平方向为主：从左右边中点出发，到左右边中点
     if (dx > 0) {
       sx = from.x + from.w;
