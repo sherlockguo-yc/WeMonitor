@@ -290,9 +290,9 @@ function computeEdgeEndpoints(from, to) {
 
   let sx, sy, ex, ey;
 
-  // 从 from 节点的哪条边出发
+  // 起点/终点严格在边的中点（不能是角）
   if (Math.abs(dx) > Math.abs(dy)) {
-    // 水平方向为主
+    // 水平方向为主：从左右边中点出发，到左右边中点
     if (dx > 0) {
       sx = from.x + from.w;
       ex = to.x;
@@ -300,14 +300,10 @@ function computeEdgeEndpoints(from, to) {
       sx = from.x;
       ex = to.x + to.w;
     }
-    const ratio = dy / Math.abs(dx || 1);
-    sy = fcy + (sx - fcx) * (dy / Math.abs(dx || 1));
-    ey = tcy + (ex - tcx) * (dy / Math.abs(dx || 1));
-    // clamp
-    sy = Math.max(from.y + 4, Math.min(from.y + from.h - 4, sy));
-    ey = Math.max(to.y + 4, Math.min(to.y + to.h - 4, ey));
+    sy = fcy;  // from 边中点
+    ey = tcy;  // to 边中点
   } else {
-    // 垂直方向为主
+    // 垂直方向为主：从上下边中点出发，到上下边中点
     if (dy > 0) {
       sy = from.y + from.h;
       ey = to.y;
@@ -315,12 +311,8 @@ function computeEdgeEndpoints(from, to) {
       sy = from.y;
       ey = to.y + to.h;
     }
-    const ratio = dx / Math.abs(dy || 1);
-    sx = fcx + (sy - fcy) * (dx / Math.abs(dy || 1));
-    ex = tcx + (ey - tcy) * (dx / Math.abs(dy || 1));
-    // clamp
-    sx = Math.max(from.x + 4, Math.min(from.x + from.w - 4, sx));
-    ex = Math.max(to.x + 4, Math.min(to.x + to.w - 4, ex));
+    sx = fcx;  // from 边中点
+    ex = tcx;  // to 边中点
   }
 
   return { sx, sy, ex, ey };
