@@ -1,7 +1,13 @@
 <div class="card">
   <div class="card-header">
     <h3>Cloudflare Tunnel 状态</h3>
-    <span class="status-badge" id="tunnel-status-badge">加载中...</span>
+    <div style="display:flex;align-items:center;gap:calc(var(--font-size)*0.8);">
+      <span class="status-badge" id="tunnel-status-badge">加载中...</span>
+      <button class="btn btn-primary btn-sm" onclick="restartTunnel()" id="btn-restart">
+        <i data-lucide="refresh-cw" class="icon-sm"></i> 重启 Tunnel
+      </button>
+      <span class="action-hint" id="restart-result"></span>
+    </div>
   </div>
   <div class="card-body">
     <div class="stats-grid" id="tunnel-stats">
@@ -21,20 +27,6 @@
         <div class="stat-label">运行时间</div>
         <div class="stat-value" id="tunnel-uptime">--</div>
       </div>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header">
-    <h3>操作</h3>
-  </div>
-  <div class="card-body">
-    <div class="actions-row">
-      <button class="btn btn-primary btn-sm" onclick="restartTunnel()" id="btn-restart">
-        <i data-lucide="refresh-cw" class="icon-sm"></i> 重启 Tunnel
-      </button>
-      <span class="action-hint" id="restart-result"></span>
     </div>
   </div>
 </div>
