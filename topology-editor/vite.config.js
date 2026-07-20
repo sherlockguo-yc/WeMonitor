@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   root: '.',
   base: '/topology-editor/',
+  define: {
+    'process.env': '{}',
+  },
   build: {
     outDir: '../public/topology-editor',
     emptyOutDir: true,
