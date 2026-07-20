@@ -159,12 +159,6 @@ document.getElementById('fw-modal').addEventListener('click', function(e) {
   if (e.target === this) closeFwModal();
 });
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 function refreshPage() {
   loadFirewall();
 }

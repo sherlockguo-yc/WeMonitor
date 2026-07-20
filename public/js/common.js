@@ -334,6 +334,13 @@ async function api(path, opts = {}) {
 // 窗口级刷新占位
 function refreshPage() {}
 
+// HTML 转义（防 XSS）
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 // 初始化 Lucide 图标（在动态 DOM 改变后调用）
 function refreshIcons() {
   if (typeof lucide !== 'undefined') {
