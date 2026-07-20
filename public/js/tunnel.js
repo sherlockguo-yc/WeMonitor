@@ -131,34 +131,46 @@ async function loadTunnelRoutes() {
   const tbody = document.getElementById('tunnel-routes-body');
   tbody.innerHTML = '<tr><td colspan="3" class="text-dim">加载中...</td></tr>';
 
-  let res;
   try {
-    res = await fetch('/api/v1/tunnel/routes');
+    const res = await fetch('/api/v1/tunnel/routes');
+
+    // 检查 Content-Type，避免把 HTML 当 JSON 解析（如 401/404 页面）
+    const ct = res.headers.get('content-type') || '';
+    if (!res.ok) {
+      let errMsg = `HTTP ${res.status}`;
+      if (ct.includes('application/json')) {
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errMsg;
+        } catch (_) { /* keep status code */ }
+      }
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+
+    if (!data.success) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-danger">加载失败: ${data.error || '未知错误'}</td></tr>`;
+      return;
+    }
+
+    if (data.routes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-dim">暂无路由配置</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.routes.map(r => `
+      <tr>
+        <td><code>${escHtml(r.hostname)}</code></td>
+        <td><code>${escHtml(r.service)}</code></td>
+        <td>${r.path ? `<code>${escHtml(r.path)}</code>` : '<span class="text-dim">全部</span>'}</td>
+      </tr>
+    `).join('');
+    refreshIcons();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="3" class="text-danger">网络错误: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" class="text-danger">加载失败: ${err.message}</td></tr>`;
     console.error('[tunnel] routes fetch failed:', err);
-    return;
   }
-  const data = await res.json();
-
-  if (!data.success) {
-    tbody.innerHTML = `<tr><td colspan="3" class="text-danger">加载失败: ${data.error || '未知错误'}</td></tr>`;
-    return;
-  }
-
-  if (data.routes.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" class="text-dim">暂无路由配置</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = data.routes.map(r => `
-    <tr>
-      <td><code>${escHtml(r.hostname)}</code></td>
-      <td><code>${escHtml(r.service)}</code></td>
-      <td>${r.path ? `<code>${escHtml(r.path)}</code>` : '<span class="text-dim">全部</span>'}</td>
-    </tr>
-  `).join('');
-  refreshIcons();
 }
 
 function refreshPage() {
