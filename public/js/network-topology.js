@@ -120,9 +120,14 @@ function renderTopology(container, opts = {}) {
       color = 'var(--success)';
       marker = `url(#${ap}arrow-green)`;
     }
-    if (edge.from === 'ufw' && state.firewall && state.firewall.status !== 'active') {
-      color = 'var(--danger)';
-      marker = `url(#${ap}arrow-danger)`;
+    if (edge.from === 'ufw' && state.firewall) {
+      if (state.firewall.status === 'active') {
+        color = 'var(--success)';
+        marker = `url(#${ap}arrow-green)`;
+      } else {
+        color = 'var(--danger)';
+        marker = `url(#${ap}arrow-danger)`;
+      }
     }
     if (edge.from === 'router' && ptState.router && ptState.router.online) {
       color = 'var(--success)';
@@ -203,6 +208,22 @@ function renderTopology(container, opts = {}) {
     // 端口号（如果有）
     if (node.port) {
       svg += `<text x="${node.x + node.w - 24}" y="${node.y + 12}" text-anchor="end" class="nt-port-label">:${node.port}</text>`;
+    }
+  }
+
+  // UFW 防火墙端口条：在节点下方显示开放的端口号
+  const ufwNode = topology.nodes.find(n => n.id === 'ufw');
+  if (ufwNode && state.firewall && state.firewall.rules && state.firewall.rules.length > 0) {
+    const allowPorts = state.firewall.rules
+      .filter(r => r.action === 'ALLOW')
+      .map(r => r.port)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .sort((a, b) => parseInt(a) - parseInt(b));
+    if (allowPorts.length > 0) {
+      const portText = allowPorts.join('  ');
+      const stripX = ufwNode.x + ufwNode.w / 2;
+      const stripY = ufwNode.y + ufwNode.h + 15;
+      svg += `<text x="${stripX}" y="${stripY}" text-anchor="middle" class="nt-port-strip">${portText}</text>`;
     }
   }
 
@@ -449,8 +470,19 @@ async function loadPhysicalTopology() {
   ntState.health   = ntResults[2].status === 'fulfilled' ? ntResults[2].value : [];
 
   updatePtBadge();
+
+  // LAN 直连边：从 UFW 到各服务，标签标注内网 IP
+  const lanIp = ptState.n150?.ip || '192.168.31.102';
+  const lanEdges = [
+    { from: 'ufw', to: 'wemonitor',  style: 'solid', label: `${lanIp}\n:18990` },
+    { from: 'ufw', to: 'webhook',    style: 'solid', label: `${lanIp}\n:9001` },
+    { from: 'ufw', to: 'wemusic',    style: 'solid', label: `${lanIp}\n:5174` },
+    { from: 'ufw', to: 'wedownload', style: 'solid', label: `${lanIp}\n:8080` },
+    { from: 'ufw', to: 'ssh',        style: 'solid', label: `${lanIp}\n:22` },
+  ];
+
   renderTopology(container, {
-    topology: PHYSICAL_TOPOLOGY,
+    topology: { ...PHYSICAL_TOPOLOGY, edges: [...PHYSICAL_TOPOLOGY.edges, ...lanEdges] },
     state: ntState,
     W: 1100,
     H: 630,
