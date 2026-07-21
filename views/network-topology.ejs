@@ -1,40 +1,17 @@
-<div class="card" id="topology-view">
+<link rel="stylesheet" href="/topology-editor/wemonitor.css?v=<%= version %>">
+
+<!-- 编辑器始终可见：默认只读（悬停查看 + 状态色），点「编辑」解锁拖拽/连线 -->
+<div class="card">
   <div class="card-header">
     <h3>网络拓扑</h3>
     <span class="status-badge" id="nt-status-badge">加载中...</span>
-    <button class="btn btn-sm" onclick="switchToEditor()" style="margin-left:auto">编辑拓扑</button>
-  </div>
-  <div class="card-body">
-    <div id="nt-diagram" class="nt-diagram">
-      <div class="nt-loading">加载网络拓扑...</div>
-    </div>
-    <div class="nt-legend">
-      <span class="nt-legend-item" title="节点运行正常"><span class="nt-dot nt-dot-green"></span> 正常</span>
-      <span class="nt-legend-item" title="节点异常或服务中断"><span class="nt-dot nt-dot-red"></span> 异常</span>
-      <span class="nt-legend-item" title="状态未知或未获取到数据"><span class="nt-dot nt-dot-gray"></span> 未知</span>
-      <span class="nt-legend-sep">|</span>
-      <span class="nt-legend-item" title="链路状态未检测"><span class="nt-line-sample nt-line-gray"></span> 未检测</span>
-      <span class="nt-legend-item" title="链路正常可达"><span class="nt-line-sample nt-line-green"></span> 在线</span>
-      <span class="nt-legend-item" title="链路中断或异常"><span class="nt-line-sample nt-line-red"></span> 异常</span>
-      <span class="nt-legend-sep">|</span>
-      <span class="nt-legend-item" title="实线：实际网络链路"><span class="nt-line-sample"></span> 实线：实际网络链路</span>
-      <span class="nt-legend-sep">|</span>
-      <span class="nt-legend-item" style="color:var(--text-dim)" title="预览与编辑器共享同一份 JSON 配置：data/topology.json">数据源: data/topology.json（与编辑器共享）</span>
-    </div>
-  </div>
-</div>
-
-<div class="card" id="editor-card" style="display:none">
-  <div class="card-header">
-    <h3>拓扑编辑器</h3>
-    <button class="btn btn-sm" onclick="switchToView()" style="margin-left:auto">← 返回概览</button>
   </div>
   <div class="card-body" style="padding:0">
-    <div id="topology-editor-root" style="height:75vh;width:100%"></div>
+    <div id="topology-editor-root" style="height:70vh;width:100%"></div>
   </div>
 </div>
 
-<div class="card" id="info-cards">
+<div class="card">
   <div class="card-header"><h3>流量路径说明</h3></div>
   <div class="card-body">
     <table class="data-table">
@@ -48,44 +25,15 @@
   </div>
 </div>
 
-<!-- toggle 函数必须在 editor.js 之前定义，避免编辑器脚本加载失败导致函数未定义 -->
+<script src="/js/network-topology.js?v=<%= version %>" defer></script>
 <script>
-  function switchToEditor() {
-    document.getElementById('topology-view').style.display = 'none';
-    document.getElementById('info-cards').style.display = 'none';
-    var ec = document.getElementById('editor-card');
-    ec.style.display = '';
-
-    var root = document.getElementById('topology-editor-root');
-    if (window._editorMounted) return;
-
-    function tryMount(attempt) {
-      attempt = attempt || 0;
-      if (window.mountTopologyEditor) {
-        try {
-          window.mountTopologyEditor('topology-editor-root');
-          window._editorMounted = true;
-        } catch(e) {
-          root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger)">编辑器启动失败: ' + e.message + '</div>';
-        }
-      } else if (attempt < 50) {
-        if (attempt === 0) root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim)">编辑器加载中...</div>';
-        setTimeout(function() { tryMount(attempt + 1); }, 100);
-      } else {
-        root.innerHTML = '<div style="padding:40px;text-align:center;color:var(--danger)">编辑器脚本加载超时（>5s）<br><small>请检查浏览器控制台网络请求</small></div>';
-      }
+  var _editorReady = false;
+  function tryMount() {
+    if (window.mountTopologyEditor) {
+      window.mountTopologyEditor('topology-editor-root');
+    } else {
+      setTimeout(tryMount, 100);
     }
-    tryMount();
-  }
-
-  function switchToView() {
-    document.getElementById('editor-card').style.display = 'none';
-    document.getElementById('topology-view').style.display = '';
-    document.getElementById('info-cards').style.display = '';
-    refreshPage();
   }
 </script>
-
-<link rel="stylesheet" href="/topology-editor/wemonitor.css?v=<%= version %>">
-<script src="/topology-editor/editor.js?v=<%= version %>" defer onload="_editorReady=true" onerror="document.getElementById('topology-editor-root').innerHTML='<div style=padding:40px;text-align:center;color:var(--danger)>编辑器脚本加载失败，请检查部署是否完整</div>'"></script>
-<script src="/js/network-topology.js?v=<%= version %>" defer></script>
+<script src="/topology-editor/editor.js?v=<%= version %>" defer onload="tryMount()" onerror="document.getElementById('topology-editor-root').innerHTML='<div style=padding:40px;text-align:center;color:var(--danger)>编辑器加载失败，请检查部署</div>'"></script>

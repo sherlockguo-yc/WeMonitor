@@ -131,7 +131,9 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(true);
-  const [editor, setEditor] = useState(null); // { type: 'node'|'edge', node?, edge? }
+  const [readOnly, setReadOnly] = useState(true);
+  const [tooltip, setTooltip] = useState(null);
+  const [editor, setEditor] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -160,6 +162,11 @@ export default function App() {
   }, [setNodes, setEdges]);
 
   useEffect(() => { load(); }, [load]);
+
+  // 只读模式同步到节点（隐藏 Handle）
+  useEffect(() => {
+    setNodes(nds => nds.map(n => n.data._readOnly === readOnly ? n : { ...n, data: { ...n.data, _readOnly: readOnly } }));
+  }, [readOnly, setNodes]);
 
   useEffect(() => {
     const timer = setInterval(async () => {
@@ -192,21 +199,35 @@ export default function App() {
 
   // 双击节点 → 打开属性编辑器（捕获快照避免闭包陈旧引用）
   const onNodeDoubleClick = useCallback((e, node) => {
+    if (readOnly) return;
     setEditor({
       type: 'node',
       nodeId: node.id,
       nodeSnapshot: { label: node.data.label, port: node.data.port, color: node.data.color, width: node.data.width },
     });
-  }, []);
+  }, [readOnly]);
 
   // 双击边 → 打开属性编辑器
   const onEdgeDoubleClick = useCallback((e, edge) => {
+    if (readOnly) return;
     setEditor({
       type: 'edge',
       edgeId: edge.id,
       edgeSnapshot: { label: edge.label || '', lineStyle: edge.data?.lineStyle || 'solid', edgeType: edge.type === 'default' ? 'straight' : (edge.type || 'smoothstep') },
     });
+  }, [readOnly]);
+
+  // 节点悬停 tooltip
+  const onNodeMouseEnter = useCallback((e, node) => {
+    if (!node.data?.isDynamic) return;
+    const d = node.data;
+    const st = d.status === 'ok' ? '正常' : d.status === 'error' ? '异常' : d.status === 'warn' ? '警告' : '未知';
+    setTooltip({ text: `${(d.label || '').replace('\\n', ' ')} · ${st}${d.port ? ' · :' + d.port : ''}`, x: e.clientX, y: e.clientY });
   }, []);
+  const onNodeMouseMove = useCallback((e) => {
+    if (tooltip) setTooltip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null);
+  }, [tooltip]);
+  const onNodeMouseLeave = useCallback(() => { setTooltip(null); }, []);
 
   // 属性编辑器保存（使用 captured nodeId/edgeId 操作最新 state）
   const handleEditorSave = useCallback((data) => {
@@ -252,51 +273,78 @@ export default function App() {
           padding: '8px 16px', background: 'var(--bg-card, #fff)',
           borderBottom: '1px solid var(--border, #e4e4e7)', fontSize: 14,
         }}>
-          <span style={{ fontWeight: 600 }}>网络拓扑编辑器</span>
+          <span style={{ fontWeight: 600 }}>网络拓扑</span>
           <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-            拖入节点 · 从下方圆点拖线 · 双击节点/连线改标签 · 选中按 Delete 删除
+            {readOnly ? '悬停节点查看状态 · 点击「编辑」修改' : '拖入节点 · 从下方圆点拖线 · 双击改属性 · Delete 删除'}
           </span>
           <div style={{ flex: 1 }} />
           <button onClick={load} style={btnStyle}>刷新</button>
-          <button onClick={save} disabled={saving || loading} style={{
-            ...btnStyle, background: saving ? '#a1a1aa' : 'var(--accent, #6366f1)', color: '#fff',
+          <button onClick={() => setReadOnly(!readOnly)} style={{
+            ...btnStyle, background: readOnly ? 'var(--accent, #6366f1)' : undefined, color: readOnly ? '#fff' : undefined,
           }}>
-            {saving ? '保存中...' : '保存'}
+            {readOnly ? '编辑' : '退出编辑'}
           </button>
-          <a href="/network" style={{ ...btnStyle, textDecoration: 'none' }}>← 返回</a>
+          {!readOnly && (
+            <button onClick={save} disabled={saving} style={{
+              ...btnStyle, background: saving ? '#a1a1aa' : 'var(--success, #10b981)', color: '#fff',
+            }}>
+              {saving ? '保存中...' : '保存'}
+            </button>
+          )}
           {msg && <span style={{ color: msg.includes('失败') ? 'var(--danger)' : 'var(--success)', fontSize: 13 }}>{msg}</span>}
         </div>
 
         {/* 主区域：面板 + 画布 */}
         <div style={{ flex: 1, display: 'flex' }} ref={reactFlowWrapper}>
-          <NodePalette />
+          {!readOnly && <NodePalette />}
           <div style={{ flex: 1 }}>
             <ReactFlowProvider>
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
+                onNodesChange={readOnly ? undefined : onNodesChange}
+                onEdgesChange={readOnly ? undefined : onEdgesChange}
+                onConnect={readOnly ? undefined : onConnect}
                 onNodeDoubleClick={onNodeDoubleClick}
-                onEdgeDoubleClick={onEdgeDoubleClick}
+                onEdgeDoubleClick={readOnly ? undefined : onEdgeDoubleClick}
+                onNodeMouseEnter={onNodeMouseEnter}
+                onNodeMouseMove={onNodeMouseMove}
+                onNodeMouseLeave={onNodeMouseLeave}
                 onInit={setRfInstance}
-                onDragOver={onDragOver}
-                onDrop={onDrop}
+                onDragOver={readOnly ? undefined : onDragOver}
+                onDrop={readOnly ? undefined : onDrop}
                 nodeTypes={nodeTypes}
                 fitView
-                deleteKeyCode="Delete"
-                multiSelectionKeyCode="Shift"
+                nodesDraggable={!readOnly}
+                nodesConnectable={!readOnly}
+                elementsSelectable={!readOnly}
+                deleteKeyCode={readOnly ? null : 'Delete'}
+                multiSelectionKeyCode={readOnly ? null : 'Shift'}
                 snapToGrid
                 snapGrid={[10, 10]}
+                panOnScroll={readOnly}
               >
-                <Controls />
+                {!readOnly && <Controls />}
                 <Background gap={20} size={1} color="var(--border-light, #e4e4e7)" />
-                <MiniMap nodeStrokeWidth={2} pannable zoomable />
+                {!readOnly && <MiniMap nodeStrokeWidth={2} pannable zoomable />}
               </ReactFlow>
             </ReactFlowProvider>
           </div>
         </div>
+
+        {/* 悬停 tooltip */}
+        {tooltip && (
+          <div style={{
+            position: 'fixed', top: tooltip.y - 36, left: tooltip.x + 12,
+            background: 'var(--bg-card, #fff)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '4px 10px', fontSize: 13, zIndex: 10000,
+            pointerEvents: 'none', whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            color: 'var(--text)',
+          }}>
+            {tooltip.text}
+          </div>
+        )}
       </div>
 
       {/* 属性编辑弹窗 */}
