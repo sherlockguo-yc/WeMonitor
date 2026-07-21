@@ -53,6 +53,28 @@ app.use(express.static('public', {
 - B. 加载时加版本号查询参数（如 `editor.js?v=<%= version %>`）
 - C. 给构建产物单独配置短缓存
 
+### 5. Session / Auth 隔离验证
+
+如果构建产物作为**独立页面**（非嵌入现有 EJS 模板），必须验证：
+
+1. **中间件顺序**：检查 `server.js` 中 `express.static` 和 `session()` 的注册顺序
+   ```js
+   // ❌ 危险：static 在 session 之前 → 静态页面无 req.session
+   app.use(express.static('public'));  // line 108
+   app.use(session({...}));            // line 116
+   ```
+2. **API 调用鉴权**：确认页面中的 fetch 请求能带 Session cookie（同源自动携带，但需确认路由有 `requireAuth` 中间件）
+3. **验证方法**：登录后访问独立页面 URL → DevTools Console 无 401 → API 正常返回数据
+
+### 6. CSS 变量隔离验证
+
+独立页面可能缺少主站 EJS layout 注入的 CSS 变量（`--font-size`、`--text`、`--bg-card` 等）：
+
+- 检查所有 `var(--xxx)` 引用是否都有 fallback 值（如 `var(--text, #18181b)`）
+- 或独立页面自行声明一份最小变量集
+
+> **经验法则**：如果构建产物的页面需要和主站共享 Session、CSS 变量、导航栏等上下文，优先考虑嵌入 EJS 模板而非独立 HTML 文件。
+
 ## 背景
 
 源于 WeMonitor 网络拓扑编辑器上线过程的三次返工：
