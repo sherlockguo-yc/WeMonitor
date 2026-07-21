@@ -137,6 +137,7 @@ export default function App() {
   const [tooltip, setTooltip] = useState(null);
   const [editor, setEditor] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -159,6 +160,7 @@ export default function App() {
         };
       }));
       setMsg('');
+      setDirty(false);
     } catch (err) {
       setMsg('加载失败: ' + err.message);
     } finally {
@@ -193,6 +195,7 @@ export default function App() {
       };
       await saveTopology(topo);
       setMsg('已保存 → 刷新概览页查看');
+      setDirty(false);
       setTimeout(() => setMsg(''), 2500);
     } catch (err) { setMsg('保存失败: ' + err.message); }
     finally { setSaving(false); }
@@ -200,7 +203,18 @@ export default function App() {
 
   const onConnect = useCallback((params) => {
     setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid', edgeType: 'smoothstep', arrow: true }, markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 } }, eds));
+    setDirty(true);
   }, [setEdges]);
+
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes);
+    setDirty(true);
+  }, [onNodesChange]);
+
+  const handleEdgesChange = useCallback((changes) => {
+    onEdgesChange(changes);
+    setDirty(true);
+  }, [onEdgesChange]);
 
   // 双击节点 → 打开属性编辑器（捕获快照避免闭包陈旧引用）
   const onNodeDoubleClick = useCallback((e, node) => {
@@ -256,6 +270,7 @@ export default function App() {
       }));
     }
     setEditor(null);
+    setDirty(true);
   }, [editor, setNodes, setEdges]);
 
   // 从面板拖入节点
@@ -273,6 +288,7 @@ export default function App() {
       data: { label: tpl.label, width: tpl.width, port: null, dynamic: null, status: 'static', isDynamic: false },
     };
     setNodes(nds => nds.concat(newNode));
+    setDirty(true);
   }, [rfInstance, setNodes]);
 
   return (
@@ -303,6 +319,7 @@ export default function App() {
               {saving ? '保存中...' : '保存'}
             </button>
           )}
+          {dirty && !readOnly && <span style={{ color: '#f59e0b', fontSize: 13, fontWeight: 500 }}>⚠ 有未保存的修改</span>}
           {msg && <span style={{ color: msg.includes('失败') ? 'var(--danger)' : 'var(--success)', fontSize: 13 }}>{msg}</span>}
         </div>
 
@@ -314,8 +331,8 @@ export default function App() {
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onNodesChange={readOnly ? undefined : onNodesChange}
-                onEdgesChange={readOnly ? undefined : onEdgesChange}
+                onNodesChange={readOnly ? undefined : handleNodesChange}
+                onEdgesChange={readOnly ? undefined : handleEdgesChange}
                 onConnect={readOnly ? undefined : onConnect}
                 onNodeDoubleClick={onNodeDoubleClick}
                 onEdgeDoubleClick={readOnly ? undefined : onEdgeDoubleClick}
