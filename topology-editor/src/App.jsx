@@ -9,10 +9,12 @@ import {
   useEdgesState,
   Panel,
   ReactFlowProvider,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import TopologyNode from './nodes/TopologyNode';
 import PropertyModal from './PropertyModal';
+import VersionModal from './VersionModal';
 import { fetchTopology, saveTopology, fetchStatus } from './api';
 
 const nodeTypes = { topology: TopologyNode };
@@ -134,6 +136,7 @@ export default function App() {
   const [readOnly, setReadOnly] = useState(true);
   const [tooltip, setTooltip] = useState(null);
   const [editor, setEditor] = useState(null);
+  const [showVersions, setShowVersions] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -144,13 +147,15 @@ export default function App() {
       if (withStatus) setNodes(withStatus);
       setEdges(topo.edges.map((e, i) => {
         const { style: _, lineStyle, edgeType: et, ...rest } = e;
+        const hasArrow = e.arrow !== false; // 默认 true，兼容旧数据
         return {
           ...rest,
           id: e.id || `e-${i}`,
           type: et || 'smoothstep',
           animated: false,
-          data: { lineStyle: lineStyle || e.style || 'solid', edgeType: et || 'smoothstep' },
+          data: { lineStyle: lineStyle || e.style || 'solid', edgeType: et || 'smoothstep', arrow: hasArrow },
           style: (lineStyle || e.style) === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
+          markerEnd: hasArrow ? { type: MarkerType.ArrowClosed, width: 16, height: 16 } : undefined,
         };
       }));
       setMsg('');
@@ -184,7 +189,7 @@ export default function App() {
           id: n.id, type: n.type, position: n.position,
           data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color },
         })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.type || 'smoothstep') })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.type || 'smoothstep'), arrow: e.data?.arrow !== false })),
       };
       await saveTopology(topo);
       setMsg('已保存 → 刷新概览页查看');
@@ -194,7 +199,7 @@ export default function App() {
   }, [nodes, edges]);
 
   const onConnect = useCallback((params) => {
-    setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid', edgeType: 'smoothstep' } }, eds));
+    setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid', edgeType: 'smoothstep', arrow: true }, markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 } }, eds));
   }, [setEdges]);
 
   // 双击节点 → 打开属性编辑器（捕获快照避免闭包陈旧引用）
@@ -213,7 +218,7 @@ export default function App() {
     setEditor({
       type: 'edge',
       edgeId: edge.id,
-      edgeSnapshot: { label: edge.label || '', lineStyle: edge.data?.lineStyle || 'solid', edgeType: edge.type === 'default' ? 'straight' : (edge.type || 'smoothstep') },
+      edgeSnapshot: { label: edge.label || '', lineStyle: edge.data?.lineStyle || 'solid', edgeType: edge.type === 'default' ? 'straight' : (edge.type || 'smoothstep'), arrow: edge.data?.arrow !== false },
     });
   }, [readOnly]);
 
@@ -241,7 +246,13 @@ export default function App() {
       const id = editor.edgeId;
       setEdges(eds => eds.map(ed => {
         if (ed.id !== id) return ed;
-        return { ...ed, label: data.label, type: data.edgeType, data: { ...ed.data, lineStyle: data.lineStyle, edgeType: data.edgeType }, style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined };
+        const hasArrow = data.arrow !== false;
+        return {
+          ...ed, label: data.label, type: data.edgeType,
+          data: { ...ed.data, lineStyle: data.lineStyle, edgeType: data.edgeType, arrow: hasArrow },
+          style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
+          markerEnd: hasArrow ? { type: MarkerType.ArrowClosed, width: 16, height: 16 } : undefined,
+        };
       }));
     }
     setEditor(null);
@@ -279,6 +290,7 @@ export default function App() {
           </span>
           <div style={{ flex: 1 }} />
           <button onClick={load} style={btnStyle}>刷新</button>
+          <button onClick={() => setShowVersions(true)} style={btnStyle}>版本历史</button>
           <button onClick={() => setReadOnly(!readOnly)} style={{
             ...btnStyle, background: readOnly ? 'var(--accent, #6366f1)' : undefined, color: readOnly ? '#fff' : undefined,
           }}>
@@ -355,6 +367,14 @@ export default function App() {
           edgeSnapshot={editor.edgeSnapshot}
           onSave={handleEditorSave}
           onClose={() => setEditor(null)}
+        />
+      )}
+
+      {/* 版本历史弹窗 */}
+      {showVersions && (
+        <VersionModal
+          onClose={() => setShowVersions(false)}
+          onRestored={() => { setShowVersions(false); load(); }}
         />
       )}
     </ErrorBoundary>

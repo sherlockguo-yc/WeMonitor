@@ -16,6 +16,26 @@ export async function saveTopology(data) {
   return res.json();
 }
 
+export async function fetchVersions() {
+  const res = await fetch(`${BASE}/api/v1/topology-config/versions`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function getVersion(versionId) {
+  const res = await fetch(`${BASE}/api/v1/topology-config/versions/${encodeURIComponent(versionId)}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function restoreVersion(versionId) {
+  const res = await fetch(`${BASE}/api/v1/topology-config/versions/${encodeURIComponent(versionId)}/restore`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function fetchStatus() {
   const [ptRes, fwRes, tunnelRes, healthRes] = await Promise.allSettled([
     fetch(`${BASE}/api/v1/physical-topology`),

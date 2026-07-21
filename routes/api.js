@@ -56,6 +56,8 @@ const fs = require('fs');
 const path = require('path');
 const TOPO_CONFIG = path.join(__dirname, '..', 'data', 'topology.json');
 const TOPO_DEFAULT = path.join(__dirname, '..', 'lib', 'default-topology.json');
+const TOPO_VERSIONS_DIR = path.join(__dirname, '..', 'data', 'topology-versions');
+const MAX_VERSIONS = 50;
 
 function readTopoConfig() {
   if (!fs.existsSync(TOPO_CONFIG)) {
@@ -65,6 +67,41 @@ function readTopoConfig() {
     fs.copyFileSync(TOPO_DEFAULT, TOPO_CONFIG);
   }
   return JSON.parse(fs.readFileSync(TOPO_CONFIG, 'utf-8'));
+}
+
+// 创建版本快照（保存前调用）
+function createVersionSnapshot() {
+  if (!fs.existsSync(TOPO_CONFIG)) return;
+  const current = fs.readFileSync(TOPO_CONFIG, 'utf-8');
+
+  // 去重：和最新版本相同则跳过
+  if (fs.existsSync(TOPO_VERSIONS_DIR)) {
+    const files = fs.readdirSync(TOPO_VERSIONS_DIR)
+      .filter(f => f.startsWith('v_') && f.endsWith('.json'))
+      .sort()
+      .reverse();
+    if (files.length > 0) {
+      const latest = fs.readFileSync(path.join(TOPO_VERSIONS_DIR, files[0]), 'utf-8');
+      if (latest === current) return; // 相同，跳过
+    }
+  }
+
+  // 确保目录存在
+  if (!fs.existsSync(TOPO_VERSIONS_DIR)) {
+    fs.mkdirSync(TOPO_VERSIONS_DIR, { recursive: true });
+  }
+
+  const ts = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+  const filename = `v_${ts}.json`;
+  fs.writeFileSync(path.join(TOPO_VERSIONS_DIR, filename), current, 'utf-8');
+
+  // 限制版本数量
+  const allFiles = fs.readdirSync(TOPO_VERSIONS_DIR)
+    .filter(f => f.startsWith('v_') && f.endsWith('.json'))
+    .sort();
+  while (allFiles.length > MAX_VERSIONS) {
+    fs.unlinkSync(path.join(TOPO_VERSIONS_DIR, allFiles.shift()));
+  }
 }
 
 router.get('/topology-config', (req, res) => {
@@ -81,10 +118,64 @@ router.post('/topology-config', (req, res) => {
     if (!data || !data.nodes || !data.edges) {
       return res.status(400).json({ error: '数据格式无效：需要 nodes 和 edges' });
     }
+    createVersionSnapshot();
     fs.writeFileSync(TOPO_CONFIG, JSON.stringify(data, null, 2), 'utf-8');
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: '保存拓扑配置失败: ' + err.message });
+  }
+});
+
+// 版本历史列表
+router.get('/topology-config/versions', (req, res) => {
+  try {
+    if (!fs.existsSync(TOPO_VERSIONS_DIR)) {
+      return res.json({ versions: [] });
+    }
+    const files = fs.readdirSync(TOPO_VERSIONS_DIR)
+      .filter(f => f.startsWith('v_') && f.endsWith('.json'))
+      .sort()
+      .reverse();
+    const versions = files.map(f => {
+      const data = JSON.parse(fs.readFileSync(path.join(TOPO_VERSIONS_DIR, f), 'utf-8'));
+      return {
+        version_id: f.replace(/\.json$/, ''),
+        timestamp: f.replace(/^v_/, '').replace(/\.json$/, '').replace(/T/, ' ').replace(/-/g, (m, i) => i === 13 ? ':' : i === 16 ? ':' : m),
+        node_count: data.nodes?.length || 0,
+        edge_count: data.edges?.length || 0,
+      };
+    });
+    res.json({ versions });
+  } catch (err) {
+    res.status(500).json({ error: '读取版本列表失败' });
+  }
+});
+
+// 获取指定版本完整数据
+router.get('/topology-config/versions/:id', (req, res) => {
+  try {
+    const fp = path.join(TOPO_VERSIONS_DIR, `${req.params.id}.json`);
+    if (!fs.existsSync(fp)) {
+      return res.status(404).json({ error: '版本不存在' });
+    }
+    res.json(JSON.parse(fs.readFileSync(fp, 'utf-8')));
+  } catch (err) {
+    res.status(500).json({ error: '读取版本数据失败' });
+  }
+});
+
+// 恢复到指定版本
+router.post('/topology-config/versions/:id/restore', (req, res) => {
+  try {
+    const fp = path.join(TOPO_VERSIONS_DIR, `${req.params.id}.json`);
+    if (!fs.existsSync(fp)) {
+      return res.status(404).json({ error: '版本不存在' });
+    }
+    createVersionSnapshot(); // 恢复前先保存当前版本
+    fs.copyFileSync(fp, TOPO_CONFIG);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: '恢复版本失败: ' + err.message });
   }
 });
 
