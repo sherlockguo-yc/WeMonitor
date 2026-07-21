@@ -31,6 +31,7 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
   const [color, setColor] = useState('inherit');
   const [lineStyle, setLineStyle] = useState('solid');
   const [edgeType, setEdgeType] = useState('smoothstep');
+  const [arrow, setArrow] = useState(true);
   const [width, setWidth] = useState(140);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
       setLabel(edgeSnapshot.label || '');
       setLineStyle(edgeSnapshot.lineStyle || 'solid');
       setEdgeType(edgeSnapshot.edgeType || 'smoothstep');
+      setArrow(edgeSnapshot.arrow !== false);
     } else if (type === 'node' && nodeSnapshot) {
       setLabel((nodeSnapshot.label || '').replace(/\n/g, '\\n'));
       setPort(nodeSnapshot.port?.toString() || '');
@@ -48,7 +50,7 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
 
   const handleSave = () => {
     if (type === 'edge') {
-      onSave({ label, lineStyle, edgeType });
+      onSave({ label, lineStyle, edgeType, arrow });
     } else {
       onSave({
         label: label.replace(/\\n/g, '\n'),
@@ -175,6 +177,24 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
                 color: lineStyle === 'dashed' ? '#fff' : 'var(--text)',
               }}>- - - 虚线</button>
             </div>
+
+            <label style={labelStyle}>方向箭头</label>
+            <label className="toggle-switch" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={arrow} onChange={(e) => setArrow(e.target.checked)} style={{ display: 'none' }} />
+              <span style={{
+                display: 'inline-block', width: 40, height: 22, borderRadius: 11,
+                background: arrow ? 'var(--accent, #6366f1)' : 'var(--border, #d4d4d8)',
+                position: 'relative', transition: 'background 0.2s',
+              }}>
+                <span style={{
+                  position: 'absolute', top: 2, left: arrow ? 20 : 2,
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  transition: 'left 0.2s',
+                }} />
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{arrow ? '显示' : '隐藏'}</span>
+            </label>
           </>
         )}
 

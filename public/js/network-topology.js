@@ -152,7 +152,9 @@ function renderTopology(container) {
     if (lStyle === 'dashed') dash = 'stroke-dasharray="6,4"';
 
     // 共享属性
-    const stroke = `stroke="${color}" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round" ${dash} marker-end="${marker}"`;
+    const arrow = edge.arrow !== false; // 默认 true，兼容旧数据
+    const markerEnd = arrow ? `marker-end="${marker}"` : '';
+    const stroke = `stroke="${color}" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round" ${dash} ${markerEnd}`;
     const eType = edge.edgeType || 'smoothstep';
 
     if (eType === 'smoothstep') {
