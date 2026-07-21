@@ -30,6 +30,8 @@ jobs:
           cp server.js package.json package-lock.json config.js pkg/
           cp -r lib/ routes/ views/ public/ pkg/
           cp scripts/restart-n150.sh pkg/restart.sh
+          cp scripts/backup-r2.sh pkg/backup-r2.sh
+          cp scripts/backup-r2-controller.sh pkg/backup-r2-controller.sh
           cd pkg && npm ci --omit=dev && cd ..
           echo "${{ steps.ver.outputs.sha }}" > pkg/.version
           tar -czf wemonitor.tar.gz -C pkg .

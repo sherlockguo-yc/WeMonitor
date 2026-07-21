@@ -1,12 +1,13 @@
 #!/bin/bash
 # R2 backup controller - reads WeMonitor backup_config table,
-# runs ~/backup-r2.sh for each enabled service.
-# Deploy: scp to N150 ~/backup-r2-controller.sh && chmod +x
-# Cron: 0 3 * * * /bin/bash $HOME/backup-r2-controller.sh >> /tmp/backup-r2.log 2>&1
+# runs backup-r2.sh for each enabled service.
+# Deployed via CI to ~/wemonitor/
+# Cron: 0 3 * * * /bin/bash $HOME/wemonitor/backup-r2-controller.sh >> /tmp/backup-r2.log 2>&1
 
 set -euo pipefail
 
-BACKUP_SCRIPT="$HOME/backup-r2.sh"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKUP_SCRIPT="$SCRIPT_DIR/backup-r2.sh"
 WM_DB="$HOME/wemonitor/data/wemonitor.db"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [backup-ctrl] $*"; }
