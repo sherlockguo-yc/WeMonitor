@@ -37,41 +37,30 @@ function uniqueId() { return `node-${Date.now()}-${idCounter++}`; }
 // 从实时状态计算节点颜色（只在状态变化时更新）
 function computeStatuses(topologyNodes, statusData) {
   const { physical, firewall, tunnel, health } = statusData;
-  let anyChanged = false;
+  let changed = false;
   const updated = topologyNodes.map(node => {
     const d = node.data || {};
-    if (!d.dynamic && (!d.tags || d.tags.length === 0)) return node;
-
-    let status = d.status || 'unknown';
-    if (d.dynamic) {
-      switch (d.dynamic) {
-        case 'modem': if (physical?.modem) status = physical.modem.online ? 'ok' : 'error'; break;
-        case 'router': if (physical?.router) status = physical.router.online ? 'ok' : 'error'; break;
-        case 'n150': if (physical?.n150) status = physical.n150.online ? 'ok' : 'error'; break;
-        case 'firewall': if (firewall) status = firewall.status === 'active' ? 'ok' : 'error'; break;
-        case 'tunnel': if (tunnel) status = tunnel.active ? 'ok' : 'error'; break;
-        case 'health':
-          if (d.healthIdx === -1) status = 'ok';
-          else if (Array.isArray(health)) {
-            const nameMap = { 0: 'WeMusic', 1: 'WeDownload' };
-            const svc = health.find(h => h.name === nameMap[d.healthIdx]);
-            if (svc) status = svc.status === 'healthy' ? 'ok' : 'error';
-          }
-          break;
-      }
+    if (!d.dynamic) return node;
+    let status = 'unknown';
+    switch (d.dynamic) {
+      case 'modem': if (physical?.modem) status = physical.modem.online ? 'ok' : 'error'; break;
+      case 'router': if (physical?.router) status = physical.router.online ? 'ok' : 'error'; break;
+      case 'n150': if (physical?.n150) status = physical.n150.online ? 'ok' : 'error'; break;
+      case 'firewall': if (firewall) status = firewall.status === 'active' ? 'ok' : 'error'; break;
+      case 'tunnel': if (tunnel) status = tunnel.active ? 'ok' : 'error'; break;
+      case 'health':
+        if (d.healthIdx === -1) status = 'ok';
+        else if (Array.isArray(health)) {
+          const nameMap = { 0: 'WeMusic', 1: 'WeDownload' };
+          const svc = health.find(h => h.name === nameMap[d.healthIdx]);
+          if (svc) status = svc.status === 'healthy' ? 'ok' : 'error';
+        }
+        break;
     }
-
-    // N150 节点注入 UFW 防火墙状态（供 tags 中 UFW chip 显示）
-    let firewallActive = d.firewallActive;
-    if (d.dynamic === 'n150' && firewall) {
-      firewallActive = firewall.status === 'active';
-    }
-
-    const nodeChanged = d.status !== status || !d.isDynamic || d.firewallActive !== firewallActive;
-    if (nodeChanged) anyChanged = true;
-    return nodeChanged ? { ...node, data: { ...d, status, isDynamic: true, firewallActive } } : node;
+    if (d.status !== status || !d.isDynamic) changed = true;
+    return changed ? { ...node, data: { ...d, status, isDynamic: true } } : node;
   });
-  return anyChanged ? updated : null;
+  return changed ? updated : null; // 无变化返回 null
 }
 
 // 错误边界
@@ -193,7 +182,7 @@ export default function App() {
       const topo = {
         nodes: nodes.map(n => ({
           id: n.id, type: n.type, position: n.position,
-          data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color, tags: n.data.tags },
+          data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color },
         })),
         edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.type || 'smoothstep') })),
       };
@@ -214,7 +203,7 @@ export default function App() {
     setEditor({
       type: 'node',
       nodeId: node.id,
-      nodeSnapshot: { label: node.data.label, port: node.data.port, color: node.data.color, width: node.data.width, tags: node.data.tags },
+      nodeSnapshot: { label: node.data.label, port: node.data.port, color: node.data.color, width: node.data.width },
     });
   }, [readOnly]);
 
@@ -246,7 +235,7 @@ export default function App() {
       const id = editor.nodeId;
       setNodes(nds => nds.map(n => {
         if (n.id !== id) return n;
-        return { ...n, data: { ...n.data, label: data.label, port: data.port, color: data.color || undefined, width: data.width, tags: data.tags } };
+        return { ...n, data: { ...n.data, label: data.label, port: data.port, color: data.color || undefined, width: data.width } };
       }));
     } else {
       const id = editor.edgeId;

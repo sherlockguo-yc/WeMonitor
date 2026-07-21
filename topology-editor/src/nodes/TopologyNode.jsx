@@ -49,35 +49,6 @@ function TopologyNode({ data, selected }) {
             {l}
           </div>
         ))}
-        {data.tags && data.tags.length > 0 && (
-          <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'wrap' }}>
-            {data.tags.map(t => {
-              const tagActive = (data.firewallActive != null && t === 'UFW') ? data.firewallActive : null;
-              const okBg = 'rgba(16,185,129,0.15)', errBg = 'rgba(239,68,68,0.15)';
-              const okBorder = 'rgba(16,185,129,0.3)', errBorder = 'rgba(239,68,68,0.3)';
-              return (
-                <span key={t} style={{
-                  fontSize: 'calc(var(--font-size) * 0.6)',
-                  padding: '1px 5px', borderRadius: 3,
-                  background: tagActive === true ? okBg : tagActive === false ? errBg : undefined,
-                  color: tagActive === true ? '#10b981' : tagActive === false ? '#ef4444' : 'var(--text-dim)',
-                  border: '1px solid',
-                  borderColor: tagActive === true ? okBorder : tagActive === false ? errBorder : 'var(--border, #e4e4e7)',
-                  display: 'inline-flex', alignItems: 'center', gap: 3,
-                }}>
-                  {tagActive != null && (
-                    <span style={{
-                      width: 4, height: 4, borderRadius: '50%',
-                      background: tagActive ? '#10b981' : '#ef4444',
-                      flexShrink: 0,
-                    }} />
-                  )}
-                  {t}
-                </span>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {port && (

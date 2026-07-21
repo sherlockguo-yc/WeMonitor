@@ -32,7 +32,6 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
   const [lineStyle, setLineStyle] = useState('solid');
   const [edgeType, setEdgeType] = useState('smoothstep');
   const [width, setWidth] = useState(140);
-  const [tags, setTags] = useState('');
 
   useEffect(() => {
     if (type === 'edge' && edgeSnapshot) {
@@ -44,7 +43,6 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
       setPort(nodeSnapshot.port?.toString() || '');
       setColor(nodeSnapshot.color || 'inherit');
       setWidth(nodeSnapshot.width || 140);
-      setTags((nodeSnapshot.tags || []).join(', '));
     }
   }, [type, nodeSnapshot, edgeSnapshot]);
 
@@ -57,7 +55,6 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
         port: port ? parseInt(port, 10) : null,
         color: color === 'inherit' ? null : color,
         width: parseInt(width, 10) || 140,
-        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       });
     }
   };
@@ -144,14 +141,6 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
                 />
               ))}
             </div>
-
-            {/* 标签 */}
-            <label style={labelStyle}>标签（逗号分隔）</label>
-            <input
-              value={tags} onChange={(e) => setTags(e.target.value)}
-              onKeyDown={handleKeyDown}
-              style={inputStyle} placeholder="例: UFW, Docker"
-            />
           </>
         )}
 
