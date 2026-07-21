@@ -151,25 +151,44 @@ function renderTopology(container) {
     const lStyle = edge.lineStyle || 'solid';
     if (lStyle === 'dashed') dash = 'stroke-dasharray="6,4"';
 
-    // 箭头位置（path 需要知道终点，line 需要缩短 4px）
-    const angle = Math.atan2(ep.ey - ep.sy, ep.ex - ep.sx);
-    const markX = ep.ex;
-    const markY = ep.ey;
-
+    // 共享属性
+    const stroke = `stroke="${color}" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round" ${dash} marker-end="${marker}"`;
     const eType = edge.edgeType || 'smoothstep';
+
     if (eType === 'smoothstep') {
-      // 阶梯线：先垂直 → 水平 → 垂直
-      const mx = (ep.sx + ep.ex) / 2;
-      svg += `<path d="M${ep.sx},${ep.sy} L${mx},${ep.sy} L${mx},${ep.ey} L${ep.ex},${ep.ey}" stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"/>`;
+      // React Flow 同款 smoothstep：xDist/yDist = (|dx|+|dy|)*0.25
+      // x 方向距离大时用水平分段，否则用垂直分段
+      const dx = ep.ex - ep.sx, dy = ep.ey - ep.sy;
+      const offset = (Math.abs(dx) + Math.abs(dy)) * 0.25;
+      let d;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // 水平：M(sx,sy) L(sx+off,sy) L(ex-off,ey) L(ex,ey)
+        d = `M${ep.sx},${ep.sy} L${ep.sx + offset},${ep.sy} L${ep.ex - offset},${ep.ey} L${ep.ex},${ep.ey}`;
+      } else {
+        // 垂直：M(sx,sy) L(sx,sy+off) L(ex,ey-off) L(ex,ey)
+        d = `M${ep.sx},${ep.sy} L${ep.sx},${ep.sy + offset} L${ep.ex},${ep.ey - offset} L${ep.ex},${ep.ey}`;
+      }
+      svg += `<path d="${d}" ${stroke}/>`;
     } else if (eType === 'bezier') {
-      // 贝塞尔曲线：用两个控制点弯曲
-      const cpx = (ep.sx + ep.ex) / 2;
-      svg += `<path d="M${ep.sx},${ep.sy} C${cpx},${ep.sy} ${cpx},${ep.ey} ${ep.ex},${ep.ey}" stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"/>`;
+      // 贝塞尔曲线（匹配 React Flow v12 default bezier）
+      // 选取 |dx|/|dy| 中较大值的一半作为控制点偏移
+      const dx = ep.ex - ep.sx, dy = ep.ey - ep.sy;
+      const c = Math.max(Math.abs(dx), Math.abs(dy)) * 0.4;
+      let d;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        // 主要水平：控制点水平偏移
+        d = `M${ep.sx},${ep.sy} C${ep.sx + c},${ep.sy} ${ep.ex - c},${ep.ey} ${ep.ex},${ep.ey}`;
+      } else {
+        // 主要垂直：控制点垂直偏移
+        d = `M${ep.sx},${ep.sy} C${ep.sx},${ep.sy + c} ${ep.ex},${ep.ey - c} ${ep.ex},${ep.ey}`;
+      }
+      svg += `<path d="${d}" ${stroke}/>`;
     } else {
       // 直线
+      const angle = Math.atan2(ep.ey - ep.sy, ep.ex - ep.sx);
       const ex2 = ep.ex - 4 * Math.cos(angle);
       const ey2 = ep.ey - 4 * Math.sin(angle);
-      svg += `<line x1="${ep.sx}" y1="${ep.sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
+      svg += `<line x1="${ep.sx}" y1="${ep.sy}" x2="${ex2}" y2="${ey2}" ${stroke}/>`;
     }
 
     // 标签
