@@ -25,7 +25,7 @@ const btnStyle = (primary) => ({
   color: primary ? '#fff' : 'var(--text, #18181b)',
 });
 
-export default function PropertyModal({ type, node, edge, onSave, onClose }) {
+export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave, onClose }) {
   const [label, setLabel] = useState('');
   const [port, setPort] = useState('');
   const [color, setColor] = useState('inherit');
@@ -33,16 +33,16 @@ export default function PropertyModal({ type, node, edge, onSave, onClose }) {
   const [width, setWidth] = useState(140);
 
   useEffect(() => {
-    if (type === 'edge' && edge) {
-      setLabel(edge.label || '');
-      setLineStyle(edge.data?.lineStyle || 'solid');
-    } else if (type === 'node' && node) {
-      setLabel((node.data?.label || '').replace(/\n/g, '\\n'));
-      setPort(node.data?.port?.toString() || '');
-      setColor(node.data?.color || 'inherit');
-      setWidth(node.data?.width || 140);
+    if (type === 'edge' && edgeSnapshot) {
+      setLabel(edgeSnapshot.label || '');
+      setLineStyle(edgeSnapshot.lineStyle || 'solid');
+    } else if (type === 'node' && nodeSnapshot) {
+      setLabel((nodeSnapshot.label || '').replace(/\n/g, '\\n'));
+      setPort(nodeSnapshot.port?.toString() || '');
+      setColor(nodeSnapshot.color || 'inherit');
+      setWidth(nodeSnapshot.width || 140);
     }
-  }, [type, node, edge]);
+  }, [type, nodeSnapshot, edgeSnapshot]);
 
   const handleSave = () => {
     if (type === 'edge') {

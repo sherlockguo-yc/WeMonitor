@@ -13,7 +13,7 @@ const handleStyle = {
   border: '1.5px solid var(--bg-card, #fff)',
 };
 
-export default function TopologyNode({ data, selected }) {
+function TopologyNode({ data, selected }) {
   const { label, port, status, isDynamic, color: manualColor } = data;
   const lines = (label || '').split('\n');
   const autoColor = statusColor(status);
@@ -39,10 +39,7 @@ export default function TopologyNode({ data, selected }) {
       }}
       title="双击修改标签 / 从下方圆点拖线连接"
     >
-      {/* 入站 Handle（上方）*/}
       <Handle type="target" position={Position.Top} style={handleStyle} />
-
-      {/* 出站 Handle（下方）*/}
       <Handle type="source" position={Position.Bottom} style={handleStyle} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -53,25 +50,20 @@ export default function TopologyNode({ data, selected }) {
         ))}
       </div>
 
-      {/* 端口 */}
       {port && (
         <span style={{
           fontSize: 'calc(var(--font-size, 14px) * 0.7)',
           color: 'var(--text-dim, #a1a1aa)',
           fontFamily: 'monospace', fontWeight: 500,
           flexShrink: 0, marginLeft: 4,
-        }}>
-          :{port}
-        </span>
+        }}>:{port}</span>
       )}
 
-      {/* 状态 */}
       {isDynamic && (
-        <div style={{
-          width: 10, height: 10, borderRadius: '50%',
-          background: color, flexShrink: 0,
-        }} />
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
       )}
     </div>
   );
 }
+
+export default React.memo(TopologyNode);

@@ -34,12 +34,13 @@ const NODE_TEMPLATES = [
 let idCounter = 0;
 function uniqueId() { return `node-${Date.now()}-${idCounter++}`; }
 
-// 从实时状态计算节点颜色
+// 从实时状态计算节点颜色（只在状态变化时更新）
 function computeStatuses(topologyNodes, statusData) {
   const { physical, firewall, tunnel, health } = statusData;
-  return topologyNodes.map(node => {
+  let changed = false;
+  const updated = topologyNodes.map(node => {
     const d = node.data || {};
-    if (!d.dynamic) return { ...node, data: { ...d, status: 'static', isDynamic: false } };
+    if (!d.dynamic) return node;
     let status = 'unknown';
     switch (d.dynamic) {
       case 'modem': if (physical?.modem) status = physical.modem.online ? 'ok' : 'error'; break;
@@ -56,8 +57,10 @@ function computeStatuses(topologyNodes, statusData) {
         }
         break;
     }
-    return { ...node, data: { ...d, status, isDynamic: true } };
+    if (d.status !== status || !d.isDynamic) changed = true;
+    return changed ? { ...node, data: { ...d, status, isDynamic: true } } : node;
   });
+  return changed ? updated : null; // 无变化返回 null
 }
 
 // 错误边界
@@ -136,7 +139,7 @@ export default function App() {
       const [topo, st] = await Promise.all([fetchTopology(), fetchStatus()]);
       setStatusData(st);
       const withStatus = computeStatuses(topo.nodes, st);
-      setNodes(withStatus);
+      if (withStatus) setNodes(withStatus);
       setEdges(topo.edges.map((e, i) => {
         const { style: _, lineStyle, ...rest } = e;
         return {
@@ -160,7 +163,7 @@ export default function App() {
 
   useEffect(() => {
     const timer = setInterval(async () => {
-      try { const st = await fetchStatus(); setStatusData(st); setNodes(nds => computeStatuses(nds, st)); }
+      try { const st = await fetchStatus(); setStatusData(st); setNodes(nds => computeStatuses(nds, st) || nds); }
       catch (_) {}
     }, 15000);
     return () => clearInterval(timer);
@@ -187,41 +190,37 @@ export default function App() {
     setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid' } }, eds));
   }, [setEdges]);
 
-  // 双击节点 → 打开属性编辑器
+  // 双击节点 → 打开属性编辑器（捕获快照避免闭包陈旧引用）
   const onNodeDoubleClick = useCallback((e, node) => {
-    setEditor({ type: 'node', node });
+    setEditor({
+      type: 'node',
+      nodeId: node.id,
+      nodeSnapshot: { label: node.data.label, port: node.data.port, color: node.data.color, width: node.data.width },
+    });
   }, []);
 
   // 双击边 → 打开属性编辑器
   const onEdgeDoubleClick = useCallback((e, edge) => {
-    setEditor({ type: 'edge', edge });
+    setEditor({
+      type: 'edge',
+      edgeId: edge.id,
+      edgeSnapshot: { label: edge.label || '', lineStyle: edge.data?.lineStyle || 'solid' },
+    });
   }, []);
 
-  // 属性编辑器保存
+  // 属性编辑器保存（使用 captured nodeId/edgeId 操作最新 state）
   const handleEditorSave = useCallback((data) => {
     if (editor.type === 'node') {
+      const id = editor.nodeId;
       setNodes(nds => nds.map(n => {
-        if (n.id !== editor.node.id) return n;
-        return {
-          ...n,
-          data: {
-            ...n.data,
-            label: data.label,
-            port: data.port,
-            color: data.color || undefined,
-            width: data.width,
-          },
-        };
+        if (n.id !== id) return n;
+        return { ...n, data: { ...n.data, label: data.label, port: data.port, color: data.color || undefined, width: data.width } };
       }));
     } else {
+      const id = editor.edgeId;
       setEdges(eds => eds.map(ed => {
-        if (ed.id !== editor.edge.id) return ed;
-        return {
-          ...ed,
-          label: data.label,
-          data: { ...ed.data, lineStyle: data.lineStyle },
-          style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
-        };
+        if (ed.id !== id) return ed;
+        return { ...ed, label: data.label, data: { ...ed.data, lineStyle: data.lineStyle }, style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined };
       }));
     }
     setEditor(null);
@@ -304,8 +303,8 @@ export default function App() {
       {editor && (
         <PropertyModal
           type={editor.type}
-          node={editor.node}
-          edge={editor.edge}
+          nodeSnapshot={editor.nodeSnapshot}
+          edgeSnapshot={editor.edgeSnapshot}
           onSave={handleEditorSave}
           onClose={() => setEditor(null)}
         />

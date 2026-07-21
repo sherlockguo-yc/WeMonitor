@@ -103,7 +103,7 @@ function renderTopology(container) {
   if (!topoConfig) return;
   const { nodes, edges } = topoConfig;
 
-  // 计算画布范围
+  // 计算画布范围（空节点时显示默认画布）
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const n of nodes) {
     const w = n.data?.width || 140;
@@ -113,10 +113,10 @@ function renderTopology(container) {
     maxY = Math.max(maxY, n.position.y + 44);
   }
   const pad = 40;
-  const W = maxX - minX + pad * 2;
-  const H = Math.max(maxY - minY + pad * 2, 400);
-  const ox = minX - pad;
-  const oy = minY - pad;
+  const W = nodes.length > 0 ? maxX - minX + pad * 2 : 400;
+  const H = nodes.length > 0 ? Math.max(maxY - minY + pad * 2, 400) : 300;
+  const ox = nodes.length > 0 ? minX - pad : 0;
+  const oy = nodes.length > 0 ? minY - pad : 0;
 
   let svg = `<svg class="nt-svg" viewBox="${ox} ${oy} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
@@ -175,7 +175,9 @@ function renderTopology(container) {
     const x = node.position.x, y = node.position.y;
     const status = getNodeStatus(node);
 
-    const bc = status === 'ok' ? 'var(--success)' : status === 'error' ? 'var(--danger)' : status === 'warn' ? 'var(--warning)' : 'var(--border)';
+    // 手动颜色优先于状态色
+    const manualColor = d.color;
+    const bc = manualColor || (status === 'ok' ? 'var(--success)' : status === 'error' ? 'var(--danger)' : status === 'warn' ? 'var(--warning)' : 'var(--border)');
     const bg = status === 'error' ? 'var(--danger-bg)' : status === 'warn' ? 'var(--warning-bg)' : 'var(--bg-card)';
 
     svg += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="var(--radius)" fill="${bg}" stroke="${bc}" stroke-width="2" class="nt-node" data-node="${node.id}"/>`;
