@@ -1,0 +1,36 @@
+# JSON 配置字段命名规范
+
+## 规则
+
+任何存储在 JSON 文件/数据库中的配置数据，其字段名**必须避免与目标渲染框架的保留 prop 名冲突**。
+
+## 检查清单
+
+在定义 JSON schema 或新增字段时，检查：
+
+1. **React props 冲突**：`style`、`className`、`children`、`key`、`ref`、`dangerouslySetInnerHTML` 等不得用于数据字段
+2. **DOM 属性冲突**：`id`、`title`、`hidden`、`tabIndex` 等如果与框架行为冲突则避免
+3. **框架内置属性冲突**：`type`、`data`、`position` 等如在框架中有特殊含义需谨慎
+
+## 命名约定
+
+| 语义 | ❌ 错误 | ✅ 正确 | 原因 |
+|------|--------|---------|------|
+| 边样式（实线/虚线） | `style: "solid"` | `lineStyle: "solid"` | React `style` prop 要求 CSS 对象 |
+| 节点 CSS class | `className: "highlight"` | `cssClass: "highlight"` | React 用 `className` 传递 CSS 类 |
+
+## 验证方法
+
+新增 JSON 字段后，在被解析的目标代码中使用解构+黑名单过滤：
+
+```js
+// 安全解析：先剥离保留 prop，再展开数据
+const { style, className, children, key, ref, ...data } = json;
+// data 中仅保留业务字段
+```
+
+## 背景
+
+源于 WeMonitor 拓扑编辑器 `data/topology.json` 中 `"style": "solid"` 字段。React 将 edges 对象的 `style` 属性视为 CSS 对象（要求 `{strokeDasharray: ...}`），收到字符串 `"solid"` 直接抛 `The style prop expects a mapping...` 错误。
+
+修复：将 JSON 字段改名为 `lineStyle`，兼容读取旧名 `style`。

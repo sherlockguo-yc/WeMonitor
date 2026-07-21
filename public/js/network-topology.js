@@ -147,11 +147,30 @@ function renderTopology(container) {
     if (fromStatus === 'ok') { color = 'var(--success)'; marker = 'url(#arr-green)'; }
     if (fromStatus === 'error') { color = 'var(--danger)'; marker = 'url(#arr-danger)'; }
 
-    const angle = Math.atan2(ep.ey - ep.sy, ep.ex - ep.sx);
-    const ex2 = ep.ex - 4 * Math.cos(angle);
-    const ey2 = ep.ey - 4 * Math.sin(angle);
+    // 虚线样式
+    const lStyle = edge.lineStyle || 'solid';
+    if (lStyle === 'dashed') dash = 'stroke-dasharray="6,4"';
 
-    svg += `<line x1="${ep.sx}" y1="${ep.sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
+    // 箭头位置（path 需要知道终点，line 需要缩短 4px）
+    const angle = Math.atan2(ep.ey - ep.sy, ep.ex - ep.sx);
+    const markX = ep.ex;
+    const markY = ep.ey;
+
+    const eType = edge.edgeType || 'smoothstep';
+    if (eType === 'smoothstep') {
+      // 阶梯线：先垂直 → 水平 → 垂直
+      const mx = (ep.sx + ep.ex) / 2;
+      svg += `<path d="M${ep.sx},${ep.sy} L${mx},${ep.sy} L${mx},${ep.ey} L${ep.ex},${ep.ey}" stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"/>`;
+    } else if (eType === 'bezier') {
+      // 贝塞尔曲线：用两个控制点弯曲
+      const cpx = (ep.sx + ep.ex) / 2;
+      svg += `<path d="M${ep.sx},${ep.sy} C${cpx},${ep.sy} ${cpx},${ep.ey} ${ep.ex},${ep.ey}" stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"/>`;
+    } else {
+      // 直线
+      const ex2 = ep.ex - 4 * Math.cos(angle);
+      const ey2 = ep.ey - 4 * Math.sin(angle);
+      svg += `<line x1="${ep.sx}" y1="${ep.sy}" x2="${ex2}" y2="${ey2}" stroke="${color}" stroke-width="2" ${dash} marker-end="${marker}"/>`;
+    }
 
     // 标签
     if (edge.label) {

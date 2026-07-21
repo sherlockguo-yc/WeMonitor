@@ -141,13 +141,13 @@ export default function App() {
       const withStatus = computeStatuses(topo.nodes, st);
       if (withStatus) setNodes(withStatus);
       setEdges(topo.edges.map((e, i) => {
-        const { style: _, lineStyle, ...rest } = e;
+        const { style: _, lineStyle, edgeType: et, ...rest } = e;
         return {
           ...rest,
           id: e.id || `e-${i}`,
-          type: 'smoothstep',
+          type: et || 'smoothstep',
           animated: false,
-          data: { lineStyle: lineStyle || e.style || 'solid' },
+          data: { lineStyle: lineStyle || e.style || 'solid', edgeType: et || 'smoothstep' },
           style: (lineStyle || e.style) === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
         };
       }));
@@ -177,7 +177,7 @@ export default function App() {
           id: n.id, type: n.type, position: n.position,
           data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color },
         })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid' })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.type || 'smoothstep') })),
       };
       await saveTopology(topo);
       setMsg('已保存 → 刷新概览页查看');
@@ -187,7 +187,7 @@ export default function App() {
   }, [nodes, edges]);
 
   const onConnect = useCallback((params) => {
-    setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid' } }, eds));
+    setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid', edgeType: 'smoothstep' } }, eds));
   }, [setEdges]);
 
   // 双击节点 → 打开属性编辑器（捕获快照避免闭包陈旧引用）
@@ -204,7 +204,7 @@ export default function App() {
     setEditor({
       type: 'edge',
       edgeId: edge.id,
-      edgeSnapshot: { label: edge.label || '', lineStyle: edge.data?.lineStyle || 'solid' },
+      edgeSnapshot: { label: edge.label || '', lineStyle: edge.data?.lineStyle || 'solid', edgeType: edge.type === 'default' ? 'straight' : (edge.type || 'smoothstep') },
     });
   }, []);
 
@@ -220,7 +220,7 @@ export default function App() {
       const id = editor.edgeId;
       setEdges(eds => eds.map(ed => {
         if (ed.id !== id) return ed;
-        return { ...ed, label: data.label, data: { ...ed.data, lineStyle: data.lineStyle }, style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined };
+        return { ...ed, label: data.label, type: data.edgeType, data: { ...ed.data, lineStyle: data.lineStyle, edgeType: data.edgeType }, style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined };
       }));
     }
     setEditor(null);

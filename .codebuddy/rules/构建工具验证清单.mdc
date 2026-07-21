@@ -1,0 +1,63 @@
+# 新构建工具引入验证清单
+
+## 规则
+
+在项目中引入新的构建工具（Vite、Webpack、esbuild 等）或切换构建模式（IIFE/ESM/UMD）时，**必须在本地完成以下 4 步验证后，才允许 commit 和 CI 部署**。
+
+## 验证清单
+
+### 1. 构建产物检查
+
+```bash
+npm run build && ls -la <输出目录>
+```
+
+- 确认输出文件存在且内容正确（js/css/html 等）
+- 对于 IIFE 构建：确认 `window.xxx` 全局函数/变量已导出
+- 对于包含 React 的构建：搜索 `process.env` 引用，确认无未定义引用
+
+### 2. 静态文件服务验证
+
+使用 Express（或项目当前的服务框架）启动本地服务器，确认构建产物能被正确访问：
+
+```js
+// 在 server.js 中确认静态文件路径
+app.use(express.static(path.join(__dirname, 'public')));
+```
+
+浏览器访问对应 URL，确认：
+- 状态码 200（非 404）
+- 文件完整加载（DevTools Network 标签无红色）
+
+### 3. 运行时验证
+
+打开页面，检查浏览器控制台：
+- 无 `Uncaught ReferenceError` / `process is not defined` 等致命错误
+- 确认页面能正常渲染（非白屏）
+- 触发关键交互（点击、拖拽等），确认功能正常
+
+### 4. 缓存策略验证
+
+检查 Express 静态文件中间件的缓存配置是否导致**新版本不被加载**：
+
+```js
+// 危险配置：immutable + 无 hash 文件名 = 浏览器永不更新
+app.use(express.static('public', {
+  maxAge: '7d',
+  setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=604800, immutable')
+}));
+```
+
+**处理方案（按优先级）**：
+- A. 文件名带内容 hash（如 `editor-a1b2c3.js`）— 推荐
+- B. 加载时加版本号查询参数（如 `editor.js?v=<%= version %>`）
+- C. 给构建产物单独配置短缓存
+
+## 背景
+
+源于 WeMonitor 网络拓扑编辑器上线过程的三次返工：
+1. `process.env` 未定义 → IIFE 模式下 React Flow 报错，但被 `immutable` 缓存掩盖
+2. 独立页面 session 丢失 → API 调用 401，React crash
+3. JSON 字段 `style` 与 React prop 冲突 → 编辑器 crash
+
+以上任何一个如果在第一步本地完整验证过，都能提前发现。

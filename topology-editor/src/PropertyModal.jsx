@@ -30,12 +30,14 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
   const [port, setPort] = useState('');
   const [color, setColor] = useState('inherit');
   const [lineStyle, setLineStyle] = useState('solid');
+  const [edgeType, setEdgeType] = useState('smoothstep');
   const [width, setWidth] = useState(140);
 
   useEffect(() => {
     if (type === 'edge' && edgeSnapshot) {
       setLabel(edgeSnapshot.label || '');
       setLineStyle(edgeSnapshot.lineStyle || 'solid');
+      setEdgeType(edgeSnapshot.edgeType || 'smoothstep');
     } else if (type === 'node' && nodeSnapshot) {
       setLabel((nodeSnapshot.label || '').replace(/\n/g, '\\n'));
       setPort(nodeSnapshot.port?.toString() || '');
@@ -46,7 +48,7 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
 
   const handleSave = () => {
     if (type === 'edge') {
-      onSave({ label, lineStyle });
+      onSave({ label, lineStyle, edgeType });
     } else {
       onSave({
         label: label.replace(/\\n/g, '\n'),
@@ -145,22 +147,33 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
         {/* 线型开关（仅边） */}
         {type === 'edge' && (
           <>
-            <label style={labelStyle}>连线样式</label>
+            <label style={labelStyle}>线条走向</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[
+                { v: 'straight', label: '直线' },
+                { v: 'smoothstep', label: '阶梯' },
+                { v: 'bezier', label: '曲线' },
+              ].map(o => (
+                <button key={o.v} onClick={() => setEdgeType(o.v)} style={{
+                  ...styleToggleSm,
+                  background: edgeType === o.v ? 'var(--accent, #6366f1)' : 'var(--border-light, #f4f4f5)',
+                  color: edgeType === o.v ? '#fff' : 'var(--text)',
+                }}>{o.label}</button>
+              ))}
+            </div>
+
+            <label style={labelStyle}>实线 / 虚线</label>
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={() => setLineStyle('solid')} style={{
                 ...styleToggleBtn,
                 background: lineStyle === 'solid' ? 'var(--accent, #6366f1)' : 'var(--border-light, #f4f4f5)',
                 color: lineStyle === 'solid' ? '#fff' : 'var(--text)',
-              }}>
-                ──── 实线
-              </button>
+              }}>──── 实线</button>
               <button onClick={() => setLineStyle('dashed')} style={{
                 ...styleToggleBtn,
                 background: lineStyle === 'dashed' ? 'var(--accent, #6366f1)' : 'var(--border-light, #f4f4f5)',
                 color: lineStyle === 'dashed' ? '#fff' : 'var(--text)',
-              }}>
-                - - - 虚线
-              </button>
+              }}>- - - 虚线</button>
             </div>
           </>
         )}
@@ -178,3 +191,4 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
 const labelStyle = { display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4, marginTop: 14, color: 'var(--text-dim, #a1a1aa)' };
 const hintStyle = { fontWeight: 400, opacity: 0.6, fontSize: 12 };
 const styleToggleBtn = { flex: 1, padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 500, fontSize: 13, border: 'none' };
+const styleToggleSm = { flex: 1, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontWeight: 500, fontSize: 12, border: 'none' };
