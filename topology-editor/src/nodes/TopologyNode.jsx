@@ -14,9 +14,10 @@ const handleStyle = {
 };
 
 export default function TopologyNode({ data, selected }) {
-  const { label, port, status, isDynamic } = data;
+  const { label, port, status, isDynamic, color: manualColor } = data;
   const lines = (label || '').split('\n');
-  const color = statusColor(status);
+  const autoColor = statusColor(status);
+  const color = manualColor || autoColor;
   const borderColor = selected ? 'var(--accent, #6366f1)' : color;
   const bgColor = status === 'error' ? 'rgba(239,68,68,0.08)'
     : status === 'warn' ? 'rgba(245,158,11,0.08)'

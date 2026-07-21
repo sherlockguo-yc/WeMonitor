@@ -12,6 +12,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import TopologyNode from './nodes/TopologyNode';
+import PropertyModal from './PropertyModal';
 import { fetchTopology, saveTopology, fetchStatus } from './api';
 
 const nodeTypes = { topology: TopologyNode };
@@ -127,6 +128,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editor, setEditor] = useState(null); // { type: 'node'|'edge', node?, edge? }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,7 +172,7 @@ export default function App() {
       const topo = {
         nodes: nodes.map(n => ({
           id: n.id, type: n.type, position: n.position,
-          data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width },
+          data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color },
         })),
         edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid' })),
       };
@@ -185,23 +187,45 @@ export default function App() {
     setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid' } }, eds));
   }, [setEdges]);
 
-  // 双击节点改标签
+  // 双击节点 → 打开属性编辑器
   const onNodeDoubleClick = useCallback((e, node) => {
-    const newLabel = prompt('修改标签（多行用 \\n 分隔）:', (node.data.label || '').replace(/\n/g, '\\n'));
-    if (newLabel != null) {
-      setNodes(nds => nds.map(n =>
-        n.id === node.id ? { ...n, data: { ...n.data, label: newLabel.replace(/\\n/g, '\n') } } : n
-      ));
-    }
-  }, [setNodes]);
+    setEditor({ type: 'node', node });
+  }, []);
 
-  // 双击边改标签
+  // 双击边 → 打开属性编辑器
   const onEdgeDoubleClick = useCallback((e, edge) => {
-    const newLabel = prompt('修改连线标签:', edge.label || '');
-    if (newLabel != null) {
-      setEdges(eds => eds.map(ed => ed.id === edge.id ? { ...ed, label: newLabel } : ed));
+    setEditor({ type: 'edge', edge });
+  }, []);
+
+  // 属性编辑器保存
+  const handleEditorSave = useCallback((data) => {
+    if (editor.type === 'node') {
+      setNodes(nds => nds.map(n => {
+        if (n.id !== editor.node.id) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            label: data.label,
+            port: data.port,
+            color: data.color || undefined,
+            width: data.width,
+          },
+        };
+      }));
+    } else {
+      setEdges(eds => eds.map(ed => {
+        if (ed.id !== editor.edge.id) return ed;
+        return {
+          ...ed,
+          label: data.label,
+          data: { ...ed.data, lineStyle: data.lineStyle },
+          style: data.lineStyle === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
+        };
+      }));
     }
-  }, [setEdges]);
+    setEditor(null);
+  }, [editor, setNodes, setEdges]);
 
   // 从面板拖入节点
   const onDragOver = useCallback((e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }, []);
@@ -275,6 +299,17 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* 属性编辑弹窗 */}
+      {editor && (
+        <PropertyModal
+          type={editor.type}
+          node={editor.node}
+          edge={editor.edge}
+          onSave={handleEditorSave}
+          onClose={() => setEditor(null)}
+        />
+      )}
     </ErrorBoundary>
   );
 }
