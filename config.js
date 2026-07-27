@@ -2,6 +2,7 @@ module.exports = {
   // WeMonitor 自身配置
   port: Number(process.env.WEMONITOR_PORT) || 18990,
   apiKey: process.env.WEMONITOR_API_KEY || 'wemonitor-dev-key-change-me',
+  sessionSecret: process.env.WEMONITOR_SESSION_SECRET || '',
 
   // GitHub API（用于部署监控：Release + Actions 状态查询）
   // 公开仓库不需要 scope，仅用于提升 API 额度（60→5000 req/hr）
