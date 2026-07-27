@@ -13,8 +13,9 @@ const handleStyle = {
   border: '1.5px solid var(--bg-card, #fff)',
 };
 
-function TopologyNode({ data, selected }) {
-  const { label, port, status, isDynamic, color: manualColor, _readOnly } = data;
+function TopologyNode({ data, selected, parentId }) {
+  const { label, port, status, isDynamic, color: manualColor, side: childSide, _readOnly } = data;
+  const isChild = !!parentId;
   const readOnly = !!_readOnly;
   const lines = (label || '').split('\n');
   const autoColor = statusColor(status);
@@ -30,13 +31,17 @@ function TopologyNode({ data, selected }) {
     <div
       style={{
         width: w, minHeight: 44,
-        padding: '6px 12px', borderRadius: 8,
-        border: `2px solid ${borderColor}`, background: bgColor,
-        fontSize: 'calc(var(--font-size, 14px) * 0.84)',
-        fontWeight: 500, color: 'var(--text, #18181b)',
-        display: 'flex', alignItems: 'center', gap: 8,
+        padding: isChild ? '4px 10px' : '6px 12px',
+        borderRadius: isChild ? 6 : 8,
+        border: isChild ? `1.5px dashed ${borderColor}` : `2px solid ${borderColor}`,
+        background: isChild ? 'var(--bg, #fafafa)' : bgColor,
+        fontSize: isChild ? 'calc(var(--font-size, 14px) * 0.78)' : 'calc(var(--font-size, 14px) * 0.84)',
+        fontWeight: isChild ? 400 : 500,
+        color: 'var(--text, #18181b)',
+        display: 'flex', alignItems: 'center', gap: 6,
         position: 'relative', cursor: readOnly ? 'default' : 'pointer',
         boxShadow: selected ? '0 0 0 2px rgba(99,102,241,0.3)' : undefined,
+        opacity: isChild ? 0.9 : 1,
       }}
       title={readOnly ? undefined : '双击修改标签 / 从下方圆点拖线连接'}
     >

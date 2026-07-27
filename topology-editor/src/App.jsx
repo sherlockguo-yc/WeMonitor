@@ -36,6 +36,33 @@ const NODE_TEMPLATES = [
 let idCounter = 0;
 function uniqueId() { return `node-${Date.now()}-${idCounter++}`; }
 
+// 计算子节点贴附在父节点外侧的相对位置
+function calcChildPos(parent, side, order, totalOnSide) {
+  const cw = 80, ch = 36, gap = 6, spacing = 4;
+  const pw = parent.data?.width || 140;
+  const ph = Math.max(44, ((parent.data?.label || '').split('\n').length || 1) * 20 + 12);
+
+  switch (side) {
+    case 'top': {
+      const tw = totalOnSide * cw + Math.max(0, totalOnSide - 1) * spacing;
+      return { x: Math.round((pw - tw) / 2 + order * (cw + spacing)), y: -(ch + gap) };
+    }
+    case 'bottom': {
+      const tw = totalOnSide * cw + Math.max(0, totalOnSide - 1) * spacing;
+      return { x: Math.round((pw - tw) / 2 + order * (cw + spacing)), y: ph + gap };
+    }
+    case 'left': {
+      const th = totalOnSide * ch + Math.max(0, totalOnSide - 1) * spacing;
+      return { x: -(cw + gap), y: Math.round((ph - th) / 2 + order * (ch + spacing)) };
+    }
+    case 'right': {
+      const th = totalOnSide * ch + Math.max(0, totalOnSide - 1) * spacing;
+      return { x: pw + gap, y: Math.round((ph - th) / 2 + order * (ch + spacing)) };
+    }
+    default: return { x: 0, y: -(ch + gap) };
+  }
+}
+
 // 从实时状态计算节点颜色（只在状态变化时更新）
 function computeStatuses(topologyNodes, statusData) {
   const { physical, firewall, tunnel, health } = statusData;
@@ -138,13 +165,21 @@ export default function App() {
   const [editor, setEditor] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const nodesRef = useRef(nodes);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [topo, st] = await Promise.all([fetchTopology(), fetchStatus()]);
       setStatusData(st);
-      const withStatus = computeStatuses(topo.nodes, st);
+      // 恢复 parentId（父-子关系）
+      const nodesWithParent = topo.nodes.map(n => ({
+        ...n,
+        parentId: n.parentId || undefined,
+        data: { ...n.data, _parentId: n.parentId || null },
+      }));
+      const withStatus = computeStatuses(nodesWithParent, st);
       if (withStatus) setNodes(withStatus);
       setEdges(topo.edges.map((e, i) => {
         const { style: _, lineStyle, edgeType: et, ...rest } = e;
@@ -189,7 +224,8 @@ export default function App() {
       const topo = {
         nodes: nodes.map(n => ({
           id: n.id, type: n.type, position: n.position,
-          data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color },
+          parentId: n.parentId || undefined,
+          data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color, side: n.data.side, order: n.data.order },
         })),
         edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.type || 'smoothstep'), arrow: e.data?.arrow !== false })),
       };
@@ -207,6 +243,22 @@ export default function App() {
   }, [setEdges]);
 
   const handleNodesChange = useCallback((changes) => {
+    // 级联删除：父节点被删时，子节点也一并删除
+    const removedIds = changes.filter(c => c.type === 'remove').map(c => c.id);
+    if (removedIds.length > 0) {
+      const removeSet = new Set(removedIds);
+      const queue = [...removedIds];
+      while (queue.length > 0) {
+        const pid = queue.shift();
+        nodesRef.current.filter(n => n.parentId === pid).forEach(n => {
+          if (!removeSet.has(n.id)) {
+            removeSet.add(n.id);
+            queue.push(n.id);
+            changes = [...changes, { type: 'remove', id: n.id }];
+          }
+        });
+      }
+    }
     onNodesChange(changes);
     setDirty(true);
   }, [onNodesChange]);
@@ -216,13 +268,17 @@ export default function App() {
     setDirty(true);
   }, [onEdgesChange]);
 
-  // 双击节点 → 打开属性编辑器（捕获快照避免闭包陈旧引用）
+  // 双击节点 → 打开属性编辑器（捕获子节点信息）
   const onNodeDoubleClick = useCallback((e, node) => {
     if (readOnly) return;
+    const children = nodesRef.current
+      .filter(n => n.parentId === node.id)
+      .map(n => ({ id: n.id, data: n.data }));
     setEditor({
       type: 'node',
       nodeId: node.id,
       nodeSnapshot: { label: node.data.label, port: node.data.port, color: node.data.color, width: node.data.width },
+      children,
     });
   }, [readOnly]);
 
@@ -248,14 +304,54 @@ export default function App() {
   }, [tooltip]);
   const onNodeMouseLeave = useCallback(() => { setTooltip(null); }, []);
 
-  // 属性编辑器保存（使用 captured nodeId/edgeId 操作最新 state）
+  // 属性编辑器保存
   const handleEditorSave = useCallback((data) => {
     if (editor.type === 'node') {
       const id = editor.nodeId;
+      // 更新节点属性
       setNodes(nds => nds.map(n => {
         if (n.id !== id) return n;
         return { ...n, data: { ...n.data, label: data.label, port: data.port, color: data.color || undefined, width: data.width } };
       }));
+
+      // 删除子节点
+      if (data.childrenToRemove?.length) {
+        const removeSet = new Set(data.childrenToRemove);
+        setNodes(nds => nds.filter(n => !removeSet.has(n.id)));
+      }
+
+      // 添加子节点
+      if (data.childrenToAdd?.length) {
+        setNodes(nds => {
+          const parent = nds.find(n => n.id === id);
+          if (!parent) return nds;
+
+          // 按侧边分组，计算每个侧边的 order
+          const counts = {};
+          nds.filter(n => n.parentId === id && !data.childrenToRemove?.includes(n.id))
+            .forEach(n => { const s = n.data.side || 'top'; counts[s] = (counts[s] || 0) + 1; });
+          // 计入本次新增
+          data.childrenToAdd.forEach(c => { counts[c.side] = (counts[c.side] || 0) + 1; });
+
+          const sideOrders = {};
+          data.childrenToAdd.forEach(c => {
+            if (!sideOrders[c.side]) sideOrders[c.side] = 0;
+            const existing = nds.filter(n => n.parentId === id && n.data.side === c.side && !data.childrenToRemove?.includes(n.id)).length;
+            const order = existing + sideOrders[c.side]++;
+            const pos = calcChildPos(parent, c.side, order, counts[c.side]);
+            const childId = uniqueId();
+            nds.push({
+              id: childId, type: 'topology', parentId: id, position: pos,
+              data: {
+                label: c.label, width: 80, port: null,
+                dynamic: null, status: 'static', isDynamic: false,
+                side: c.side, order,
+              },
+            });
+          });
+          return [...nds];
+        });
+      }
     } else {
       const id = editor.edgeId;
       setEdges(eds => eds.map(ed => {
@@ -382,6 +478,7 @@ export default function App() {
           type={editor.type}
           nodeSnapshot={editor.nodeSnapshot}
           edgeSnapshot={editor.edgeSnapshot}
+          children={editor.children}
           onSave={handleEditorSave}
           onClose={() => setEditor(null)}
         />

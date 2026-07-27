@@ -25,7 +25,14 @@ const btnStyle = (primary) => ({
   color: primary ? '#fff' : 'var(--text, #18181b)',
 });
 
-export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave, onClose }) {
+const SIDE_OPTIONS = [
+  { v: 'top',    label: '上方' },
+  { v: 'bottom', label: '下方' },
+  { v: 'left',   label: '左方' },
+  { v: 'right',  label: '右方' },
+];
+
+export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, children: existingChildren, onSave, onClose }) {
   const [label, setLabel] = useState('');
   const [port, setPort] = useState('');
   const [color, setColor] = useState('inherit');
@@ -33,6 +40,13 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
   const [edgeType, setEdgeType] = useState('smoothstep');
   const [arrow, setArrow] = useState(true);
   const [width, setWidth] = useState(140);
+
+  // 子节点管理状态
+  const [pendingChildren, setPendingChildren] = useState([]);     // 新增的
+  const [removedChildren, setRemovedChildren] = useState(new Set()); // 要删的
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [newChildSide, setNewChildSide] = useState('top');
+  const [newChildLabel, setNewChildLabel] = useState('');
 
   useEffect(() => {
     if (type === 'edge' && edgeSnapshot) {
@@ -57,9 +71,30 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
         port: port ? parseInt(port, 10) : null,
         color: color === 'inherit' ? null : color,
         width: parseInt(width, 10) || 140,
+        childrenToAdd: pendingChildren,
+        childrenToRemove: [...removedChildren],
       });
     }
   };
+
+  const handleAddChild = () => {
+    const trimmed = newChildLabel.trim();
+    if (!trimmed) return;
+    setPendingChildren(prev => [...prev, { label: trimmed, side: newChildSide }]);
+    setNewChildLabel('');
+    setNewChildSide('top');
+    setShowAddChild(false);
+  };
+
+  const handleRemoveChild = (childId) => {
+    setRemovedChildren(prev => new Set([...prev, childId]));
+  };
+
+  // 合并显示列表：现有子节点（排除已删除）+ 待添加
+  const displayChildren = [
+    ...(existingChildren || []).filter(c => !removedChildren.has(c.id)),
+    ...pendingChildren.map((c, i) => ({ id: `pending-${i}`, data: c, _pending: true })),
+  ];
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); }
@@ -195,6 +230,87 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, onSave
               </span>
               <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{arrow ? '显示' : '隐藏'}</span>
             </label>
+          </>
+        )}
+
+        {/* 子节点管理（仅节点） */}
+        {type === 'node' && (
+          <>
+            <div style={{
+              marginTop: 20, paddingTop: 16,
+              borderTop: '1px solid var(--border, #e4e4e7)',
+            }}>
+              <label style={{ ...labelStyle, marginTop: 0 }}>子节点</label>
+              <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 8px' }}>
+                子节点会贴附在主节点外侧，随主节点一起移动
+              </p>
+
+              {displayChildren.length === 0 && !showAddChild && (
+                <div style={{ fontSize: 13, color: 'var(--text-dim)', padding: '8px 0' }}>
+                  暂无子节点
+                </div>
+              )}
+
+              {displayChildren.map((c, idx) => (
+                <div key={c.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '6px 8px', marginBottom: 4,
+                  borderRadius: 6, background: 'var(--border-light, #f4f4f5)',
+                  fontSize: 13,
+                }}>
+                  <span style={{
+                    display: 'inline-block', padding: '1px 6px', borderRadius: 4,
+                    background: 'var(--accent, #6366f1)', color: '#fff',
+                    fontSize: 11, fontWeight: 500, flexShrink: 0,
+                  }}>
+                    {SIDE_OPTIONS.find(s => s.v === c.data?.side)?.label || c.data?.side || '上方'}
+                  </span>
+                  <span style={{ flex: 1, fontWeight: 500, color: 'var(--text)' }}>
+                    {c.data?.label || c.data?.label_calc || ''}
+                    {c._pending && <span style={{ fontSize: 11, color: 'var(--accent)', marginLeft: 4 }}>（新增）</span>}
+                  </span>
+                  <button onClick={() => handleRemoveChild(c.id)} title="删除子节点" style={{
+                    padding: '2px 6px', border: 'none', borderRadius: 4,
+                    background: 'transparent', color: 'var(--danger, #ef4444)',
+                    cursor: 'pointer', fontSize: 18, lineHeight: 1,
+                  }}>×</button>
+                </div>
+              ))}
+
+              {showAddChild ? (
+                <div style={{
+                  padding: '10px 12px', borderRadius: 8,
+                  background: 'var(--border-light, #f4f4f5)',
+                  display: 'flex', flexDirection: 'column', gap: 8,
+                }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select value={newChildSide} onChange={(e) => setNewChildSide(e.target.value)}
+                      style={{ ...inputStyle, width: 80, flexShrink: 0 }}>
+                      {SIDE_OPTIONS.map(s => <option key={s.v} value={s.v}>{s.label}</option>)}
+                    </select>
+                    <input
+                      value={newChildLabel} onChange={(e) => setNewChildLabel(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddChild(); if (e.key === 'Escape') setShowAddChild(false); }}
+                      style={{ ...inputStyle, flex: 1 }}
+                      placeholder="子节点名称"
+                      autoFocus
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <button onClick={() => setShowAddChild(false)} style={btnStyle(false)}>取消</button>
+                    <button onClick={handleAddChild} style={btnStyle(true)}>确定添加</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowAddChild(true)} style={{
+                  ...btnStyle(false), width: '100%', marginTop: 4,
+                  border: '1px dashed var(--border, #d4d4d8)',
+                  color: 'var(--accent, #6366f1)',
+                }}>
+                  + 添加子节点
+                </button>
+              )}
+            </div>
           </>
         )}
 
