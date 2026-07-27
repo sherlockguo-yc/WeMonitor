@@ -75,7 +75,6 @@ const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
 const SqliteStore = require('better-sqlite3-session-store')(session);
-const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const version = (() => {
@@ -91,11 +90,6 @@ try {
 } catch (_) { deployedAt = '未知'; }
 
 const app = express();
-
-// 信任 Cloudflare Tunnel 的反向代理头（X-Forwarded-Proto/X-Forwarded-For）
-// 因为 Cloudflare 边缘 HTTPS → Tunnel → N150 HTTP，
-// 必须 trust proxy，否则 req.secure 永远是 false，secure cookie 会失效
-app.set('trust proxy', 1);
 
 // 性能日志中间件（记录每个请求耗时）
 app.use((req, res, next) => {
@@ -118,24 +112,13 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// Session Secret：优先使用环境变量，未设置时生成随机值并警告
-const sessionSecret = config.sessionSecret || (() => {
-  const randomSecret = crypto.randomBytes(32).toString('hex');
-  console.warn('[security] WEMONITOR_SESSION_SECRET 未设置！已生成临时随机值。');
-  console.warn('[security] 请在 .env 中设置 export WEMONITOR_SESSION_SECRET=<随机字符串> 以持久化。');
-  console.warn('[security] 当前临时值（重启后变化，所有用户需重新登录）: ' + randomSecret);
-  return randomSecret;
-})();
-
 app.use(session({
   store: new SqliteStore({ client: db }),
-  secret: sessionSecret,
+  secret: config.sessionSecret || 'wemonitor-session-secret-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: true,         // 仅通过 HTTPS 传输（Cloudflare 边缘 HTTPS）
-    sameSite: 'lax',      // CSRF 保护：跨站请求不发送 cookie
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 天
   }
 }));
