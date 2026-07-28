@@ -268,6 +268,16 @@ export default function App() {
     setDirty(true);
   }, [onEdgesChange]);
 
+  // 按 Delete 键删除选中的边
+  const onEdgesDelete = useCallback((deletedEdges) => {
+    setDirty(true);
+  }, []);
+
+  // 按 Delete 键删除选中的节点
+  const onNodesDelete = useCallback((deletedNodes) => {
+    setDirty(true);
+  }, []);
+
   // 双击节点 → 打开属性编辑器（捕获子节点信息）
   const onNodeDoubleClick = useCallback((e, node) => {
     if (readOnly) return;
@@ -445,6 +455,8 @@ export default function App() {
                 elementsSelectable={!readOnly}
                 deleteKeyCode={readOnly ? null : 'Delete'}
                 multiSelectionKeyCode={readOnly ? null : 'Shift'}
+                onNodesDelete={readOnly ? undefined : onNodesDelete}
+                onEdgesDelete={readOnly ? undefined : onEdgesDelete}
                 snapToGrid
                 snapGrid={[10, 10]}
                 panOnScroll={readOnly}
