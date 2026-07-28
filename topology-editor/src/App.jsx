@@ -278,6 +278,15 @@ export default function App() {
     setDirty(true);
   }, []);
 
+  // 删除选中的节点和边（工具栏按钮用）
+  const deleteSelected = useCallback(() => {
+    setNodes(nds => nds.filter(n => !n.selected));
+    setEdges(eds => eds.filter(e => !e.selected));
+    setDirty(true);
+  }, [setNodes, setEdges]);
+
+  const selectedCount = nodes.filter(n => n.selected).length + edges.filter(e => e.selected).length;
+
   // 双击节点 → 打开属性编辑器（捕获子节点信息）
   const onNodeDoubleClick = useCallback((e, node) => {
     if (readOnly) return;
@@ -423,6 +432,13 @@ export default function App() {
               ...btnStyle, background: saving ? '#a1a1aa' : 'var(--success, #10b981)', color: '#fff',
             }}>
               {saving ? '保存中...' : '保存'}
+            </button>
+          )}
+          {!readOnly && selectedCount > 0 && (
+            <button onClick={deleteSelected} style={{
+              ...btnStyle, background: 'var(--danger, #ef4444)', color: '#fff',
+            }}>
+              删除选中 ({selectedCount})
             </button>
           )}
           {dirty && !readOnly && <span style={{ color: '#f59e0b', fontSize: 13, fontWeight: 500 }}>⚠ 有未保存的修改</span>}
