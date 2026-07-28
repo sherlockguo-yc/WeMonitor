@@ -333,15 +333,15 @@ export default function App() {
           // 计入本次新增
           data.childrenToAdd.forEach(c => { counts[c.side] = (counts[c.side] || 0) + 1; });
 
+          const newNodes = [];
           const sideOrders = {};
           data.childrenToAdd.forEach(c => {
             if (!sideOrders[c.side]) sideOrders[c.side] = 0;
             const existing = nds.filter(n => n.parentId === id && n.data.side === c.side && !data.childrenToRemove?.includes(n.id)).length;
             const order = existing + sideOrders[c.side]++;
             const pos = calcChildPos(parent, c.side, order, counts[c.side]);
-            const childId = uniqueId();
-            nds.push({
-              id: childId, type: 'topology', parentId: id, position: pos,
+            newNodes.push({
+              id: uniqueId(), type: 'topology', parentId: id, position: pos,
               data: {
                 label: c.label, width: 80, port: null,
                 dynamic: null, status: 'static', isDynamic: false,
@@ -349,7 +349,7 @@ export default function App() {
               },
             });
           });
-          return [...nds];
+          return [...nds, ...newNodes];
         });
       }
     } else {
