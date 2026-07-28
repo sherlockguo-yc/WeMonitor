@@ -214,22 +214,26 @@ export default function PropertyModal({ type, nodeSnapshot, edgeSnapshot, childr
             </div>
 
             <label style={labelStyle}>方向箭头</label>
-            <label className="toggle-switch" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={arrow} onChange={(e) => setArrow(e.target.checked)} style={{ display: 'none' }} />
-              <span style={{
-                display: 'inline-block', width: 40, height: 22, borderRadius: 11,
-                background: arrow ? 'var(--accent, #6366f1)' : 'var(--border, #d4d4d8)',
-                position: 'relative', transition: 'background 0.2s',
-              }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span
+                onClick={() => setArrow(!arrow)}
+                style={{
+                  position: 'relative', display: 'inline-block',
+                  width: 40, height: 22, borderRadius: 11, cursor: 'pointer',
+                  background: arrow ? 'var(--accent, #6366f1)' : 'var(--border, #d4d4d8)',
+                  transition: 'background 0.2s',
+                }}
+              >
                 <span style={{
-                  position: 'absolute', top: 2, left: arrow ? 20 : 2,
+                  position: 'absolute', top: 2,
+                  left: arrow ? 20 : 2,
                   width: 18, height: 18, borderRadius: '50%',
                   background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                   transition: 'left 0.2s',
                 }} />
               </span>
               <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{arrow ? '显示' : '隐藏'}</span>
-            </label>
+            </div>
           </>
         )}
 
