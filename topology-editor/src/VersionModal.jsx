@@ -9,7 +9,7 @@ const overlayStyle = {
 
 const cardStyle = {
   background: 'var(--bg-card, #fff)', borderRadius: 12, padding: 24,
-  width: 520, maxHeight: '70vh', display: 'flex', flexDirection: 'column',
+  width: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column',
   boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
   color: 'var(--text, #18181b)',
   fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
@@ -21,6 +21,101 @@ const btnStyle = (primary) => ({
   background: primary ? 'var(--accent, #6366f1)' : 'var(--border-light, #f4f4f5)',
   color: primary ? '#fff' : 'var(--text, #18181b)',
 });
+
+// ── 迷你 SVG 拓扑预览 ──
+
+const NODE_H = 44;
+
+function computeEndpoints(from, to) {
+  const fw = from.data?.width || 140, tw = to.data?.width || 140;
+  const fx = from.position.x, fy = from.position.y;
+  const tx = to.position.x, ty = to.position.y;
+  const fcx = fx + fw / 2, fcy = fy + NODE_H / 2;
+  const tcx = tx + tw / 2, tcy = ty + NODE_H / 2;
+  const dx = tcx - fcx, dy = tcy - fcy;
+  let sx, sy, ex, ey;
+  if (Math.abs(dx) > Math.abs(dy) * 5) {
+    if (dx > 0) { sx = fx + fw; ex = tx; } else { sx = fx; ex = tx + tw; }
+    sy = fcy; ey = tcy;
+  } else {
+    if (dy > 0) { sy = fy + NODE_H; ey = ty; } else { sy = fy; ey = ty + NODE_H; }
+    sx = fcx; ex = tcx;
+  }
+  return { sx, sy, ex, ey };
+}
+
+function smoothstepPath(from, to) {
+  const ep = computeEndpoints(from, to);
+  const dx = ep.ex - ep.sx, dy = ep.ey - ep.sy;
+  const off = (Math.abs(dx) + Math.abs(dy)) * 0.25;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return `M${ep.sx},${ep.sy} L${ep.sx + off},${ep.sy} L${ep.ex - off},${ep.ey} L${ep.ex},${ep.ey}`;
+  }
+  return `M${ep.sx},${ep.sy} L${ep.sx},${ep.sy + off} L${ep.ex},${ep.ey - off} L${ep.ex},${ep.ey}`;
+}
+
+function MiniTopologyPreview({ nodes, edges }) {
+  if (!nodes || nodes.length === 0) {
+    return <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 12, padding: 20 }}>无节点数据</div>;
+  }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const n of nodes) {
+    const w = n.data?.width || 140;
+    minX = Math.min(minX, n.position.x); minY = Math.min(minY, n.position.y);
+    maxX = Math.max(maxX, n.position.x + w); maxY = Math.max(maxY, n.position.y + NODE_H);
+  }
+  const pad = 30;
+  const vbX = minX - pad, vbY = minY - pad;
+  const vbW = Math.max(maxX - minX + pad * 2, 200);
+  const vbH = Math.max(maxY - minY + pad * 2, 150);
+
+  return (
+    <svg viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
+      style={{ width: '100%', height: 240, display: 'block', background: 'var(--bg, #fafafa)' }}
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="vp-arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-dim, #9ca3af)"/>
+        </marker>
+      </defs>
+      {(edges || []).map((e, i) => {
+        const from = nodes.find(n => n.id === e.source);
+        const to = nodes.find(n => n.id === e.target);
+        if (!from || !to) return null;
+        const d = smoothstepPath(from, to);
+        const dash = e.lineStyle === 'dashed' ? '6,4' : undefined;
+        const ep = computeEndpoints(from, to);
+        const mx = (ep.sx + ep.ex) / 2, my = (ep.sy + ep.ey) / 2;
+        return (
+          <g key={`e${i}`}>
+            <path d={d} stroke="var(--text-dim, #9ca3af)" strokeWidth="1.5" fill="none"
+              strokeDasharray={dash} markerEnd="url(#vp-arrow)" opacity="0.55"/>
+            {e.label && (
+              <>
+                <rect x={mx - e.label.length * 3.5 - 4} y={my - 9} width={e.label.length * 7 + 8} height={14}
+                  fill="var(--bg-card, #fff)" rx="3"/>
+                <text x={mx} y={my + 1} textAnchor="middle" fontSize="10" fill="var(--text-dim, #9ca3af)">{e.label}</text>
+              </>
+            )}
+          </g>
+        );
+      })}
+      {nodes.map((n, i) => {
+        const w = n.data?.width || 140;
+        const label = (n.data?.label || n.id).replace(/\n/g, ' ');
+        return (
+          <g key={`n${i}`}>
+            <rect x={n.position.x} y={n.position.y} width={w} height={NODE_H} rx="6"
+              fill="var(--bg-card, #fff)" stroke="var(--border, #d4d4d8)" strokeWidth="1.5"/>
+            <text x={n.position.x + w / 2} y={n.position.y + NODE_H / 2}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="11" fill="var(--text, #18181b)" fontFamily="system-ui, -apple-system, sans-serif">{label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
 
 export default function VersionModal({ onClose, onRestored }) {
   const [versions, setVersions] = useState([]);
@@ -129,34 +224,21 @@ export default function VersionModal({ onClose, onRestored }) {
                   )}
                 </div>
 
-                {/* 预览面板 */}
+                {/* 预览面板 — 迷你 SVG 拓扑图 */}
                 {previewData?.version_id === v.version_id && (
                   <div style={{
-                    margin: '0 0 8px', padding: 12, borderRadius: 8,
-                    background: '#f9fafb', border: '1px solid var(--border, #e4e4e7)',
-                    fontSize: 12, maxHeight: 200, overflowY: 'auto',
+                    margin: '0 0 8px', borderRadius: 8, overflow: 'hidden',
+                    background: 'var(--bg, #f9fafb)', border: '1px solid var(--border, #e4e4e7)',
                   }}>
-                    <div style={{ fontWeight: 600, marginBottom: 6 }}>节点 ({previewData.nodes?.length || 0})</div>
-                    {previewData.nodes?.slice(0, 10).map((n, i) => (
-                      <div key={i} style={{ marginBottom: 2, color: 'var(--text-dim)' }}>
-                        <span style={{ fontWeight: 500, color: 'var(--text)' }}>{n.id}</span>
-                        : {n.data?.label?.replace(/\n/g, ' ')} {n.data?.port ? `(:${n.data.port})` : ''}
-                      </div>
-                    ))}
-                    {previewData.nodes?.length > 10 && (
-                      <div style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>... 还有 {previewData.nodes.length - 10} 个节点</div>
-                    )}
-                    <div style={{ fontWeight: 600, margin: '8px 0 6px' }}>连线 ({previewData.edges?.length || 0})</div>
-                    {previewData.edges?.slice(0, 10).map((e, i) => (
-                      <div key={i} style={{ marginBottom: 2, color: 'var(--text-dim)' }}>
-                        <span style={{ fontWeight: 500, color: 'var(--text)' }}>{e.source}</span>
-                        → {e.target} {e.label ? `(${e.label})` : ''}
-                        <span style={{ opacity: 0.5 }}> [{e.lineStyle || 'solid'}]</span>
-                      </div>
-                    ))}
-                    {previewData.edges?.length > 10 && (
-                      <div style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>... 还有 {previewData.edges.length - 10} 条连线</div>
-                    )}
+                    <div style={{
+                      padding: '6px 12px', fontSize: 12, color: 'var(--text-dim)',
+                      borderBottom: '1px solid var(--border, #e4e4e7)',
+                      display: 'flex', gap: 16,
+                    }}>
+                      <span><strong>{previewData.nodes?.length || 0}</strong> 节点</span>
+                      <span><strong>{previewData.edges?.length || 0}</strong> 连线</span>
+                    </div>
+                    <MiniTopologyPreview nodes={previewData.nodes} edges={previewData.edges} />
                   </div>
                 )}
               </div>
