@@ -10,6 +10,7 @@ import {
   Panel,
   ReactFlowProvider,
   MarkerType,
+  SelectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import TopologyNode from './nodes/TopologyNode';
@@ -168,6 +169,12 @@ export default function App() {
   const nodesRef = useRef(nodes);
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
   const systemUpdateRef = useRef(false);
+  const edgesRef = useRef(edges);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
+  const undoStack = useRef([]);
+  const redoStack = useRef([]);
+  const [shiftHeld, setShiftHeld] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -221,6 +228,169 @@ export default function App() {
     return () => clearInterval(timer);
   }, [setNodes]);
 
+  // Shift 键追踪（拖拽框选）
+  useEffect(() => {
+    const down = (e) => { if (e.key === 'Shift') setShiftHeld(true); };
+    const up = (e) => { if (e.key === 'Shift') setShiftHeld(false); };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
+
+  // 快捷键：Ctrl+Z/Y/S/D
+  useEffect(() => {
+    if (readOnly) return;
+    const handler = (e) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); }
+      if (mod && e.key === 's') { e.preventDefault(); save(); }
+      if (mod && e.key === 'd') { e.preventDefault(); duplicateSelected(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Undo / Redo ──────────────────────────────────
+  const snapshot = useCallback(() => {
+    undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current });
+    if (undoStack.current.length > 50) undoStack.current.shift();
+    redoStack.current = [];
+  }, []);
+
+  const undo = useCallback(() => {
+    if (undoStack.current.length === 0) return;
+    redoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current });
+    const prev = undoStack.current.pop();
+    setNodes(prev.nodes);
+    setEdges(prev.edges);
+    setDirty(true);
+  }, [setNodes, setEdges]);
+
+  const redo = useCallback(() => {
+    if (redoStack.current.length === 0) return;
+    undoStack.current.push({ nodes: nodesRef.current, edges: edgesRef.current });
+    const next = redoStack.current.pop();
+    setNodes(next.nodes);
+    setEdges(next.edges);
+    setDirty(true);
+  }, [setNodes, setEdges]);
+
+  // ─── 复制选中节点 ──────────────────────────────────
+  const duplicateSelected = useCallback(() => {
+    const selected = nodesRef.current.filter(n => n.selected && !n.parentId);
+    if (selected.length === 0) return;
+    snapshot();
+    const newNodes = selected.map(n => ({
+      id: uniqueId(), type: 'topology',
+      position: { x: n.position.x + 30, y: n.position.y + 30 },
+      data: { ...n.data, status: 'static', isDynamic: false },
+    }));
+    setNodes(nds => [...nds.map(n => ({ ...n, selected: false })), ...newNodes]);
+    setDirty(true);
+  }, [setNodes]);
+
+  // ─── 右键菜单 ─────────────────────────────────────
+  const onNodeContextMenu = useCallback((e, node) => {
+    e.preventDefault();
+    if (readOnly) return;
+    // 如果未选中则选中该节点
+    if (!node.selected) {
+      setNodes(nds => nds.map(n => ({ ...n, selected: n.id === node.id })));
+    }
+    setCtxMenu({ x: e.clientX, y: e.clientY, type: 'node', targetId: node.id });
+  }, [readOnly, setNodes]);
+
+  const onEdgeContextMenu = useCallback((e, edge) => {
+    e.preventDefault();
+    if (readOnly) return;
+    if (!edge.selected) {
+      setEdges(eds => eds.map(ed => ({ ...ed, selected: ed.id === edge.id })));
+    }
+    setCtxMenu({ x: e.clientX, y: e.clientY, type: 'edge', targetId: edge.id });
+  }, [readOnly, setEdges]);
+
+  const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
+
+  // ─── 边重连 ───────────────────────────────────────
+  const onReconnect = useCallback((oldEdge, newConnection) => {
+    snapshot();
+    setEdges(eds => eds.map(e => {
+      if (e.id !== oldEdge.id) return e;
+      return { ...e, source: newConnection.source, target: newConnection.target };
+    }));
+    setDirty(true);
+  }, [setEdges]);
+
+  // ─── 拖拽前快照 ───────────────────────────────────
+  const onNodeDragStart = useCallback(() => { snapshot(); }, []);
+
+  // ─── 自动布局 ─────────────────────────────────────
+  const autoLayout = useCallback(() => {
+    snapshot();
+    const topNodes = nodesRef.current.filter(n => !n.parentId);
+    const childMap = {};
+    nodesRef.current.filter(n => n.parentId).forEach(c => {
+      if (!childMap[c.parentId]) childMap[c.parentId] = [];
+      childMap[c.parentId].push(c);
+    });
+    const inDegree = {};
+    topNodes.forEach(n => inDegree[n.id] = 0);
+    edgesRef.current.forEach(e => {
+      if (inDegree[e.target] !== undefined) inDegree[e.target]++;
+    });
+    const roots = topNodes.filter(n => inDegree[n.id] === 0);
+    const layers = new Map();
+    const queue = roots.map(n => ({ id: n.id, layer: 0 }));
+    while (queue.length > 0) {
+      const { id, layer } = queue.shift();
+      if (layers.has(id) && layers.get(id) >= layer) continue;
+      layers.set(id, layer);
+      edgesRef.current.filter(e => e.source === id).forEach(e => {
+        if (inDegree[e.target] !== undefined) queue.push({ id: e.target, layer: layer + 1 });
+      });
+    }
+    // 未覆盖的节点放到最后一层
+    topNodes.forEach(n => { if (!layers.has(n.id)) layers.set(n.id, 0); });
+
+    const layerGroups = {};
+    layers.forEach((layer, id) => {
+      if (!layerGroups[layer]) layerGroups[layer] = [];
+      layerGroups[layer].push(id);
+    });
+
+    const layerHeight = 120;
+    const nodeWidth = 170;
+    const newNodes = nodesRef.current.map(n => {
+      if (n.parentId) return n; // 子节点不动
+      const layer = layers.get(n.id) || 0;
+      const group = layerGroups[layer] || [];
+      const idx = group.indexOf(n.id);
+      return { ...n, position: { x: idx * (nodeWidth + 40), y: layer * layerHeight + 40 } };
+    });
+    setNodes(newNodes);
+    setDirty(true);
+  }, [setNodes]);
+
+  // ─── 导出 JSON ────────────────────────────────────
+  const exportJSON = useCallback(() => {
+    const topo = {
+      nodes: nodesRef.current.map(n => ({
+        id: n.id, type: n.type, position: n.position, parentId: n.parentId,
+        data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color, side: n.data.side, order: n.data.order },
+      })),
+      edges: edgesRef.current.map(e => ({
+        id: e.id, source: e.source, target: e.target, label: e.label || '',
+        lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type || 'smoothstep', arrow: e.data?.arrow !== false,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(topo, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `topology-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  }, []);
+
   const save = useCallback(async () => {
     setSaving(true);
     try {
@@ -241,6 +411,7 @@ export default function App() {
   }, [nodes, edges]);
 
   const onConnect = useCallback((params) => {
+    snapshot();
     setEdges(eds => addEdge({ ...params, type: 'smoothstep', label: '', data: { lineStyle: 'solid', edgeType: 'smoothstep', arrow: true }, markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 } }, eds));
     setDirty(true);
   }, [setEdges]);
@@ -283,6 +454,7 @@ export default function App() {
 
   // 删除选中的节点和边（工具栏按钮用）
   const deleteSelected = useCallback(() => {
+    snapshot();
     setNodes(nds => nds.filter(n => !n.selected));
     setEdges(eds => eds.filter(e => !e.selected));
     setDirty(true);
@@ -328,6 +500,7 @@ export default function App() {
 
   // 属性编辑器保存
   const handleEditorSave = useCallback((data) => {
+    snapshot();
     if (editor.type === 'node') {
       const id = editor.nodeId;
       // 更新节点属性
@@ -397,6 +570,7 @@ export default function App() {
     e.preventDefault();
     const raw = e.dataTransfer.getData('application/reactflow');
     if (!raw) return;
+    snapshot();
     const tpl = JSON.parse(raw);
     const pos = rfInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const newNode = {
@@ -420,11 +594,17 @@ export default function App() {
         }}>
           <span style={{ fontWeight: 600 }}>网络拓扑</span>
           <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
-            {readOnly ? '悬停节点查看状态 · 点击「编辑」修改' : '拖入节点 · 从下方圆点拖线 · 双击改属性 · Delete 删除'}
+            {readOnly ? '悬停节点查看状态 · 点击「编辑」修改' : 'Shift+拖拽框选 · Ctrl+Z/Y 撤销重做 · Ctrl+S 保存 · 右键更多操作'}
           </span>
           <div style={{ flex: 1 }} />
           <button onClick={load} style={btnStyle}>刷新</button>
           <button onClick={() => setShowVersions(true)} style={btnStyle}>版本历史</button>
+          {!readOnly && (
+            <>
+              <button onClick={autoLayout} style={btnStyle}>自动布局</button>
+              <button onClick={exportJSON} style={btnStyle}>导出</button>
+            </>
+          )}
           <button onClick={() => setReadOnly(!readOnly)} style={{
             ...btnStyle, background: readOnly ? 'var(--accent, #6366f1)' : undefined, color: readOnly ? '#fff' : undefined,
           }}>
@@ -476,6 +656,15 @@ export default function App() {
                 multiSelectionKeyCode={readOnly ? null : 'Shift'}
                 onNodesDelete={readOnly ? undefined : onNodesDelete}
                 onEdgesDelete={readOnly ? undefined : onEdgesDelete}
+                onNodeDragStart={readOnly ? undefined : onNodeDragStart}
+                onReconnect={readOnly ? undefined : onReconnect}
+                edgesReconnectable={!readOnly}
+                selectionOnDrag={!readOnly && shiftHeld}
+                panOnDrag={!shiftHeld}
+                selectionMode={SelectionMode.Partial}
+                onNodeContextMenu={onNodeContextMenu}
+                onEdgeContextMenu={readOnly ? undefined : onEdgeContextMenu}
+                onClick={closeCtxMenu}
                 snapToGrid
                 snapGrid={[10, 10]}
                 panOnScroll={readOnly}
@@ -502,6 +691,43 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* 右键菜单 */}
+      {ctxMenu && (
+        <div
+          style={{
+            position: 'fixed', top: ctxMenu.y, left: ctxMenu.x, zIndex: 10001,
+            background: 'var(--bg-card, #fff)', borderRadius: 8,
+            border: '1px solid var(--border, #e4e4e7)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+            padding: '4px 0', minWidth: 120,
+          }}
+          onMouseLeave={closeCtxMenu}
+        >
+          {ctxMenu.type === 'node' ? (
+            <>
+              <div style={ctxItem} onClick={() => { duplicateSelected(); closeCtxMenu(); }}>复制</div>
+              <div style={{ ...ctxItem, color: 'var(--danger, #ef4444)' }}
+                onClick={() => { deleteSelected(); closeCtxMenu(); }}>删除</div>
+              <div style={ctxItem} onClick={() => {
+                const node = nodesRef.current.find(n => n.id === ctxMenu.targetId);
+                if (node) onNodeDoubleClick(null, node);
+                closeCtxMenu();
+              }}>编辑属性</div>
+            </>
+          ) : (
+            <>
+              <div style={{ ...ctxItem, color: 'var(--danger, #ef4444)' }}
+                onClick={() => { deleteSelected(); closeCtxMenu(); }}>删除</div>
+              <div style={ctxItem} onClick={() => {
+                const edge = edgesRef.current.find(e => e.id === ctxMenu.targetId);
+                if (edge) onEdgeDoubleClick(null, edge);
+                closeCtxMenu();
+              }}>编辑属性</div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* 属性编辑弹窗 */}
       {editor && (
@@ -531,4 +757,10 @@ const btnStyle = {
   border: '1px solid var(--border, #d4d4d8)',
   background: 'var(--bg-card, #fff)', color: 'var(--text, #18181b)',
   fontSize: 13, cursor: 'pointer', fontWeight: 500,
+};
+
+const ctxItem = {
+  padding: '6px 16px', fontSize: 13, cursor: 'pointer',
+  color: 'var(--text, #18181b)',
+  borderRadius: 4, margin: '0 4px',
 };
