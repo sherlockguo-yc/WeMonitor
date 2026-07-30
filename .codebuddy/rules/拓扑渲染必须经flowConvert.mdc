@@ -1,0 +1,11 @@
+# 拓扑渲染必须经 flowConvert.js 转换
+
+网络拓扑的节点/边数据（`data/topology.json` 存储格式）在送入 React Flow 渲染前，**必须**通过 `topology-editor/src/flowConvert.js` 的 `toRfNodes()` / `toRfEdges()` 转换。
+
+- 主画布（`App.jsx`）与版本历史预览（`VersionModal.jsx`）共用本模块
+- 新增任何渲染拓扑的入口（缩略图、导出、新页面等），也必须复用这两个函数，**禁止**另写一套转换逻辑或近似渲染器
+- 修改转换逻辑时只改 `flowConvert.js` 一处；**禁止**在单个调用方内联修改导致两处分叉
+
+## 决策上下文
+
+2026-07-30 前，版本历史预览使用手写 SVG 近似渲染器（斜线替代正交折线、忽略 edgeType/arrow/parentId/子节点相对坐标），导致预览线条乱飞、与主画布严重不一致。修复时抽离共享转换模块，保证「预览 = 回退后真实渲染」。此规则防止未来新增渲染入口时重蹈覆辙。
