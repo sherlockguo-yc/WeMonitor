@@ -167,6 +167,7 @@ export default function App() {
   const [dirty, setDirty] = useState(false);
   const nodesRef = useRef(nodes);
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  const systemUpdateRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -205,9 +206,11 @@ export default function App() {
 
   useEffect(() => { load(); }, [load]);
 
-  // 只读模式同步到节点（隐藏 Handle）
+  // 只读模式同步到节点（隐藏 Handle）— 标记为系统更新，不触发 dirty
   useEffect(() => {
+    systemUpdateRef.current = true;
     setNodes(nds => nds.map(n => n.data._readOnly === readOnly ? n : { ...n, data: { ...n.data, _readOnly: readOnly } }));
+    systemUpdateRef.current = false;
   }, [readOnly, setNodes]);
 
   useEffect(() => {
@@ -260,12 +263,12 @@ export default function App() {
       }
     }
     onNodesChange(changes);
-    setDirty(true);
+    if (!systemUpdateRef.current) setDirty(true);
   }, [onNodesChange]);
 
   const handleEdgesChange = useCallback((changes) => {
     onEdgesChange(changes);
-    setDirty(true);
+    if (!systemUpdateRef.current) setDirty(true);
   }, [onEdgesChange]);
 
   // 按 Delete 键删除选中的边
