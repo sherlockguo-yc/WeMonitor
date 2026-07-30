@@ -17,6 +17,7 @@ import TopologyNode from './nodes/TopologyNode';
 import PropertyModal from './PropertyModal';
 import VersionModal from './VersionModal';
 import { fetchTopology, saveTopology, fetchStatus } from './api';
+import { toRfNodes, toRfEdges } from './flowConvert';
 
 const nodeTypes = { topology: TopologyNode };
 
@@ -181,27 +182,11 @@ export default function App() {
     try {
       const [topo, st] = await Promise.all([fetchTopology(), fetchStatus()]);
       setStatusData(st);
-      // 恢复 parentId（父-子关系）
-      const nodesWithParent = topo.nodes.map(n => ({
-        ...n,
-        parentId: n.parentId || undefined,
-        data: { ...n.data, _parentId: n.parentId || null },
-      }));
+      // 恢复 parentId（父-子关系），转换逻辑与版本预览共用（flowConvert.js）
+      const nodesWithParent = toRfNodes(topo.nodes);
       const withStatus = computeStatuses(nodesWithParent, st);
       if (withStatus) setNodes(withStatus);
-      setEdges(topo.edges.map((e, i) => {
-        const { style: _, lineStyle, edgeType: et, ...rest } = e;
-        const hasArrow = e.arrow !== false; // 默认 true，兼容旧数据
-        return {
-          ...rest,
-          id: e.id || `e-${i}`,
-          type: et || 'smoothstep',
-          animated: false,
-          data: { lineStyle: lineStyle || e.style || 'solid', edgeType: et || 'smoothstep', arrow: hasArrow },
-          style: (lineStyle || e.style) === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
-          markerEnd: hasArrow ? { type: MarkerType.ArrowClosed, width: 16, height: 16 } : undefined,
-        };
-      }));
+      setEdges(toRfEdges(topo.edges));
       setMsg('');
       setDirty(false);
     } catch (err) {
