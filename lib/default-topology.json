@@ -25,7 +25,6 @@
     { "id": "e-lan3","source":"modem",     "target":"router",     "label":"","lineStyle":"solid" },
     { "id": "e-lan4","source":"router",    "target":"local",      "label":"","lineStyle":"solid" },
     { "id": "e-lan4r","source":"local",    "target":"router",     "label":"","lineStyle":"solid" },
-    { "id": "e-lan5","source":"router",    "target":"ufw",        "label":"","lineStyle":"solid" },
     { "id": "e-rn",  "source":"router",    "target":"n150",       "label":"","lineStyle":"solid" },
     { "id": "e-out1","source":"n150",      "target":"router",     "label":"出站","lineStyle":"solid" },
     { "id": "e-out2","source":"router",    "target":"modem",      "label":"","lineStyle":"solid" },

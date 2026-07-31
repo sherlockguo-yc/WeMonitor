@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ReactFlow, Background } from '@xyflow/react';
 import TopologyNode from './nodes/TopologyNode';
+import OffsetEdge from './edges/OffsetEdge';
 import { toRfNodes, toRfEdges } from './flowConvert';
 import { fetchVersions, getVersion, restoreVersion } from './api';
 
 const nodeTypes = { topology: TopologyNode };
+const edgeTypes = { offset: OffsetEdge };
 
 const overlayStyle = {
   position: 'fixed', inset: 0,
@@ -43,6 +45,7 @@ function TopologyPreview({ nodes, edges }) {
         nodes={rfNodes}
         edges={rfEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.1}

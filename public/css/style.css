@@ -30,6 +30,11 @@
   --success: #10b981;
   --success-bg: #ecfdf5;
 
+  /* 拓扑流量粒子（按来源区分） */
+  --flow-public: #6366f1;
+  --flow-lan: #06b6d4;
+  --flow-egress: #f59e0b;
+
   /* 间距与圆角 */
   --radius: 8px;
   --radius-sm: 4px;

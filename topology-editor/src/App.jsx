@@ -14,6 +14,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import TopologyNode from './nodes/TopologyNode';
+import OffsetEdge from './edges/OffsetEdge';
 import PropertyModal from './PropertyModal';
 import VersionModal from './VersionModal';
 import { fetchTopology, saveTopology, fetchStatus } from './api';
@@ -21,6 +22,7 @@ import { toRfNodes, toRfEdges } from './flowConvert';
 import ParticleOverlay from './ParticleOverlay';
 
 const nodeTypes = { topology: TopologyNode };
+const edgeTypes = { offset: OffsetEdge };
 
 // 节点类型模板
 const NODE_TEMPLATES = [
@@ -401,7 +403,7 @@ export default function App() {
           parentId: n.parentId || undefined,
           data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color, side: n.data.side, order: n.data.order },
         })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.type || 'smoothstep'), arrow: e.data?.arrow !== false })),
+        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.data?.edgeType || e.type || 'smoothstep'), arrow: e.data?.arrow !== false })),
       };
       await saveTopology(topo);
       setMsg('已保存 → 刷新概览页查看');
@@ -649,6 +651,7 @@ export default function App() {
                 onDragOver={readOnly ? undefined : onDragOver}
                 onDrop={readOnly ? undefined : onDrop}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 fitView
                 nodesDraggable={!readOnly}
                 nodesConnectable={!readOnly}

@@ -3,9 +3,9 @@
 // 剧本边 id 与 topology.json 对应，与只读视图（network-topology.js）保持一致
 
 const FLOW_DEFS = [
-  { edges: ['e-pub1', 'e-pub2'], fanout: true, interval: 2500 },                    // 公网入站
-  { edges: ['e-lan4r', 'e-rn'], fanout: true, interval: 4500 },                     // 内网设备访问
-  { edges: ['e-out1', 'e-out2', 'e-out3', 'e-out4'], fanout: false, interval: 3500 }, // N150 出站
+  { edges: ['e-pub1', 'e-pub2'], fanout: true, interval: 2500, color: 'var(--flow-public)' },                    // 公网入站
+  { edges: ['e-lan4r', 'e-rn'], fanout: true, interval: 4500, color: 'var(--flow-lan)' },                        // 内网设备访问
+  { edges: ['e-out1', 'e-out2', 'e-out3', 'e-out4'], fanout: false, interval: 3500, color: 'var(--flow-egress)' }, // N150 出站
 ];
 const FANOUT_EDGES = ['e-svc1', 'e-svc2', 'e-svc3', 'e-svc4', 'e-svc5', 'e-svc6', 'e-svc7'];
 const BALL_SPEED = 0.12; // px/ms ≈ 120px/s，适中档位
@@ -68,10 +68,10 @@ function spawnBall(flow) {
   if (st.getEdgeSourceStatus(flow.edges[0]) === 'error') return;
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
   el.setAttribute('r', '4');
-  el.setAttribute('fill', 'var(--accent)');
+  el.setAttribute('fill', flow.color || 'var(--accent)');
   el.setAttribute('opacity', '0.95');
   st.layer.appendChild(el);
-  st.balls.push({ edges: flow.edges, fanout: flow.fanout, edgeIdx: 0, dist: 0, el });
+  st.balls.push({ edges: flow.edges, fanout: flow.fanout, edgeIdx: 0, dist: 0, el, color: flow.color });
 }
 
 function tick(ts) {
