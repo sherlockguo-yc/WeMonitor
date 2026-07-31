@@ -8,7 +8,7 @@ let topoConfig = null;
 async function loadNetworkTopology() {
   stopParticles();
   const container = document.getElementById('nt-diagram');
-  container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
+  if (container) container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
 
   try {
     const [confRes, ptRes, fwRes, tunnelRes, healthRes] = await Promise.allSettled([
@@ -20,7 +20,7 @@ async function loadNetworkTopology() {
     ]);
 
     if (confRes.status !== 'fulfilled' || !confRes.value) {
-      container.innerHTML = '<div class="nt-loading">加载拓扑配置失败</div>';
+      if (container) container.innerHTML = '<div class="nt-loading">加载拓扑配置失败</div>';
       return;
     }
 
@@ -31,9 +31,11 @@ async function loadNetworkTopology() {
     topoStatus.health = healthRes.status === 'fulfilled' ? healthRes.value : [];
 
     updateStatusBadge();
+    // 无容器时只更新状态徽章（/network 页由编辑器渲染，只读视图不挂载）
+    if (!container) return;
     renderTopology(container);
   } catch (err) {
-    container.innerHTML = '<div class="nt-loading">加载失败: ' + err.message + '</div>';
+    if (container) container.innerHTML = '<div class="nt-loading">加载失败: ' + err.message + '</div>';
   }
 }
 

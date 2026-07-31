@@ -18,6 +18,7 @@ import PropertyModal from './PropertyModal';
 import VersionModal from './VersionModal';
 import { fetchTopology, saveTopology, fetchStatus } from './api';
 import { toRfNodes, toRfEdges } from './flowConvert';
+import ParticleOverlay from './ParticleOverlay';
 
 const nodeTypes = { topology: TopologyNode };
 
@@ -186,9 +187,16 @@ export default function App() {
       const nodesWithParent = toRfNodes(topo.nodes);
       const withStatus = computeStatuses(nodesWithParent, st);
       if (withStatus) setNodes(withStatus);
-      setEdges(toRfEdges(topo.edges));
+      const rfEdges = toRfEdges(topo.edges);
+      setEdges(rfEdges);
       setMsg('');
       setDirty(false);
+      // 更新页面卡片上的状态徽章（原由已下线的只读视图脚本负责）
+      const badge = document.getElementById('nt-status-badge');
+      if (badge) {
+        badge.className = 'status-badge status-healthy';
+        badge.textContent = `已加载 · ${topo.nodes.length} 节点 / ${rfEdges.length} 连线`;
+      }
     } catch (err) {
       setMsg('加载失败: ' + err.message);
     } finally {
@@ -204,6 +212,14 @@ export default function App() {
     setNodes(nds => nds.map(n => n.data._readOnly === readOnly ? n : { ...n, data: { ...n.data, _readOnly: readOnly } }));
     systemUpdateRef.current = false;
   }, [readOnly, setNodes]);
+
+  // 边源节点状态查询（供粒子系统做异常链路断流）
+  const getEdgeSourceStatus = useCallback((edgeId) => {
+    const e = edgesRef.current.find(x => x.id === edgeId);
+    if (!e) return 'static';
+    const n = nodesRef.current.find(x => x.id === e.source);
+    return n?.data?.status || 'static';
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(async () => {
@@ -657,6 +673,9 @@ export default function App() {
                 {!readOnly && <Controls />}
                 <Background gap={20} size={1} color="var(--border-light, #e4e4e7)" />
                 {!readOnly && <MiniMap nodeStrokeWidth={2} pannable zoomable />}
+                {readOnly && !loading && nodes.length > 0 && (
+                  <ParticleOverlay getEdgeSourceStatus={getEdgeSourceStatus} />
+                )}
               </ReactFlow>
             </ReactFlowProvider>
           </div>
