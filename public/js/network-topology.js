@@ -6,6 +6,7 @@ let topoStatus = { physical: null, firewall: null, tunnel: null, health: [] };
 let topoConfig = null;
 
 async function loadNetworkTopology() {
+  stopParticles();
   const container = document.getElementById('nt-diagram');
   container.innerHTML = '<div class="nt-loading">加载网络拓扑...</div>';
 
@@ -73,13 +74,22 @@ function getNodeStatus(node) {
 
 // ── 连线端点计算 ──
 
-function computeEdgeEndpoints(from, to) {
+// 节点绝对坐标（子节点 position 是相对父节点的）
+function absPos(node, nodes) {
+  if (!node.parentId) return node.position;
+  const parent = nodes.find(n => n.id === node.parentId);
+  if (!parent) return node.position;
+  const pp = absPos(parent, nodes);
+  return { x: pp.x + node.position.x, y: pp.y + node.position.y };
+}
+
+function computeEdgeEndpoints(from, to, edge, edges) {
   const fw = from.data?.width || 140;
   const fh = 44;
   const tw = to.data?.width || 140;
   const th = 44;
-  const fx = from.position.x, fy = from.position.y;
-  const tx = to.position.x, ty = to.position.y;
+  const fx = from._abs.x, fy = from._abs.y;
+  const tx = to._abs.x, ty = to._abs.y;
   const fcx = fx + fw / 2, fcy = fy + fh / 2;
   const tcx = tx + tw / 2, tcy = ty + th / 2;
   const dx = tcx - fcx, dy = tcy - fcy;
@@ -94,6 +104,15 @@ function computeEdgeEndpoints(from, to) {
     else { sy = fy; ey = ty + th; }
     sx = fcx; ex = tcx;
   }
+
+  // 双向边：同对节点存在反向边时，沿垂直方向偏移形成平行双车道
+  if (edge && edges && edges.some(e => e !== edge && e.source === edge.target && e.target === edge.source)) {
+    const pdx = ex - sx, pdy = ey - sy;
+    const plen = Math.hypot(pdx, pdy) || 1;
+    const off = 10;
+    sx += (-pdy / plen) * off; sy += (pdx / plen) * off;
+    ex += (-pdy / plen) * off; ey += (pdx / plen) * off;
+  }
   return { sx, sy, ex, ey };
 }
 
@@ -103,14 +122,17 @@ function renderTopology(container) {
   if (!topoConfig) return;
   const { nodes, edges } = topoConfig;
 
+  // 预计算所有节点绝对坐标（子节点 = 父节点 + 相对坐标）
+  for (const n of nodes) n._abs = absPos(n, nodes);
+
   // 计算画布范围（空节点时显示默认画布）
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const n of nodes) {
     const w = n.data?.width || 140;
-    minX = Math.min(minX, n.position.x);
-    minY = Math.min(minY, n.position.y);
-    maxX = Math.max(maxX, n.position.x + w);
-    maxY = Math.max(maxY, n.position.y + 44);
+    minX = Math.min(minX, n._abs.x);
+    minY = Math.min(minY, n._abs.y);
+    maxX = Math.max(maxX, n._abs.x + w);
+    maxY = Math.max(maxY, n._abs.y + 44);
   }
   const pad = 40;
   const W = nodes.length > 0 ? maxX - minX + pad * 2 : 400;
@@ -139,7 +161,7 @@ function renderTopology(container) {
     const to = nodes.find(n => n.id === edge.target);
     if (!from || !to) continue;
 
-    const ep = computeEdgeEndpoints(from, to);
+    const ep = computeEdgeEndpoints(from, to, edge, edges);
     let color = 'var(--text-dim)', marker = 'url(#arr-dim)', dash = '';
 
     // 边颜色
@@ -170,7 +192,7 @@ function renderTopology(container) {
         // 垂直：M(sx,sy) L(sx,sy+off) L(ex,ey-off) L(ex,ey)
         d = `M${ep.sx},${ep.sy} L${ep.sx},${ep.sy + offset} L${ep.ex},${ep.ey - offset} L${ep.ex},${ep.ey}`;
       }
-      svg += `<path d="${d}" ${stroke}/>`;
+      svg += `<path d="${d}" ${stroke} data-edge="${edge.id}"/>`;
     } else if (eType === 'bezier') {
       // 贝塞尔曲线（匹配 React Flow v12 default bezier）
       // 选取 |dx|/|dy| 中较大值的一半作为控制点偏移
@@ -184,13 +206,13 @@ function renderTopology(container) {
         // 主要垂直：控制点垂直偏移
         d = `M${ep.sx},${ep.sy} C${ep.sx},${ep.sy + c} ${ep.ex},${ep.ey - c} ${ep.ex},${ep.ey}`;
       }
-      svg += `<path d="${d}" ${stroke}/>`;
+      svg += `<path d="${d}" ${stroke} data-edge="${edge.id}"/>`;
     } else {
-      // 直线
+      // 直线（统一用 path 输出，便于粒子动画 getPointAtLength）
       const angle = Math.atan2(ep.ey - ep.sy, ep.ex - ep.sx);
       const ex2 = ep.ex - 4 * Math.cos(angle);
       const ey2 = ep.ey - 4 * Math.sin(angle);
-      svg += `<line x1="${ep.sx}" y1="${ep.sy}" x2="${ex2}" y2="${ey2}" ${stroke}/>`;
+      svg += `<path d="M${ep.sx},${ep.sy} L${ex2},${ey2}" ${stroke} data-edge="${edge.id}"/>`;
     }
 
     // 标签
@@ -212,7 +234,7 @@ function renderTopology(container) {
   for (const node of nodes) {
     const d = node.data || {};
     const w = d.width || 140, h = 44;
-    const x = node.position.x, y = node.position.y;
+    const x = node._abs.x, y = node._abs.y;
     const status = getNodeStatus(node);
 
     // 手动颜色优先于状态色
@@ -241,12 +263,21 @@ function renderTopology(container) {
     }
   }
 
+  // 粒子层（最上层）
+  svg += '<g id="nt-particles"></g>';
   svg += '</svg>';
 
   // Tooltip
   svg += '<div id="nt-tooltip" class="nt-tooltip" style="display:none;"></div>';
 
   container.innerHTML = svg;
+
+  // 收集边几何，启动粒子动画
+  const edgeGeoms = {};
+  container.querySelectorAll('path[data-edge]').forEach(p => {
+    edgeGeoms[p.getAttribute('data-edge')] = { pathEl: p, length: p.getTotalLength() };
+  });
+  initParticles(edgeGeoms);
 
   // Tooltip 事件
   container.querySelectorAll('.nt-node').forEach(rect => {
@@ -274,6 +305,113 @@ function renderTopology(container) {
       tooltip.style.display = 'none';
     });
   });
+}
+
+// ── 流量粒子动画系统 ──
+// 三条流：公网入站（到 n150 后扩散到服务）、内网访问、N150 出站
+// 剧本边 id 与 topology.json 中的边 id 对应，default 与运行时拓扑通用
+
+const FLOW_DEFS = [
+  { edges: ['e-pub1', 'e-pub2'], fanout: true, interval: 2500 },               // 公网入站
+  { edges: ['e-lan4r', 'e-rn'], fanout: true, interval: 4500 },                // 内网设备访问
+  { edges: ['e-out1', 'e-out2', 'e-out3', 'e-out4'], fanout: false, interval: 3500 }, // N150 出站
+];
+const FANOUT_EDGES = ['e-svc1', 'e-svc2', 'e-svc3', 'e-svc4', 'e-svc5', 'e-svc6', 'e-svc7'];
+const BALL_SPEED = 0.12; // px/ms ≈ 120px/s，适中档位
+
+let particleState = null;
+
+function initParticles(edgeGeoms) {
+  stopParticles();
+  const layer = document.getElementById('nt-particles');
+  if (!layer) return;
+  particleState = { layer, geoms: edgeGeoms, balls: [], timers: [], raf: 0, lastTs: 0 };
+  for (const flow of FLOW_DEFS) {
+    if (!flow.edges.every(id => edgeGeoms[id])) continue; // 边不全则跳过该流
+    spawnBall(flow); // 立即先发一球，避免页面打开空等
+    particleState.timers.push(setInterval(() => spawnBall(flow), flow.interval));
+  }
+  particleState.raf = requestAnimationFrame(tickParticles);
+  document.addEventListener('visibilitychange', onParticleVisChange);
+}
+
+function spawnBall(flow) {
+  const st = particleState;
+  if (!st || document.hidden) return;
+  // 状态联动：首边源节点异常则不发球（流量中断语义）
+  const firstEdge = (topoConfig.edges || []).find(e => e.id === flow.edges[0]);
+  const fromNode = firstEdge && (topoConfig.nodes || []).find(n => n.id === firstEdge.source);
+  if (fromNode && getNodeStatus(fromNode) === 'error') return;
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  el.setAttribute('r', '4');
+  el.setAttribute('fill', 'var(--accent)');
+  el.setAttribute('opacity', '0.95');
+  st.layer.appendChild(el);
+  st.balls.push({ edges: flow.edges, fanout: flow.fanout, edgeIdx: 0, dist: 0, el });
+}
+
+function tickParticles(ts) {
+  const st = particleState;
+  if (!st) return;
+  const dt = st.lastTs ? Math.min(ts - st.lastTs, 100) : 16;
+  st.lastTs = ts;
+  for (let i = st.balls.length - 1; i >= 0; i--) {
+    const b = st.balls[i];
+    let geom = st.geoms[b.edges[b.edgeIdx]];
+    if (!geom) { removeBall(i); continue; }
+    b.dist += BALL_SPEED * dt;
+    while (geom && b.dist >= geom.length) {
+      b.dist -= geom.length;
+      b.edgeIdx++;
+      if (b.edgeIdx >= b.edges.length) {
+        if (b.fanout) {
+          // 扩散：随机选一条服务边继续旅程
+          const svcId = FANOUT_EDGES[Math.floor(Math.random() * FANOUT_EDGES.length)];
+          if (st.geoms[svcId]) {
+            b.edges = [svcId]; b.fanout = false; b.edgeIdx = 0;
+            geom = st.geoms[svcId];
+            continue;
+          }
+        }
+        removeBall(i);
+        geom = null;
+      } else {
+        geom = st.geoms[b.edges[b.edgeIdx]];
+        if (!geom) { removeBall(i); }
+      }
+    }
+    if (!geom) continue;
+    const pt = geom.pathEl.getPointAtLength(b.dist);
+    b.el.setAttribute('cx', pt.x);
+    b.el.setAttribute('cy', pt.y);
+  }
+  st.raf = requestAnimationFrame(tickParticles);
+}
+
+function removeBall(i) {
+  const st = particleState;
+  if (!st || !st.balls[i]) return;
+  st.balls[i].el.remove();
+  st.balls.splice(i, 1);
+}
+
+function onParticleVisChange() {
+  const st = particleState;
+  if (!st) return;
+  if (document.hidden) {
+    cancelAnimationFrame(st.raf);
+    st.lastTs = 0;
+  } else {
+    st.raf = requestAnimationFrame(tickParticles);
+  }
+}
+
+function stopParticles() {
+  if (!particleState) return;
+  particleState.timers.forEach(clearInterval);
+  cancelAnimationFrame(particleState.raf);
+  document.removeEventListener('visibilitychange', onParticleVisChange);
+  particleState = null;
 }
 
 function refreshPage() { loadNetworkTopology(); }
