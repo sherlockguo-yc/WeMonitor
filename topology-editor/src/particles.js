@@ -3,7 +3,7 @@
 // 剧本边 id 与 topology.json 对应，与只读视图（network-topology.js）保持一致
 
 const FLOW_DEFS = [
-  { edges: ['e-pub1', 'e-pub2'], fanout: true, interval: 2500, color: 'var(--flow-public)' },                    // 公网入站
+  { edges: ['e-pub1', 'e-pub2', 'e-pub3'], fanout: true, interval: 2500, color: 'var(--flow-public)' },          // 公网入站
   { edges: ['e-lan4r', 'e-rn'], fanout: true, interval: 4500, color: 'var(--flow-lan)' },                        // 内网设备访问
   { edges: ['e-out1', 'e-out2', 'e-out3', 'e-out4'], fanout: false, interval: 3500, color: 'var(--flow-egress)' }, // N150 出站
 ];

@@ -314,7 +314,7 @@ function renderTopology(container) {
 // 剧本边 id 与 topology.json 中的边 id 对应，default 与运行时拓扑通用
 
 const FLOW_DEFS = [
-  { edges: ['e-pub1', 'e-pub2'], fanout: true, interval: 2500 },               // 公网入站
+  { edges: ['e-pub1', 'e-pub2', 'e-pub3'], fanout: true, interval: 2500 },     // 公网入站
   { edges: ['e-lan4r', 'e-rn'], fanout: true, interval: 4500 },                // 内网设备访问
   { edges: ['e-out1', 'e-out2', 'e-out3', 'e-out4'], fanout: false, interval: 3500 }, // N150 出站
 ];
