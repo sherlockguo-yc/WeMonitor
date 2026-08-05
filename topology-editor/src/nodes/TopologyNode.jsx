@@ -43,10 +43,18 @@ function TopologyNode({ data, selected, parentId }) {
         boxShadow: selected ? '0 0 0 2px rgba(99,102,241,0.3)' : undefined,
         opacity: isChild ? 0.9 : 1,
       }}
-      title={readOnly ? undefined : '双击修改标签 / 从下方圆点拖线连接'}
+      title={readOnly ? undefined : '双击修改标签 / 从边缘圆点拖线连接'}
     >
-      {!readOnly && <Handle type="target" position={Position.Top} style={handleStyle} />}
-      {!readOnly && <Handle type="source" position={Position.Bottom} style={handleStyle} />}
+      {/* 四方向连接点：每方向叠加 target+source（source 渲染在后位于上层，保证可作拖线起点）。
+          渲染顺序保证无 handleId 的旧边默认连到 target-top / source-bottom，外观不变 */}
+      {!readOnly && <Handle type="target" id="t-top" position={Position.Top} style={handleStyle} />}
+      {!readOnly && <Handle type="target" id="t-bottom" position={Position.Bottom} style={handleStyle} />}
+      {!readOnly && <Handle type="target" id="t-left" position={Position.Left} style={handleStyle} />}
+      {!readOnly && <Handle type="target" id="t-right" position={Position.Right} style={handleStyle} />}
+      {!readOnly && <Handle type="source" id="s-bottom" position={Position.Bottom} style={handleStyle} />}
+      {!readOnly && <Handle type="source" id="s-top" position={Position.Top} style={handleStyle} />}
+      {!readOnly && <Handle type="source" id="s-left" position={Position.Left} style={handleStyle} />}
+      {!readOnly && <Handle type="source" id="s-right" position={Position.Right} style={handleStyle} />}
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {lines.map((l, i) => (

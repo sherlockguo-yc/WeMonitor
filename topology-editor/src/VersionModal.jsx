@@ -32,7 +32,8 @@ const btnStyle = (primary) => ({
 // ── 版本预览：只读 React Flow，与主画布同一渲染器，所见即所得 ──
 
 function TopologyPreview({ nodes, edges }) {
-  const rfNodes = useMemo(() => toRfNodes(nodes), [nodes]);
+  // 预览为只读：与主画布只读模式一致，隐藏连接点 Handle
+  const rfNodes = useMemo(() => toRfNodes(nodes).map(n => ({ ...n, data: { ...n.data, _readOnly: true } })), [nodes]);
   const rfEdges = useMemo(() => toRfEdges(edges), [edges]);
 
   if (rfNodes.length === 0) {

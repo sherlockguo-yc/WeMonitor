@@ -320,7 +320,7 @@ export default function App() {
     snapshot();
     setEdges(eds => eds.map(e => {
       if (e.id !== oldEdge.id) return e;
-      return { ...e, source: newConnection.source, target: newConnection.target };
+      return { ...e, source: newConnection.source, target: newConnection.target, sourceHandle: newConnection.sourceHandle || undefined, targetHandle: newConnection.targetHandle || undefined };
     }));
     setDirty(true);
   }, [setEdges]);
@@ -383,7 +383,9 @@ export default function App() {
         data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color, side: n.data.side, order: n.data.order },
       })),
       edges: edgesRef.current.map(e => ({
-        id: e.id, source: e.source, target: e.target, label: e.label || '',
+        id: e.id, source: e.source, target: e.target,
+        sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined,
+        label: e.label || '',
         lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type || 'smoothstep', arrow: e.data?.arrow !== false,
       })),
     };
@@ -403,7 +405,11 @@ export default function App() {
           parentId: n.parentId || undefined,
           data: { label: n.data.label, port: n.data.port, dynamic: n.data.dynamic, healthIdx: n.data.healthIdx, width: n.data.width, color: n.data.color, side: n.data.side, order: n.data.order },
         })),
-        edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.data?.edgeType || e.type || 'smoothstep'), arrow: e.data?.arrow !== false })),
+        edges: edges.map(e => ({
+          id: e.id, source: e.source, target: e.target,
+          sourceHandle: e.sourceHandle || undefined, targetHandle: e.targetHandle || undefined,
+          label: e.label || '', lineStyle: e.data?.lineStyle || 'solid', edgeType: e.type === 'default' ? 'straight' : (e.data?.edgeType || e.type || 'smoothstep'), arrow: e.data?.arrow !== false,
+        })),
       };
       await saveTopology(topo);
       setMsg('已保存 → 刷新概览页查看');
