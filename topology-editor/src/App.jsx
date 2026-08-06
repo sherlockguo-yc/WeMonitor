@@ -191,7 +191,7 @@ export default function App() {
       const nodesWithParent = toRfNodes(topo.nodes);
       const withStatus = computeStatuses(nodesWithParent, st);
       if (withStatus) setNodes(withStatus);
-      const rfEdges = toRfEdges(topo.edges);
+      const rfEdges = toRfEdges(topo.edges, topo.nodes);
       setEdges(rfEdges);
       // 同步只读标记：toRfNodes 不带 _readOnly，load 重置节点数据后 useEffect 不会重跑，
       // 这里显式同步一次，确保只读模式下 handle 不渲染

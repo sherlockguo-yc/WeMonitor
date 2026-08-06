@@ -34,7 +34,7 @@ const btnStyle = (primary) => ({
 function TopologyPreview({ nodes, edges }) {
   // 预览为只读：与主画布只读模式一致，隐藏连接点 Handle
   const rfNodes = useMemo(() => toRfNodes(nodes).map(n => ({ ...n, data: { ...n.data, _readOnly: true } })), [nodes]);
-  const rfEdges = useMemo(() => toRfEdges(edges), [edges]);
+  const rfEdges = useMemo(() => toRfEdges(edges, nodes), [edges, nodes]);
 
   if (rfNodes.length === 0) {
     return <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 12, padding: 20 }}>无节点数据</div>;
