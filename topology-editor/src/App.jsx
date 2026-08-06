@@ -166,6 +166,8 @@ export default function App() {
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [readOnly, setReadOnly] = useState(true);
+  const readOnlyRef = useRef(readOnly);
+  useEffect(() => { readOnlyRef.current = readOnly; }, [readOnly]);
   const [tooltip, setTooltip] = useState(null);
   const [editor, setEditor] = useState(null);
   const [showVersions, setShowVersions] = useState(false);
@@ -191,6 +193,9 @@ export default function App() {
       if (withStatus) setNodes(withStatus);
       const rfEdges = toRfEdges(topo.edges);
       setEdges(rfEdges);
+      // 同步只读标记：toRfNodes 不带 _readOnly，load 重置节点数据后 useEffect 不会重跑，
+      // 这里显式同步一次，确保只读模式下 handle 不渲染
+      setNodes(nds => nds.map(n => n.data._readOnly === readOnlyRef.current ? n : { ...n, data: { ...n.data, _readOnly: readOnlyRef.current } }));
       setMsg('');
       setDirty(false);
       // 更新页面卡片上的状态徽章（原由已下线的只读视图脚本负责）
