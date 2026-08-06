@@ -11,6 +11,7 @@ const SERVICES = [
   { id: 'wemonitor',  name: 'WeMonitor',  repo: 'sherlockguo-yc/WeMonitor',  dir: local.WEMONITOR_DIR,  port: 18990 },
   { id: 'wemusic',    name: 'WeMusic',    repo: 'sherlockguo-yc/WeMusic',    dir: local.WEMUSIC_DIR,    port: 5174 },
   { id: 'wedownload', name: 'WeDownload', repo: 'sherlockguo-yc/WeDownload', dir: local.WEDOWNLOAD_DIR, port: 8080 },
+  { id: 'quizapp',    name: 'QuizApp',    repo: 'Jason-DancingBoy/quiz-app', dir: local.QUIZAPP_DIR,    port: 9200 },
 ];
 
 // 鉴权：需登录 + 已激活

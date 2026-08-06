@@ -13,16 +13,19 @@ const CICD_TOPOLOGY = {
     { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 80,  y: 20,  w: 160, h: 50, service: 'wemusic' },
     { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 320, y: 20,  w: 160, h: 50, service: 'wemonitor' },
     { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 560, y: 20,  w: 160, h: 50, service: 'wedownload' },
+    { id: 'repo-quizapp',    label: 'QuizApp\n仓库',    x: 800, y: 20,  w: 160, h: 50, service: 'quizapp', layer: 1 },
 
     // Layer 2: GitHub Actions CI
     { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 80,  y: 122, w: 160, h: 50, service: 'wemusic' },
     { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 320, y: 122, w: 160, h: 50, service: 'wemonitor' },
     { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 560, y: 122, w: 160, h: 50, service: 'wedownload' },
+    { id: 'ci-quizapp',    label: 'GitHub\nActions',  x: 800, y: 122, w: 160, h: 50, service: 'quizapp', layer: 2 },
 
     // Layer 3: GitHub Releases
     { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 80,  y: 224, w: 160, h: 50, service: 'wemusic' },
     { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 224, w: 160, h: 50, service: 'wemonitor' },
     { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 224, w: 160, h: 50, service: 'wedownload' },
+    { id: 'release-quizapp',    label: 'GitHub\nRelease',  x: 800, y: 224, w: 160, h: 50, service: 'quizapp', layer: 3 },
 
     // Layer 4: 部署（3 个节点均匀分布）
     { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 80,  y: 340, w: 160, h: 54 },
@@ -33,6 +36,7 @@ const CICD_TOPOLOGY = {
     { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
     { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
     { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
+    { id: 'svc-quizapp',    label: 'QuizApp',     x: 800, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 9200,  service: 'quizapp', layer: 5 },
   ],
 
   // routing: 'direct' = 直线（1:1 垂直管道）, 'ortho' = 正交折线（fan-in/fan-out）
@@ -41,14 +45,17 @@ const CICD_TOPOLOGY = {
     { from: 'repo-wemusic',    to: 'ci-wemusic',          style: 'solid', routing: 'direct' },
     { from: 'repo-wemonitor',  to: 'ci-wemonitor',        style: 'solid', routing: 'direct' },
     { from: 'repo-wedownload', to: 'ci-wedownload',       style: 'solid', routing: 'direct' },
+    { from: 'repo-quizapp',    to: 'ci-quizapp',          style: 'solid', routing: 'direct' },
     { from: 'ci-wemusic',     to: 'release-wemusic',      style: 'solid', routing: 'direct' },
     { from: 'ci-wemonitor',   to: 'release-wemonitor',    style: 'solid', routing: 'direct' },
     { from: 'ci-wedownload',  to: 'release-wedownload',   style: 'solid', routing: 'direct' },
+    { from: 'ci-quizapp',     to: 'release-quizapp',      style: 'solid', routing: 'direct' },
 
     // ── Fan-in: Release → Webhook（正交折线） ──
     { from: 'release-wemusic',    to: 'webhook',           style: 'dashed', routing: 'ortho', label: '通知' },
     { from: 'release-wemonitor',  to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wedownload', to: 'webhook',           style: 'dashed', routing: 'ortho' },
+    { from: 'release-quizapp',    to: 'webhook',           style: 'dashed', routing: 'ortho' },
 
     // ── Cloudflare Tunnel → Webhook（水平短线） ──
     { from: 'cf-tunnel', to: 'webhook',                    style: 'solid', routing: 'direct', label: 'TLS' },
@@ -60,6 +67,7 @@ const CICD_TOPOLOGY = {
     { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'ortho' },
     { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'ortho' },
     { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'ortho' },
+    { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'ortho' },
   ],
 };
 
@@ -283,7 +291,8 @@ function renderCicdTopology(container) {
                    status === 'warn' ? 'nt-glow-warn' :
                    status === 'ok' ? 'nt-glow-ok' : 'nt-glow-default';
 
-    const layerIdx = Math.floor(ni / 3);
+    // 优先取节点显式声明的 layer（新增第 4 列后不能按 ni/3 推算层级）
+    const layerIdx = node.layer != null ? node.layer - 1 : Math.floor(ni / 3);
     const delay = (layerIdx * 60 + (ni % 3) * 30);
 
     svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}"
@@ -452,12 +461,18 @@ function computeOrthoPath(from, to) {
     const allFromNodes = allFromIds.map(id => CICD_TOPOLOGY.nodes.find(n => n.id === id)).sort((a, b) => a.x - b.x);
     const myIndex = allFromNodes.findIndex(n => n.id === from.id); // 0=左, 1=中, 2=右
 
-    // 中间层 Y 坐标：根据索引错开，越靠右的线越高（避免交叉）
+    // 中间层 Y 坐标：按来源数量对称错开，避免交叉
+    // count=3 时 (count-1)/2=1，公式退化为原式，旧布局保持不变
+    // clamp 到 [来源节点底部 + R, 目标节点顶部 - R]，防止 4 条线时最外侧线拐进节点内部
+    const count = allFromNodes.length;
     const baseMidY = from.y + from.h + (to.y - (from.y + from.h)) / 2;
-    const midY = baseMidY - (myIndex - 1) * GAP;
+    const midY = Math.min(
+      to.y - R - 2,
+      Math.max(from.y + from.h + R + 2, baseMidY - (myIndex - (count - 1) / 2) * GAP)
+    );
 
     // 水平段 X：目标节点顶部的入口偏移（按来源索引分散）
-    const entryOffsets = [-40, 0, 40]; // 左/中/右偏移
+    const entryOffsets = count === 4 ? [-60, -20, 20, 60] : [-40, 0, 40];
     const targetX = ex + (entryOffsets[myIndex] || 0);
 
     // 构建正交路径：起点 → 向下到 midY → 水平到 targetX → 向下进入目标
