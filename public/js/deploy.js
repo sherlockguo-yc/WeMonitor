@@ -10,6 +10,12 @@ const STATUS_LABELS = {
   'unknown':          { text: '状态未知',   cls: '',                icon: 'help-circle' },
 };
 
+// 各服务卡片头部图标；未配置的服务回退到 music
+const SERVICE_ICONS = {
+  wemonitor: 'activity',
+  quizapp: 'graduation-cap',
+};
+
 const CI_LABELS = {
   'completed': { el: 'success', text: '构建成功' },
   'failure':   { el: 'failure', text: '构建失败' },
@@ -223,7 +229,7 @@ function renderCard(svc) {
   return `<div class="card deploy-card">
     <div class="card-header deploy-card-header">
       <div class="deploy-service-name">
-        <i data-lucide="${svc.id === 'wemonitor' ? 'activity' : 'music'}" class="icon-md"></i>
+        <i data-lucide="${SERVICE_ICONS[svc.id] || 'music'}" class="icon-md"></i>
         <h3>${escHtml(svc.name)}</h3>
       </div>
       <span class="status-badge ${status.cls}">
