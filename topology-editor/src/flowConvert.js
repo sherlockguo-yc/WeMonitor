@@ -30,28 +30,35 @@ function getAbsBox(node, nodeMap) {
   return { x: pos.x, y: pos.y, w, h };
 }
 
-// 根据源/目标中心点相对位置，选出最佳 sourceHandle / targetHandle。
-//
-// 规则：默认 "规整阶梯" 风格 —— 源从底边出、目标从顶边入，
-// 让 smoothstep 边在源/目标水平错位时呈现 "先下来再过去" 的 L 形，
-// 整体视觉一致、整齐。仅当源/目标中心在同一水平线（|dy| 极小）时，
-// 才退化为左右连接（避免垂直距离为 0 时边重叠）。
-//
-// 同时显式指定 handle id，强制 React Flow 12 用 find(id) 匹配，
-// 避免回退到 "bounds[0]"（注册顺序不可靠）导致的"虚接" bug。
+// 正向边使用上下中点（或同一行时左右中点），形成规整的阶梯线。
+// 显式指定 handle id，避免 React Flow 12 回退到注册顺序中的 bounds[0]。
 function pickHandles(srcBox, tgtBox) {
   const dx = (tgtBox.x + tgtBox.w / 2) - (srcBox.x + srcBox.w / 2);
   const dy = (tgtBox.y + tgtBox.h / 2) - (srcBox.y + srcBox.h / 2);
-
   const sameRow = Math.abs(dy) < Math.min(srcBox.h, tgtBox.h) * 0.5;
   if (sameRow) {
     return dx >= 0
       ? { sourceHandle: 's-right', targetHandle: 't-left' }
-      : { sourceHandle: 's-left',  targetHandle: 't-right' };
+      : { sourceHandle: 's-left', targetHandle: 't-right' };
   }
   return dy >= 0
     ? { sourceHandle: 's-bottom', targetHandle: 't-top' }
-    : { sourceHandle: 's-top',    targetHandle: 't-bottom' };
+    : { sourceHandle: 's-top', targetHandle: 't-bottom' };
+}
+
+// 反向边不平移坐标，而是改用同一侧的真实 handle 中点。
+// 上下关系的反向链路固定走右侧回路；同行关系走下侧回路。
+// 这样两条边互不重叠，箭头也始终落在方框边缘中点。
+function pickReturnHandles(srcBox, tgtBox) {
+  const dx = (tgtBox.x + tgtBox.w / 2) - (srcBox.x + srcBox.w / 2);
+  const dy = (tgtBox.y + tgtBox.h / 2) - (srcBox.y + srcBox.h / 2);
+  const sameRow = Math.abs(dy) < Math.min(srcBox.h, tgtBox.h) * 0.5;
+  if (sameRow) {
+    return dx >= 0
+      ? { sourceHandle: 's-bottom', targetHandle: 't-bottom' }
+      : { sourceHandle: 's-top', targetHandle: 't-top' };
+  }
+  return { sourceHandle: 's-right', targetHandle: 't-right' };
 }
 
 export function toRfEdges(rawEdges, rawNodes) {
@@ -64,20 +71,20 @@ export function toRfEdges(rawEdges, rawNodes) {
     const { style: _, lineStyle, edgeType: et, ...rest } = e;
     const hasArrow = e.arrow !== false; // 默认 true，兼容旧数据
     const origType = et || 'smoothstep';
-    // 同对节点存在反向边 → 转自定义偏移边形成平行双车道（仅渲染期类型，data.edgeType 保留原始值供保存）
-    const hasReverse = list.some(x => x !== e && x.source === e.target && x.target === e.source);
-    const type = hasReverse ? 'offset' : origType;
+    // 同对节点的反向边使用另一侧的真实 handle 路由，不再通过平移 SVG 端点制造平行线。
+    const reverseIndex = list.findIndex(x => x !== e && x.source === e.target && x.target === e.source);
+    const isReturnEdge = reverseIndex >= 0 && reverseIndex < i;
+    const type = origType;
 
-    // 兼容策略：若 edge 未指定 handle（topology.json 中早期数据没有此字段），
-    // 按当前源/目标节点位置自动选 handle，保证线接在方框边的中点上。
-    // 已存的 handle（用户手动 reconnect 过的）保持原样。
+    // 兼容策略：旧数据没有 handle 字段时按节点位置补齐。
+    // 后出现的反向边走右侧/下侧回路；已存的手动 handle 保持原样。
     let sourceHandle = e.sourceHandle;
     let targetHandle = e.targetHandle;
     if ((!sourceHandle || !targetHandle)) {
       const src = nodeMap[e.source];
       const tgt = nodeMap[e.target];
       if (src && tgt) {
-        const picked = pickHandles(getAbsBox(src, nodeMap), getAbsBox(tgt, nodeMap));
+        const picked = (isReturnEdge ? pickReturnHandles : pickHandles)(getAbsBox(src, nodeMap), getAbsBox(tgt, nodeMap));
         if (!sourceHandle) sourceHandle = picked.sourceHandle;
         if (!targetHandle) targetHandle = picked.targetHandle;
       }
@@ -90,7 +97,7 @@ export function toRfEdges(rawEdges, rawNodes) {
       sourceHandle: sourceHandle || undefined,
       targetHandle: targetHandle || undefined,
       animated: false,
-      data: { lineStyle: lineStyle || e.style || 'solid', edgeType: origType, arrow: hasArrow, offset: hasReverse ? 12 : 0 },
+      data: { lineStyle: lineStyle || e.style || 'solid', edgeType: origType, arrow: hasArrow },
       style: (lineStyle || e.style) === 'dashed' ? { strokeDasharray: '6,4' } : undefined,
       markerEnd: hasArrow ? { type: MarkerType.ArrowClosed, width: 16, height: 16 } : undefined,
     };

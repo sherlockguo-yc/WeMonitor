@@ -12,9 +12,24 @@ const handleStyle = {
   width: 8, height: 8, background: 'var(--accent, #6366f1)',
   border: '1.5px solid var(--bg-card, #fff)',
 };
-// 只读模式：handle 必须保留在 DOM 中供 React Flow 测量 handleBounds 计算边端点，
-// 因此只做视觉隐藏（opacity + 禁用交互），不能条件渲染移除
-const hiddenHandleStyle = { ...handleStyle, opacity: 0, pointerEvents: 'none' };
+
+// React Flow 的默认 transform 会把 8px Handle 的中心放到节点边界，
+// 但边端点按 Handle 的外侧计算，导致线被额外推出 4px（缩放后更明显）。
+// 将 Handle 收进节点内部，让其外缘与方框边重合，边端点便精确落在边缘中点。
+const handleTransforms = {
+  [Position.Top]: 'translate(-50%, 0)',
+  [Position.Bottom]: 'translate(-50%, 0)',
+  [Position.Left]: 'translate(0, -50%)',
+  [Position.Right]: 'translate(0, -50%)',
+};
+
+function getHandleStyle(position, readOnly) {
+  return {
+    ...handleStyle,
+    transform: handleTransforms[position],
+    ...(readOnly ? { opacity: 0, pointerEvents: 'none' } : null),
+  };
+}
 
 function TopologyNode({ data, selected, parentId }) {
   const { label, port, status, isDynamic, color: manualColor, side: childSide, _readOnly } = data;
@@ -49,16 +64,16 @@ function TopologyNode({ data, selected, parentId }) {
       title={readOnly ? undefined : '双击修改标签 / 从边缘圆点拖线连接'}
     >
       {/* 四方向连接点：每方向叠加 target+source（source 渲染在后位于上层，保证可作拖线起点）。
-          渲染顺序保证无 handleId 的旧边默认连到 target-top / source-bottom，外观不变。
-          只读模式下始终渲染但视觉隐藏，确保边端点可计算 */}
-      <Handle type="target" id="t-top" position={Position.Top} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="target" id="t-bottom" position={Position.Bottom} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="target" id="t-left" position={Position.Left} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="target" id="t-right" position={Position.Right} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="source" id="s-bottom" position={Position.Bottom} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="source" id="s-top" position={Position.Top} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="source" id="s-left" position={Position.Left} style={readOnly ? hiddenHandleStyle : handleStyle} />
-      <Handle type="source" id="s-right" position={Position.Right} style={readOnly ? hiddenHandleStyle : handleStyle} />
+          只读模式下仍保留在 DOM 供 React Flow 测量；Handle 外缘与方框边缘重合，
+          令路径端点精确连接到方框边的中点。 */}
+      <Handle type="target" id="t-top" position={Position.Top} style={getHandleStyle(Position.Top, readOnly)} />
+      <Handle type="target" id="t-bottom" position={Position.Bottom} style={getHandleStyle(Position.Bottom, readOnly)} />
+      <Handle type="target" id="t-left" position={Position.Left} style={getHandleStyle(Position.Left, readOnly)} />
+      <Handle type="target" id="t-right" position={Position.Right} style={getHandleStyle(Position.Right, readOnly)} />
+      <Handle type="source" id="s-bottom" position={Position.Bottom} style={getHandleStyle(Position.Bottom, readOnly)} />
+      <Handle type="source" id="s-top" position={Position.Top} style={getHandleStyle(Position.Top, readOnly)} />
+      <Handle type="source" id="s-left" position={Position.Left} style={getHandleStyle(Position.Left, readOnly)} />
+      <Handle type="source" id="s-right" position={Position.Right} style={getHandleStyle(Position.Right, readOnly)} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {lines.map((l, i) => (
