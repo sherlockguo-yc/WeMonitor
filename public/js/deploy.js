@@ -13,6 +13,7 @@ const STATUS_LABELS = {
 // 各服务卡片头部图标；未配置的服务回退到 music
 const SERVICE_ICONS = {
   wemonitor: 'activity',
+  wedownload: 'download-cloud',
   quizapp: 'graduation-cap',
 };
 
