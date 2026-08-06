@@ -31,24 +31,27 @@ function getAbsBox(node, nodeMap) {
 }
 
 // 根据源/目标中心点相对位置，选出最佳 sourceHandle / targetHandle。
-// 规则：取 dx/dy 绝对值较大者为主方向，让线从该方向的中点出发/到达，
-// 避免 React Flow 12 在 edge 未指定 sourceHandle 时回退到「同类型 handle 数组的第一个」
-// 导致所有线都连到 s-bottom → t-top。
+//
+// 规则：默认 "规整阶梯" 风格 —— 源从底边出、目标从顶边入，
+// 让 smoothstep 边在源/目标水平错位时呈现 "先下来再过去" 的 L 形，
+// 整体视觉一致、整齐。仅当源/目标中心在同一水平线（|dy| 极小）时，
+// 才退化为左右连接（避免垂直距离为 0 时边重叠）。
+//
+// 同时显式指定 handle id，强制 React Flow 12 用 find(id) 匹配，
+// 避免回退到 "bounds[0]"（注册顺序不可靠）导致的"虚接" bug。
 function pickHandles(srcBox, tgtBox) {
   const dx = (tgtBox.x + tgtBox.w / 2) - (srcBox.x + srcBox.w / 2);
   const dy = (tgtBox.y + tgtBox.h / 2) - (srcBox.y + srcBox.h / 2);
 
-  let sourceHandle, targetHandle;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    // 水平主导
-    sourceHandle = dx > 0 ? 's-right' : 's-left';
-    targetHandle = dx > 0 ? 't-left'  : 't-right';
-  } else {
-    // 垂直主导
-    sourceHandle = dy > 0 ? 's-bottom' : 's-top';
-    targetHandle = dy > 0 ? 't-top'    : 't-bottom';
+  const sameRow = Math.abs(dy) < Math.min(srcBox.h, tgtBox.h) * 0.5;
+  if (sameRow) {
+    return dx >= 0
+      ? { sourceHandle: 's-right', targetHandle: 't-left' }
+      : { sourceHandle: 's-left',  targetHandle: 't-right' };
   }
-  return { sourceHandle, targetHandle };
+  return dy >= 0
+    ? { sourceHandle: 's-bottom', targetHandle: 't-top' }
+    : { sourceHandle: 's-top',    targetHandle: 't-bottom' };
 }
 
 export function toRfEdges(rawEdges, rawNodes) {
