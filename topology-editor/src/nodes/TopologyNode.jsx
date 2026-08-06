@@ -12,6 +12,9 @@ const handleStyle = {
   width: 8, height: 8, background: 'var(--accent, #6366f1)',
   border: '1.5px solid var(--bg-card, #fff)',
 };
+// 只读模式：handle 必须保留在 DOM 中供 React Flow 测量 handleBounds 计算边端点，
+// 因此只做视觉隐藏（opacity + 禁用交互），不能条件渲染移除
+const hiddenHandleStyle = { ...handleStyle, opacity: 0, pointerEvents: 'none' };
 
 function TopologyNode({ data, selected, parentId }) {
   const { label, port, status, isDynamic, color: manualColor, side: childSide, _readOnly } = data;
@@ -46,15 +49,16 @@ function TopologyNode({ data, selected, parentId }) {
       title={readOnly ? undefined : '双击修改标签 / 从边缘圆点拖线连接'}
     >
       {/* 四方向连接点：每方向叠加 target+source（source 渲染在后位于上层，保证可作拖线起点）。
-          渲染顺序保证无 handleId 的旧边默认连到 target-top / source-bottom，外观不变 */}
-      {!readOnly && <Handle type="target" id="t-top" position={Position.Top} style={handleStyle} />}
-      {!readOnly && <Handle type="target" id="t-bottom" position={Position.Bottom} style={handleStyle} />}
-      {!readOnly && <Handle type="target" id="t-left" position={Position.Left} style={handleStyle} />}
-      {!readOnly && <Handle type="target" id="t-right" position={Position.Right} style={handleStyle} />}
-      {!readOnly && <Handle type="source" id="s-bottom" position={Position.Bottom} style={handleStyle} />}
-      {!readOnly && <Handle type="source" id="s-top" position={Position.Top} style={handleStyle} />}
-      {!readOnly && <Handle type="source" id="s-left" position={Position.Left} style={handleStyle} />}
-      {!readOnly && <Handle type="source" id="s-right" position={Position.Right} style={handleStyle} />}
+          渲染顺序保证无 handleId 的旧边默认连到 target-top / source-bottom，外观不变。
+          只读模式下始终渲染但视觉隐藏，确保边端点可计算 */}
+      <Handle type="target" id="t-top" position={Position.Top} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="target" id="t-bottom" position={Position.Bottom} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="target" id="t-left" position={Position.Left} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="target" id="t-right" position={Position.Right} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="source" id="s-bottom" position={Position.Bottom} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="source" id="s-top" position={Position.Top} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="source" id="s-left" position={Position.Left} style={readOnly ? hiddenHandleStyle : handleStyle} />
+      <Handle type="source" id="s-right" position={Position.Right} style={readOnly ? hiddenHandleStyle : handleStyle} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         {lines.map((l, i) => (
