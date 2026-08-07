@@ -228,6 +228,12 @@ export default function App() {
     return n?.data?.status || 'static';
   }, []);
 
+  // 按节点对解析边 id（供粒子系统定位路径；不依赖边 id，用户重连后依然生效）
+  const findEdgeId = useCallback((source, target) => {
+    const e = edgesRef.current.find(x => x.source === source && x.target === target);
+    return e ? e.id : null;
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(async () => {
       try { const st = await fetchStatus(); setStatusData(st); setNodes(nds => computeStatuses(nds, st) || nds); }
@@ -688,7 +694,7 @@ export default function App() {
                 <Background gap={20} size={1} color="var(--border-light, #e4e4e7)" />
                 {!readOnly && <MiniMap nodeStrokeWidth={2} pannable zoomable />}
                 {readOnly && !loading && nodes.length > 0 && (
-                  <ParticleOverlay getEdgeSourceStatus={getEdgeSourceStatus} />
+                  <ParticleOverlay getEdgeSourceStatus={getEdgeSourceStatus} findEdgeId={findEdgeId} />
                 )}
               </ReactFlow>
             </ReactFlowProvider>

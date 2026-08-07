@@ -1,13 +1,18 @@
 // 流量粒子动画（React Flow 编辑器版）
-// 球直接放进 React Flow 边 SVG 的 flow 坐标系，自动跟随 zoom/pan，无需坐标变换
-// 剧本边 id 与 topology.json 对应，与只读视图（network-topology.js）保持一致
+// 球直接放进粒子覆盖层 SVG（ParticleOverlay 提供）的 flow 坐标系，自动跟随 zoom/pan
+// 关键设计：路径按「节点对」定义（hops），运行时通过 findEdgeId(source, target)
+// 在拓扑数据中解析实际边 id —— 不依赖边 id 硬编码，用户重画/重连边后动画依然生效
 
 const FLOW_DEFS = [
-  { edges: ['e-pub1', 'e-pub2', 'e-pub3'], fanout: true, interval: 2500, color: 'var(--flow-public)' },          // 公网入站
-  { edges: ['e-lan4r', 'e-rn'], fanout: true, interval: 4500, color: 'var(--flow-lan)' },                        // 内网设备访问
-  { edges: ['e-out1', 'e-out2', 'e-out3', 'e-out4'], fanout: false, interval: 3500, color: 'var(--flow-egress)' }, // N150 出站
+  { hops: [['internet', 'cf-cdn'], ['cf-cdn', 'cf-tunnel'], ['cf-tunnel', 'n150']], fanout: true, interval: 2500, color: 'var(--flow-public)' },  // 公网入站
+  { hops: [['local', 'router'], ['router', 'n150']], fanout: true, interval: 4500, color: 'var(--flow-lan)' },                                      // 内网设备访问
+  { hops: [['n150', 'router'], ['router', 'modem'], ['modem', 'isp'], ['isp', 'internet']], fanout: false, interval: 3500, color: 'var(--flow-egress)' }, // N150 出站
 ];
-const FANOUT_EDGES = ['e-svc1', 'e-svc2', 'e-svc3', 'e-svc4', 'e-svc5', 'e-svc6', 'e-svc7'];
+// 扩散目标（n150 下的服务），同样按节点对解析，缺哪些就只用存在的
+const FANOUT_HOPS = [
+  ['n150', 'wemonitor'], ['n150', 'webhook'], ['n150', 'wemusic'],
+  ['n150', 'wedownload'], ['n150', 'ssh'], ['n150', 'portainer'], ['wedownload', 'aria2'],
+];
 const BALL_SPEED = 0.12; // px/ms ≈ 120px/s，适中档位
 
 let state = null;
@@ -18,19 +23,32 @@ function findEdgePath(edgeId) {
   return g.querySelector('path.react-flow__edge-path') || g.querySelector('path');
 }
 
-// 启动动画。layerG 为粒子层 <g> 元素（由 ParticleOverlay 组件提供，不受 React Flow 管辖）
-// getEdgeSourceStatus(edgeId) 返回边源节点的健康状态（ok/error/...）
-// 返回 true 表示启动成功；边未渲染时返回 false，调用方负责延迟重试
-export function startParticles(layerG, getEdgeSourceStatus) {
-  stopParticles();
-  const firstPath = findEdgePath(FLOW_DEFS[0].edges[0]);
-  if (!layerG || !firstPath) return false;
+// 把节点对序列解析为实际边 id 列表；某一段缺边则截断（流到此为止）
+function resolveEdges(hops, findEdgeId) {
+  const ids = [];
+  for (const [s, t] of hops) {
+    const id = findEdgeId(s, t);
+    if (!id) break;
+    ids.push(id);
+  }
+  return ids;
+}
 
-  state = { layer: layerG, balls: [], timers: [], raf: 0, lastTs: 0, geoms: {}, getEdgeSourceStatus };
+// 启动动画。layerG 为粒子层 <g>（由 ParticleOverlay 提供，不受 React Flow 管辖）
+// getEdgeSourceStatus(edgeId) 返回边源节点健康状态；findEdgeId(source, target) 按节点对解析边
+// 返回 true 表示启动成功；边未渲染时返回 false，调用方负责延迟重试
+export function startParticles(layerG, getEdgeSourceStatus, findEdgeId) {
+  stopParticles();
+  if (!layerG) return false;
+  const firstIds = resolveEdges(FLOW_DEFS[0].hops, findEdgeId);
+  if (firstIds.length === 0 || !findEdgePath(firstIds[0])) return false;
+
+  state = { layer: layerG, balls: [], timers: [], raf: 0, lastTs: 0, geoms: {}, getEdgeSourceStatus, findEdgeId };
   for (const flow of FLOW_DEFS) {
-    if (!flow.edges.every(id => findEdgePath(id))) continue; // 边不全则跳过该流
-    spawnBall(flow); // 立即先发一球，避免页面打开空等
-    state.timers.push(setInterval(() => spawnBall(flow), flow.interval));
+    const ids = resolveEdges(flow.hops, state.findEdgeId);
+    if (ids.length === 0) continue; // 起点无对应边则跳过该流
+    spawnBall(flow, ids);
+    state.timers.push(setInterval(() => spawnBall(flow, resolveEdges(flow.hops, state.findEdgeId)), flow.interval));
   }
   state.raf = requestAnimationFrame(tick);
   document.addEventListener('visibilitychange', onVis);
@@ -61,17 +79,17 @@ function getGeom(edgeId) {
   return g;
 }
 
-function spawnBall(flow) {
+function spawnBall(flow, edgeIds) {
   const st = state;
-  if (!st || document.hidden) return;
+  if (!st || document.hidden || !edgeIds || edgeIds.length === 0) return;
   // 状态联动：首边源节点异常则不发球（流量中断语义）
-  if (st.getEdgeSourceStatus(flow.edges[0]) === 'error') return;
+  if (st.getEdgeSourceStatus(edgeIds[0]) === 'error') return;
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
   el.setAttribute('r', '4');
   el.setAttribute('fill', flow.color || 'var(--accent)');
   el.setAttribute('opacity', '0.95');
   st.layer.appendChild(el);
-  st.balls.push({ edges: flow.edges, fanout: flow.fanout, edgeIdx: 0, dist: 0, el, color: flow.color });
+  st.balls.push({ edges: edgeIds, fanout: flow.fanout, edgeIdx: 0, dist: 0, el });
 }
 
 function tick(ts) {
@@ -89,9 +107,10 @@ function tick(ts) {
       b.edgeIdx++;
       if (b.edgeIdx >= b.edges.length) {
         if (b.fanout) {
-          // 扩散：随机选一条服务边继续旅程
-          const svcId = FANOUT_EDGES[Math.floor(Math.random() * FANOUT_EDGES.length)];
-          const svcGeom = getGeom(svcId);
+          // 扩散：随机选一条可用的服务边继续旅程
+          const avail = FANOUT_HOPS.map(([s, t]) => st.findEdgeId(s, t)).filter(Boolean);
+          const svcId = avail.length ? avail[Math.floor(Math.random() * avail.length)] : null;
+          const svcGeom = svcId && getGeom(svcId);
           if (svcGeom) {
             b.edges = [svcId]; b.fanout = false; b.edgeIdx = 0;
             geom = svcGeom;

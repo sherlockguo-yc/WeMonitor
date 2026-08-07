@@ -4,7 +4,7 @@ import { startParticles, stopParticles } from './particles';
 
 // 流量粒子覆盖层：独立 SVG 浮在 React Flow 画布上，
 // 内层 <g> 的 transform 与 viewport 同步，球坐标直接用 flow 坐标系
-function ParticleOverlay({ getEdgeSourceStatus }) {
+function ParticleOverlay({ getEdgeSourceStatus, findEdgeId }) {
   const { x, y, zoom } = useViewport();
   const gRef = useRef(null);
 
@@ -13,13 +13,13 @@ function ParticleOverlay({ getEdgeSourceStatus }) {
     let attempts = 0, timer = null;
     const tryStart = () => {
       attempts++;
-      if (!startParticles(gRef.current, getEdgeSourceStatus) && attempts < 20) {
+      if (!startParticles(gRef.current, getEdgeSourceStatus, findEdgeId) && attempts < 20) {
         timer = setTimeout(tryStart, 300);
       }
     };
     timer = setTimeout(tryStart, 300);
     return () => { clearTimeout(timer); stopParticles(); };
-  }, [getEdgeSourceStatus]);
+  }, [getEdgeSourceStatus, findEdgeId]);
 
   return (
     <svg
