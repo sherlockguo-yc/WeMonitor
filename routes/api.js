@@ -194,6 +194,12 @@ router.get('/cron/jobs/:id/history', cronApi.getHistory);
 router.post('/cron/sync', cronApi.forceSync);
 router.get('/cron/sync-status', cronApi.syncStatus);
 
+// ── 自动化任务（WeAuto） ──
+const autoApi = require('../lib/api/auto');
+router.get('/auto/status', autoApi.getStatus);
+router.get('/auto/runs', autoApi.getRuns);
+router.post('/auto/trigger', autoApi.trigger);
+
 // ── 管理员 API ──
 router.use('/admin', requireAdmin);
 

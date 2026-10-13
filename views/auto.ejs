@@ -1,0 +1,36 @@
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <h3>自动化任务</h3>
+    <span class="text-dim" id="auto-version" style="font-size:12px;"></span>
+  </div>
+  <div class="card-body" id="auto-tasks">
+    <span class="text-dim">加载中...</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>执行历史</h3>
+    <span class="text-dim" id="auto-stats" style="font-size:12px;"></span>
+  </div>
+  <div class="card-body">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:170px;">时间</th>
+            <th style="width:150px;">任务</th>
+            <th style="width:120px;">状态</th>
+            <th>说明</th>
+            <th style="width:80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody id="auto-runs">
+          <tr><td colspan="5" class="empty-state">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/js/auto.js?v=<%= version %>" defer></script>
