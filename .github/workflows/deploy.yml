@@ -32,6 +32,11 @@ jobs:
           cp scripts/restart-n150.sh pkg/restart.sh
           cp scripts/backup-r2.sh pkg/backup-r2.sh
           cp scripts/backup-r2-controller.sh pkg/backup-r2-controller.sh
+          # lib/cron.js 生成的 crontab 条目会调用 <deploy>/scripts/cron-runner.js。
+          # 该文件必须随包分发，否则所有被托管的任务都会 MODULE_NOT_FOUND 静默失败
+          # （错误被条目里的 >/dev/null 2>&1 吞掉，界面上完全看不出来）。
+          mkdir -p pkg/scripts
+          cp scripts/cron-runner.js pkg/scripts/
           cd pkg && npm ci --omit=dev && cd ..
           echo "${{ steps.ver.outputs.sha }}" > pkg/.version
           tar -czf wemonitor.tar.gz -C pkg .
