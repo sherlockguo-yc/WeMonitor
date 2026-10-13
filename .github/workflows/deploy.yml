@@ -17,6 +17,11 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
+      # 测试只覆盖纯函数（cron 管理、跨仓库契约），不依赖数据库与网络，
+      # 所以放在构建之前 —— 失败就尽早退出，不浪费 vite 构建时间。
+      - name: Test
+        run: npm test
+
       - name: Build topology editor
         run: npm run build
 

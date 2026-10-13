@@ -1,0 +1,12 @@
+{
+  "tasks": [
+    {
+      "name": "v2free-checkin",
+      "displayName": "v2free 机场每日签到",
+      "requires": ["V2FREE_EMAIL", "V2FREE_PASSWORD"],
+      "file": "v2free-checkin.mjs",
+      "window": { "start": "09:00", "end": "09:50" },
+      "target": { "date": "2026-10-13", "targetLabel": "09:21", "remaining": "00:00" }
+    }
+  ]
+}
