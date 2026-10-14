@@ -15,6 +15,7 @@ const SERVICE_ICONS = {
   wemonitor: 'activity',
   wedownload: 'download-cloud',
   quizapp: 'graduation-cap',
+  weauto: 'zap',
 };
 
 const CI_LABELS = {
