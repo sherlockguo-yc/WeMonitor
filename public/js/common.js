@@ -139,19 +139,22 @@ function createTimeChart(containerId, datasets, yAxisOpts = {}) {
     yValues = (u, vals) => vals.map(v => v == null ? '—' : formatBytes(v) + '/s');
   }
 
-  // X 轴时间格式：1h 范围用 HH:MM，6h/24h 用 HH:MM（同日）或 MM/DD HH:MM（跨日），7d 用 MM/DD
+  // X 轴时间格式：< 1 天用 HH:MM；跨日（24h / 7d 等）只用 MM/DD
+  // 跨日时同一天内的多个刻度只保留第一个日期，其余置空，避免宽标签水平重叠
   const xValues = (u, vals) => {
     if (!vals || vals.length === 0) return [];
     const range = (vals[vals.length - 1] - vals[0]) * 1000; // s → ms
     const dayMs = 86400000;
+    let lastDay = null;
     return vals.map(v => {
       const d = new Date(v * 1000);
       const HH = String(d.getHours()).padStart(2, '0');
       const MM = String(d.getMinutes()).padStart(2, '0');
+      if (range < dayMs) return `${HH}:${MM}`; // < 1 天：HH:MM
       const MD = `${d.getMonth() + 1}/${d.getDate()}`;
-      if (range < dayMs) return `${HH}:${MM}`;           // < 1 天：HH:MM
-      if (range < 7 * dayMs) return `${MD} ${HH}:${MM}`; // < 1 周：MM/DD HH:MM
-      return MD;                                          // >= 1 周：MM/DD
+      if (MD === lastDay) return '';           // 同一天重复刻度：留空
+      lastDay = MD;
+      return MD;                               // 跨日：MM/DD（每天仅一个）
     });
   };
 
