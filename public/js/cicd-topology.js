@@ -3,40 +3,48 @@
    =================================================== */
 
 // ── 静态拓扑定义 ──
-// Canvas: W=1100, H=560
+// Canvas: W=1360, H=560
 // 5 层结构：源码 → 构建 → 发布 → 部署 → 服务
-// L4 部署层 3 个节点横向排列，L3→L4 用正交折线避免交叉
+// L1/L2/L3/L5 各 5 个节点（对应 5 个被部署项目），L4 部署层 3 个节点横向排列
+// L3→L4 用正交折线避免交叉
+// 列顺序：WeMusic / WeMonitor / WeDownload / WeAuto / QuizApp
+// 每个节点都显式写明 layer —— 动画延迟与层级标签都依赖它，
+// 不能再用 ni/3 之类的下标推算（列数一变就算错）
 
 const CICD_TOPOLOGY = {
   nodes: [
     // Layer 1: 源码仓库
-    { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 80,  y: 20,  w: 160, h: 50, service: 'wemusic' },
-    { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 320, y: 20,  w: 160, h: 50, service: 'wemonitor' },
-    { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 560, y: 20,  w: 160, h: 50, service: 'wedownload' },
-    { id: 'repo-quizapp',    label: 'QuizApp\n仓库',    x: 800, y: 20,  w: 160, h: 50, service: 'quizapp', layer: 1 },
+    { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 80,  y: 20,  w: 160, h: 50, service: 'wemusic',    layer: 1 },
+    { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 320, y: 20,  w: 160, h: 50, service: 'wemonitor',  layer: 1 },
+    { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 560, y: 20,  w: 160, h: 50, service: 'wedownload', layer: 1 },
+    { id: 'repo-weauto',     label: 'WeAuto\n仓库',     x: 800, y: 20,  w: 160, h: 50, service: 'weauto',     layer: 1 },
+    { id: 'repo-quizapp',    label: 'QuizApp\n仓库',    x: 1040, y: 20, w: 160, h: 50, service: 'quizapp',    layer: 1 },
 
     // Layer 2: GitHub Actions CI
-    { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 80,  y: 122, w: 160, h: 50, service: 'wemusic' },
-    { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 320, y: 122, w: 160, h: 50, service: 'wemonitor' },
-    { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 560, y: 122, w: 160, h: 50, service: 'wedownload' },
-    { id: 'ci-quizapp',    label: 'GitHub\nActions',  x: 800, y: 122, w: 160, h: 50, service: 'quizapp', layer: 2 },
+    { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 80,  y: 122, w: 160, h: 50, service: 'wemusic',    layer: 2 },
+    { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 320, y: 122, w: 160, h: 50, service: 'wemonitor',  layer: 2 },
+    { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 560, y: 122, w: 160, h: 50, service: 'wedownload', layer: 2 },
+    { id: 'ci-weauto',     label: 'GitHub\nActions',  x: 800, y: 122, w: 160, h: 50, service: 'weauto',     layer: 2 },
+    { id: 'ci-quizapp',    label: 'GitHub\nActions',  x: 1040, y: 122, w: 160, h: 50, service: 'quizapp',   layer: 2 },
 
     // Layer 3: GitHub Releases
-    { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 80,  y: 224, w: 160, h: 50, service: 'wemusic' },
-    { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 224, w: 160, h: 50, service: 'wemonitor' },
-    { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 224, w: 160, h: 50, service: 'wedownload' },
-    { id: 'release-quizapp',    label: 'GitHub\nRelease',  x: 800, y: 224, w: 160, h: 50, service: 'quizapp', layer: 3 },
+    { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 80,  y: 224, w: 160, h: 50, service: 'wemusic',    layer: 3 },
+    { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 224, w: 160, h: 50, service: 'wemonitor',  layer: 3 },
+    { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 224, w: 160, h: 50, service: 'wedownload', layer: 3 },
+    { id: 'release-weauto',     label: 'GitHub\nRelease',  x: 800, y: 224, w: 160, h: 50, service: 'weauto',     layer: 3 },
+    { id: 'release-quizapp',    label: 'GitHub\nRelease',  x: 1040, y: 224, w: 160, h: 50, service: 'quizapp',   layer: 3 },
 
     // Layer 4: 部署（3 个节点均匀分布）
-    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 80,  y: 340, w: 160, h: 54 },
-    { id: 'webhook',      label: 'Webhook',               x: 320, y: 340, w: 160, h: 54, port: 9001 },
-    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 560, y: 340, w: 160, h: 64, dynamic: 'worker' },
+    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 80,  y: 340, w: 160, h: 54, layer: 4 },
+    { id: 'webhook',      label: 'Webhook',               x: 320, y: 340, w: 160, h: 54, port: 9001, layer: 4 },
+    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 560, y: 340, w: 160, h: 64, dynamic: 'worker', layer: 4 },
 
     // Layer 5: 服务
-    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic' },
-    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor' },
-    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload' },
-    { id: 'svc-quizapp',    label: 'QuizApp',     x: 800, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 9200,  service: 'quizapp', layer: 5 },
+    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic',    layer: 5 },
+    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor',  layer: 5 },
+    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload', layer: 5 },
+    { id: 'svc-weauto',     label: 'WeAuto',      x: 800, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18991, service: 'weauto',     layer: 5 },
+    { id: 'svc-quizapp',    label: 'QuizApp',     x: 1040, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 9200,  service: 'quizapp',   layer: 5 },
   ],
 
   // routing: 'direct' = 直线（1:1 垂直管道）, 'ortho' = 正交折线（fan-in/fan-out）
@@ -45,16 +53,19 @@ const CICD_TOPOLOGY = {
     { from: 'repo-wemusic',    to: 'ci-wemusic',          style: 'solid', routing: 'direct' },
     { from: 'repo-wemonitor',  to: 'ci-wemonitor',        style: 'solid', routing: 'direct' },
     { from: 'repo-wedownload', to: 'ci-wedownload',       style: 'solid', routing: 'direct' },
+    { from: 'repo-weauto',     to: 'ci-weauto',           style: 'solid', routing: 'direct' },
     { from: 'repo-quizapp',    to: 'ci-quizapp',          style: 'solid', routing: 'direct' },
     { from: 'ci-wemusic',     to: 'release-wemusic',      style: 'solid', routing: 'direct' },
     { from: 'ci-wemonitor',   to: 'release-wemonitor',    style: 'solid', routing: 'direct' },
     { from: 'ci-wedownload',  to: 'release-wedownload',   style: 'solid', routing: 'direct' },
+    { from: 'ci-weauto',      to: 'release-weauto',       style: 'solid', routing: 'direct' },
     { from: 'ci-quizapp',     to: 'release-quizapp',      style: 'solid', routing: 'direct' },
 
     // ── Fan-in: Release → Webhook（正交折线） ──
     { from: 'release-wemusic',    to: 'webhook',           style: 'dashed', routing: 'ortho', label: '通知' },
     { from: 'release-wemonitor',  to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wedownload', to: 'webhook',           style: 'dashed', routing: 'ortho' },
+    { from: 'release-weauto',     to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-quizapp',    to: 'webhook',           style: 'dashed', routing: 'ortho' },
 
     // ── Cloudflare Tunnel → Webhook（水平短线） ──
@@ -67,6 +78,7 @@ const CICD_TOPOLOGY = {
     { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'ortho' },
     { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'ortho' },
     { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'ortho' },
+    { from: 'deploy-agent', to: 'svc-weauto',             style: 'solid', routing: 'ortho' },
     { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'ortho' },
   ],
 };
@@ -141,7 +153,8 @@ function getWorkerLabelLines() {
 // ── 渲染 SVG ──
 
 function renderCicdTopology(container) {
-  const W = 1100;
+  // W 随项目列数增长：5 列 × 160 + 间距 240，右侧留白与左侧层级标签区对称
+  const W = 1360;
   const H = 588;
 
   const layers = [
@@ -291,9 +304,11 @@ function renderCicdTopology(container) {
                    status === 'warn' ? 'nt-glow-warn' :
                    status === 'ok' ? 'nt-glow-ok' : 'nt-glow-default';
 
-    // 优先取节点显式声明的 layer（新增第 4 列后不能按 ni/3 推算层级）
-    const layerIdx = node.layer != null ? node.layer - 1 : Math.floor(ni / 3);
-    const delay = (layerIdx * 60 + (ni % 3) * 30);
+    // 层级一律取节点显式声明的 layer（列数变化后不能按 ni/3 推算）
+    const layerIdx = node.layer != null ? node.layer - 1 : 0;
+    // 同层内的横向序号，用于错开入场动画；同样不能按 ni 取模
+    const colIdx = CICD_TOPOLOGY.nodes.filter(n => n.layer === node.layer).indexOf(node);
+    const delay = (layerIdx * 60 + colIdx * 30);
 
     svg += `<rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}"
       rx="10" ry="10"
@@ -472,7 +487,10 @@ function computeOrthoPath(from, to) {
     );
 
     // 水平段 X：目标节点顶部的入口偏移（按来源索引分散）
-    const entryOffsets = count === 4 ? [-60, -20, 20, 60] : [-40, 0, 40];
+    // 不再为 3/4 条线写死数组 —— 列数变化时按 count 对称生成，
+    // step 上限 40 且保证最外侧线不超出节点宽度（半宽 80）
+    const step = Math.min(40, 140 / Math.max(1, count - 1));
+    const entryOffsets = Array.from({ length: count }, (_, i) => (i - (count - 1) / 2) * step);
     const targetX = ex + (entryOffsets[myIndex] || 0);
 
     // 构建正交路径：起点 → 向下到 midY → 水平到 targetX → 向下进入目标
@@ -494,11 +512,13 @@ function computeOrthoPath(from, to) {
     // 策略：先从源节点底部竖直向下引出（明显可见），再水平分叉到各服务，最后竖直进入
     const allToIds = [to.id, ...fanOutEdges.map(e => e.to)];
     const allToNodes = allToIds.map(id => CICD_TOPOLOGY.nodes.find(n => n.id === id)).sort((a, b) => a.x - b.x);
-    const myIndex = allToNodes.findIndex(n => n.id === to.id); // 0=左, 1=中, 2=右
+    const toCount = allToNodes.length;
+    const myIndex = allToNodes.findIndex(n => n.id === to.id); // 0=最左 … toCount-1=最右
 
     // 中间层 Y：靠近服务层顶部，确保竖直引出段足够长（至少 35px）
+    // 以 (toCount-1)/2 为对称中心错开 —— 写死中心 1 只在 3 个目标时成立
     const baseMidY = to.y - 38;  // 在服务节点上方 38px 处开始水平分叉
-    const midY = baseMidY - (Math.abs(myIndex - 1)) * (GAP * 0.6);
+    const midY = baseMidY - (Math.abs(myIndex - (toCount - 1) / 2)) * (GAP * 0.6);
 
     // 如果已经在同一列附近，直接斜线
     if (Math.abs(sx - ex) < 30) {
