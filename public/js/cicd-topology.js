@@ -48,18 +48,23 @@ const CICD_TOPOLOGY = {
   ],
 
   // routing: 'direct' = 直线（1:1 垂直管道）, 'ortho' = 正交折线（fan-in/fan-out）
+  // stage = 这条边代表的流水线阶段，连线颜色由该阶段自身状态决定（见 getEdgeState）：
+  //   source = 源码 → CI（看这次 Build 跑完没）
+  //   build  = CI → Release（看产物是否已发成 Release）
+  //   deploy = Deploy Agent → 服务（看服务整体状态）
+  //   不写 stage = 信号/静态连线，恒定灰色
   edges: [
     // ── 管道连线（垂直，直线） ──
-    { from: 'repo-wemusic',    to: 'ci-wemusic',          style: 'solid', routing: 'direct' },
-    { from: 'repo-wemonitor',  to: 'ci-wemonitor',        style: 'solid', routing: 'direct' },
-    { from: 'repo-wedownload', to: 'ci-wedownload',       style: 'solid', routing: 'direct' },
-    { from: 'repo-weauto',     to: 'ci-weauto',           style: 'solid', routing: 'direct' },
-    { from: 'repo-quizapp',    to: 'ci-quizapp',          style: 'solid', routing: 'direct' },
-    { from: 'ci-wemusic',     to: 'release-wemusic',      style: 'solid', routing: 'direct' },
-    { from: 'ci-wemonitor',   to: 'release-wemonitor',    style: 'solid', routing: 'direct' },
-    { from: 'ci-wedownload',  to: 'release-wedownload',   style: 'solid', routing: 'direct' },
-    { from: 'ci-weauto',      to: 'release-weauto',       style: 'solid', routing: 'direct' },
-    { from: 'ci-quizapp',     to: 'release-quizapp',      style: 'solid', routing: 'direct' },
+    { from: 'repo-wemusic',    to: 'ci-wemusic',          style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-wemonitor',  to: 'ci-wemonitor',        style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-wedownload', to: 'ci-wedownload',       style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-weauto',     to: 'ci-weauto',           style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-quizapp',    to: 'ci-quizapp',          style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'ci-wemusic',     to: 'release-wemusic',      style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-wemonitor',   to: 'release-wemonitor',    style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-wedownload',  to: 'release-wedownload',   style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-weauto',      to: 'release-weauto',       style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-quizapp',     to: 'release-quizapp',      style: 'solid', routing: 'direct', stage: 'build' },
 
     // ── Fan-in: Release → Webhook（正交折线） ──
     { from: 'release-wemusic',    to: 'webhook',           style: 'dashed', routing: 'ortho', label: '通知' },
@@ -75,11 +80,11 @@ const CICD_TOPOLOGY = {
     { from: 'webhook', to: 'deploy-agent',                style: 'solid', routing: 'direct' },
 
     // ── Fan-out: Deploy Agent → 服务（正交折线） ──
-    { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'ortho' },
-    { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'ortho' },
-    { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'ortho' },
-    { from: 'deploy-agent', to: 'svc-weauto',             style: 'solid', routing: 'ortho' },
-    { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'ortho' },
+    { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-weauto',             style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'ortho', stage: 'deploy' },
   ],
 };
 
@@ -234,12 +239,12 @@ function renderCicdTopology(container) {
       ? 'stroke-dasharray="8,5"'
       : '';
 
-    const targetSvc = to.service || (edge.routing === 'ortho' ? null : null);
-    if (targetSvc) {
-      const state = getServiceState(targetSvc);
-      if (state === 'up-to-date')       { color = 'var(--success)'; marker = 'url(#cicd-arrow-green)'; }
-      else if (state === 'error' || state === 'stopped') { color = 'var(--danger)'; marker = 'url(#cicd-arrow-danger)'; }
-      else if (state === 'deploying' || state === 'update-available') { color = 'var(--warning)'; marker = 'url(#cicd-arrow-warn)'; }
+    // 颜色由「这条边所属阶段」决定，而不是终点服务的整体状态。
+    // 否则服务仅因本地版本落后（第 5 层的事）就会把上游 repo→ci、ci→release 一起涂黄。
+    const edgeState = getEdgeState(edge);
+    if (STAGE_STYLE[edgeState]) {
+      color = STAGE_STYLE[edgeState].color;
+      marker = STAGE_STYLE[edgeState].marker;
     }
 
     // ── 计算路径 ──
@@ -364,6 +369,82 @@ function renderCicdTopology(container) {
   });
 }
 
+// ── 阶段状态判定 ──
+// 每条边只回答「这一段流程走完了没」，与下游服务的整体状态解耦。
+// 数据来源（服务端已提供，无需新增接口）：
+//   remote.ci.status      queued | in_progress | completed
+//   remote.ci.conclusion  success | failure | cancelled | ...
+//   remote.ci.headSha     7 位短 SHA，最近一次 Build 跑的提交
+//   remote.release.version  Release body 里 "Auto build <sha>" 的完整 SHA
+
+const STAGE_STYLE = {
+  ok:    { color: 'var(--success)', marker: 'url(#cicd-arrow-green)' },
+  warn:  { color: 'var(--warning)', marker: 'url(#cicd-arrow-warn)' },
+  error: { color: 'var(--danger)',  marker: 'url(#cicd-arrow-danger)' },
+};
+
+const CI_STATE_TEXT = {
+  ok: '构建成功', warn: '构建进行中', error: '构建失败', unknown: 'CI 状态不可用',
+};
+const RELEASE_STATE_TEXT = {
+  ok: '已发布', warn: '待发布', error: '构建未通过，未发布', unknown: '发布状态不可用',
+};
+
+// 边所属服务：部署段起点 deploy-agent 没有 service，取终点；其余取起点
+function getEdgeService(edge) {
+  const from = CICD_TOPOLOGY.nodes.find(n => n.id === edge.from);
+  const to = CICD_TOPOLOGY.nodes.find(n => n.id === edge.to);
+  const id = edge.stage === 'deploy'
+    ? (to && to.service)
+    : ((from && from.service) || (to && to.service));
+  return cicdState.services.find(s => s.id === id) || null;
+}
+
+function getEdgeState(edge) {
+  if (!edge.stage) return 'unknown';
+  const svc = getEdgeService(edge);
+  if (!svc) return 'unknown';
+
+  const remote = svc.remote || {};
+  const ci = remote.ci;
+  const release = remote.release;
+
+  // 源码 → CI：只看这次 Build 跑完没有
+  if (edge.stage === 'source') {
+    if (!ci) return 'unknown';
+    if (ci.status !== 'completed') return 'warn';   // queued / in_progress
+    if (ci.conclusion === 'success') return 'ok';
+    if (ci.conclusion === 'failure' || ci.conclusion === 'cancelled') return 'error';
+    return 'warn';                                  // 其余结论视为未正常走完
+  }
+
+  // CI → Release：CI 成功之外，还要看产物是否已经发成了 Release。
+  // 用 SHA 前缀比对（ci.headSha 是 7 位，release.version 是完整 SHA）
+  if (edge.stage === 'build') {
+    if (!ci) return 'unknown';
+    if (ci.status !== 'completed') return 'warn';
+    if (ci.conclusion !== 'success') return 'error';
+    if (!release || !release.version) return 'warn';  // CI 完成，Release 还没出
+    if (!ci.headSha) return 'ok';                     // 无法比对，退化为「有 Release 即已发布」
+    return String(release.version).startsWith(ci.headSha) ? 'ok' : 'warn';
+  }
+
+  // Deploy Agent → 服务：这一段本来就该看服务整体状态
+  if (edge.stage === 'deploy') {
+    switch (svc.summary) {
+      case 'up-to-date': return 'ok';
+      case 'deploying':
+      case 'queued':
+      case 'update-available': return 'warn';
+      case 'error':
+      case 'stopped': return 'error';
+      default: return 'unknown';
+    }
+  }
+
+  return 'unknown';
+}
+
 // ── 节点状态判断 ──
 
 function getCicdNodeStatus(node) {
@@ -386,10 +467,12 @@ function getCicdNodeStatus(node) {
   if (node.service && !node.dynamic) {
     const svc = cicdState.services.find(s => s.id === node.service);
     if (!svc) return 'static';
-    if (node.id.startsWith('release-') && svc.remote && svc.remote.release) return 'ok';
-    if (node.id.startsWith('ci-') && svc.remote && svc.remote.ci) return 'ok';
-    if (node.id.startsWith('repo-') && svc.remote) return 'ok';
-    return 'static';
+    // 节点框颜色 = 流入它的那条边的阶段状态，使框与连线同口径：
+    // CI 进行中 → 黄、构建失败 → 红，不再「只要 GitHub 返回数据就判绿」。
+    // 仓库层没有入边，保留「能否连上远端」的语义。
+    const incoming = CICD_TOPOLOGY.edges.find(e => e.to === node.id && e.stage);
+    if (incoming) return getEdgeState(incoming) === 'unknown' ? 'static' : getEdgeState(incoming);
+    return node.id.startsWith('repo-') && svc.remote ? 'ok' : 'static';
   }
 
   return 'static';
@@ -663,10 +746,16 @@ function showCicdTooltip(e) {
       extraInfo += `<div class="nt-tt-info"><span style="color:#8888a0">远端</span> <code style="font-family:var(--font-mono);font-size:0.92em;background:rgba(0,0,0,0.04);padding:1px 5px;border-radius:3px;">${svc.remote.release.version.slice(0, 8)}</code></div>`;
     }
   } else if (svc) {
-    if (node.id.startsWith('release-') && svc.remote && svc.remote.release) {
-      statusText = `Release: ${svc.remote.release.version.slice(0, 8)}`;
-    } else if (node.id.startsWith('ci-') && svc.remote && svc.remote.ci) {
-      statusText = svc.remote.ci.status || 'CI 运行中';
+    // 文案与节点框/连线同口径，避免出现「黄框 + 说一切正常」的矛盾
+    const incoming = CICD_TOPOLOGY.edges.find(e => e.to === node.id && e.stage);
+    const stageState = incoming ? getEdgeState(incoming) : 'unknown';
+    if (node.id.startsWith('release-')) {
+      const rel = svc.remote && svc.remote.release;
+      statusText = rel && rel.version
+        ? `Release ${rel.version.slice(0, 8)} · ${RELEASE_STATE_TEXT[stageState]}`
+        : `无 Release · ${RELEASE_STATE_TEXT[stageState]}`;
+    } else if (node.id.startsWith('ci-')) {
+      statusText = CI_STATE_TEXT[stageState];
     } else if (node.id.startsWith('repo-')) {
       statusText = svc.remote ? '已连接' : '未知';
     }
