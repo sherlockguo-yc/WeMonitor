@@ -390,6 +390,19 @@ const RELEASE_STATE_TEXT = {
   ok: '已发布', warn: '待发布', error: '构建未通过，未发布', unknown: '发布状态不可用',
 };
 
+// 已跑完但没成功的终态结论 —— 它们不是「进行中」，必须判失败否则会一直显示黄色
+const CI_TERMINAL_FAILURES = [
+  'failure', 'cancelled', 'timed_out', 'action_required', 'stale', 'startup_failure',
+];
+
+// CI 本次运行的结果：ok=成功 / error=已结束但未成功 / warn=还在跑或结论不产出产物 / unknown=无数据
+function getCiOutcome(ci) {
+  if (!ci) return 'unknown';
+  if (ci.status === 'completed' && ci.conclusion === 'success') return 'ok';
+  if (ci.status === 'completed' && CI_TERMINAL_FAILURES.includes(ci.conclusion)) return 'error';
+  return 'warn';   // queued / in_progress，或 completed 但结论是 skipped / neutral
+}
+
 // 边所属服务：部署段起点 deploy-agent 没有 service，取终点；其余取起点
 function getEdgeService(edge) {
   const from = CICD_TOPOLOGY.nodes.find(n => n.id === edge.from);
@@ -409,23 +422,20 @@ function getEdgeState(edge) {
   const ci = remote.ci;
   const release = remote.release;
 
+  const outcome = getCiOutcome(ci);
+
   // 源码 → CI：只看这次 Build 跑完没有
-  if (edge.stage === 'source') {
-    if (!ci) return 'unknown';
-    if (ci.status !== 'completed') return 'warn';   // queued / in_progress
-    if (ci.conclusion === 'success') return 'ok';
-    if (ci.conclusion === 'failure' || ci.conclusion === 'cancelled') return 'error';
-    return 'warn';                                  // 其余结论视为未正常走完
-  }
+  if (edge.stage === 'source') return outcome;
 
   // CI → Release：CI 成功之外，还要看产物是否已经发成了 Release。
   // 用 SHA 前缀比对（ci.headSha 是 7 位，release.version 是完整 SHA）
   if (edge.stage === 'build') {
-    if (!ci) return 'unknown';
-    if (ci.status !== 'completed') return 'warn';
-    if (ci.conclusion !== 'success') return 'error';
+    if (outcome !== 'ok') return outcome;
     if (!release || !release.version) return 'warn';  // CI 完成，Release 还没出
-    if (!ci.headSha) return 'ok';                     // 无法比对，退化为「有 Release 即已发布」
+    if (!ci.headSha) return 'unknown';                // 数据不全，诚实显示未知
+    // getCI 在没有名为 Build 的 workflow 时会 fallback 取 runs[0]，那条 run 未必是
+    // 构建流程，用它的 SHA 做比对会误报「待发布」；此时只验证 Release 是否存在
+    if (ci.name !== 'Build') return 'ok';
     return String(release.version).startsWith(ci.headSha) ? 'ok' : 'warn';
   }
 
@@ -469,10 +479,17 @@ function getCicdNodeStatus(node) {
     if (!svc) return 'static';
     // 节点框颜色 = 流入它的那条边的阶段状态，使框与连线同口径：
     // CI 进行中 → 黄、构建失败 → 红，不再「只要 GitHub 返回数据就判绿」。
-    // 仓库层没有入边，保留「能否连上远端」的语义。
     const incoming = CICD_TOPOLOGY.edges.find(e => e.to === node.id && e.stage);
-    if (incoming) return getEdgeState(incoming) === 'unknown' ? 'static' : getEdgeState(incoming);
-    return node.id.startsWith('repo-') && svc.remote ? 'ok' : 'static';
+    if (incoming) {
+      const state = getEdgeState(incoming);
+      return state === 'unknown' ? 'static' : state;
+    }
+    // 仓库层没有入边，看「远端数据是否真的有内容」。
+    // getRemoteState 恒返回 { release, ci } 对象，两个字段都为 null 时代表 GitHub
+    // 数据不可用（限流/失败），此时不能判绿。
+    const hasRemote = svc.remote &&
+      (svc.remote.ci || (svc.remote.release && svc.remote.release.version));
+    return node.id.startsWith('repo-') && hasRemote ? 'ok' : 'static';
   }
 
   return 'static';
