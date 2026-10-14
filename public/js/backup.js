@@ -38,9 +38,15 @@ async function loadBackupPage() {
     return;
   }
   tbody.innerHTML = services.map(function(s) {
+    // 无 health_target 的条目不是「被监控的服务」，只是需要一个 data 目录被备份
+    // （例如共享用户库 ~/shared/data）。显示为「仅备份」，不要误导成服务故障。
+    var stateBadge = s.service_enabled
+      ? ''
+      : (s.monitored
+        ? ' <span class="badge badge-offline">已停用</span>'
+        : ' <span style="font-size:calc(var(--font-size)*0.85);color:var(--text-dim)">仅备份</span>');
     return '<tr>' +
-      '<td><strong>' + escapeHtml(s.name) + '</strong>' +
-        (s.service_enabled ? '' : ' <span class="badge badge-offline">已停用</span>') + '</td>' +
+      '<td><strong>' + escapeHtml(s.name) + '</strong>' + stateBadge + '</td>' +
       '<td><label class="toggle-switch" onclick="event.stopPropagation()">' +
         '<input type="checkbox" ' + (s.backup_enabled ? 'checked' : '') +
         ' onchange="toggleBackup(\'' + escapeHtml(s.name) + '\', this.checked)">' +
