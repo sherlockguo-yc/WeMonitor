@@ -43,6 +43,11 @@ jobs:
           mkdir -p pkg/scripts
           cp scripts/cron-runner.js pkg/scripts/
           cd pkg && npm ci --omit=dev && cd ..
+          # better-sqlite3 的 deps/ 是「编译期」用的 SQLite 源码（约 9MB），
+          # 运行时只需要 build/Release/*.node。实测删除后加载与读写均正常
+          # （2026-10-14 验证）。包每小 1MB，N150 从镜像下载就少一分超时风险
+          # —— 部署链路的下载超时是 90 秒，而镜像实测只有几十 KB/s。
+          rm -rf pkg/node_modules/better-sqlite3/deps
           echo "${{ steps.ver.outputs.sha }}" > pkg/.version
           tar -czf wemonitor.tar.gz -C pkg .
           ls -lh wemonitor.tar.gz
