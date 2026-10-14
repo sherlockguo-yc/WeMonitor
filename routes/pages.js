@@ -89,10 +89,6 @@ router.get('/deploy', (req, res) => {
   res.render('deploy', { title: 'CI/CD', active: 'deploy' });
 });
 
-// 自动化任务
-router.get('/auto', (req, res) => {
-  res.render('auto', { title: '自动化', active: 'auto' });
-});
 router.get('/backup', (req, res) => {
   res.render('backup', { title: 'Data Backup', active: 'backup' });
 });

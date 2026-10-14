@@ -12,8 +12,10 @@ const SERVICES = [
   { id: 'wemusic',    name: 'WeMusic',    repo: 'sherlockguo-yc/WeMusic',    dir: local.WEMUSIC_DIR,    port: 5174 },
   { id: 'wedownload', name: 'WeDownload', repo: 'sherlockguo-yc/WeDownload', dir: local.WEDOWNLOAD_DIR, port: 8080 },
   { id: 'quizapp',    name: 'QuizApp',    repo: 'Jason-DancingBoy/quiz-app', dir: local.QUIZAPP_DIR,    port: 9200 },
-  // WeAuto 是无端口 CLI 项目：port 传 null，local.getLocalState 会跳过端口探测
-  { id: 'weauto',     name: 'WeAuto',     repo: 'sherlockguo-yc/WeAuto',     dir: local.WEAUTO_DIR,     port: null },
+  // WeAuto 自 2026-10-14 起是常驻服务（自带网站与调度器），端口 18991。
+  // 此前 port 为 null，getLocalState 会跳过端口探测并把 alive 恒置为 true
+  // —— 即「永远显示存活」。有了真端口之后，健康状态才是真的。
+  { id: 'weauto',     name: 'WeAuto',     repo: 'sherlockguo-yc/WeAuto',     dir: local.WEAUTO_DIR,     port: 18991 },
 ];
 
 // 鉴权：需登录 + 已激活
