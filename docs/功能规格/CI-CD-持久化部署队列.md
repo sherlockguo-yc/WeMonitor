@@ -65,7 +65,10 @@ worker 异常退出且状态超过租约
 
 ## 5. 下载与失败处理
 
-- GitHub Release 下载顺序固定为：`ghproxy.net` 镜像优先 → GitHub 直连兜底。
+- 产物下载顺序（2026-10-15 起）：**Cloudflare R2 优先** → `ghproxy.net` 镜像 → GitHub 直连兜底。
+  R2 由 CI 同步上传（`dl.sherlockguo.com/<项目>/<sha>/<产物>`），N150 实测 3.05MB/s；
+  ghproxy 实测只剩 3.5KB/s，实际已基本不可用，仅作历史兜底保留。
+- R2 源可选：`~/.deploy-artifact-base` 写一行域名即启用，不存在则整条分支不生效。
 - 下载使用断点续传；每次失败保留已下载进度。
 - 完整性校验必须使用 `gzip -t` 和解压后的 `.version`，不能只通过 `file` 检查 gzip 文件头。
 - 每次失败写入结构化错误，至少区分：连接失败、HTTP 错误、下载超时、gzip 校验失败、解压失败、版本不匹配、rsync 失败、restart 失败、worker 中断。
