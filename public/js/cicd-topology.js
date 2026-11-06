@@ -253,9 +253,53 @@ function renderCicdTopology(container) {
   </defs>`;
 
   // ════════════════════════════════════
+  // Fan-in 通知总线（Release → Webhook）
+  // ════════════════════════════════════
+  // 8 个项目各画一条横跨半张图的正交折线时，它们的水平段只差几像素，
+  // 会叠成一片平行的灰色虚线带（视觉上分不清有几条线）。
+  // 改成总线结构：每个 Release 竖直引线 → 共享一条水平虚线 → 单根下落线进入 Webhook。
+  const notifyEdges = CICD_TOPOLOGY.edges.filter(e =>
+    e.routing === 'ortho' && !e.stage && e.to === 'webhook'
+  );
+  const notifyFromNodes = notifyEdges
+    .map(e => CICD_TOPOLOGY.nodes.find(n => n.id === e.from))
+    .filter(Boolean)
+    .sort((a, b) => a.x - b.x);
+
+  if (notifyFromNodes.length) {
+    const webhookNode = CICD_TOPOLOGY.nodes.find(n => n.id === 'webhook');
+    const firstNode = notifyFromNodes[0];
+    const lastNode = notifyFromNodes[notifyFromNodes.length - 1];
+    const firstCx = firstNode.x + firstNode.w / 2;
+    const lastCx = lastNode.x + lastNode.w / 2;
+    const busX = webhookNode.x + webhookNode.w / 2;
+    const releaseBottom = firstNode.y + firstNode.h;
+    // 总线紧贴发布层下方 34px。不能取两层中位（y=327）——那里正好是层级分隔虚线，
+    // 两者重叠后总线会被读成分隔线的一部分。下方留足 66px 给汇入 Webhook 的下落线。
+    const busY = releaseBottom + 34;
+    const busStyle = 'stroke="#b8bac4" stroke-width="1.8" stroke-dasharray="8,5" opacity="0.85" stroke-linecap="round"';
+
+    // 水平总线
+    svg += `<line x1="${firstCx}" y1="${busY}" x2="${lastCx}" y2="${busY}" ${busStyle}/>`;
+
+    // 每个 Release 落向总线的竖直引线
+    for (const n of notifyFromNodes) {
+      const cx = n.x + n.w / 2;
+      svg += `<line x1="${cx}" y1="${n.y + n.h}" x2="${cx}" y2="${busY}" ${busStyle}/>`;
+    }
+
+    // 总线 → Webhook：单根垂直下落线（带箭头），代表唯一的通知入口
+    svg += `<line x1="${busX}" y1="${busY}" x2="${busX}" y2="${webhookNode.y - 6}"
+      ${busStyle} marker-end="url(#cicd-arrow-dim)"/>`;
+  }
+
+  // ════════════════════════════════════
   // 渲染连线（在节点下方）
   // ════════════════════════════════════
   for (const edge of CICD_TOPOLOGY.edges) {
+    // fan-in 通知连线已由上面的总线统一绘制
+    if (notifyEdges.includes(edge)) continue;
+
     const from = CICD_TOPOLOGY.nodes.find(n => n.id === edge.from);
     const to = CICD_TOPOLOGY.nodes.find(n => n.id === edge.to);
     if (!from || !to) continue;
@@ -598,42 +642,12 @@ function computeOrthoPath(from, to) {
   const ey = to.y - PAD;
 
   if (isFanIn) {
-    // Fan-in: Release → Webhook
-    // 按 X 坐标排序确定索引
-    const allFromIds = [from.id, ...fanInEdges.map(e => e.from)];
-    const allFromNodes = allFromIds.map(id => CICD_TOPOLOGY.nodes.find(n => n.id === id)).sort((a, b) => a.x - b.x);
-    const myIndex = allFromNodes.findIndex(n => n.id === from.id); // 0=左, 1=中, 2=右
-
-    // 中间层 Y 坐标：把可用垂直区间均分给所有来源，避免线束挤成一团。
-    // 原来用固定 GAP 在区间外 clamp，8 条来源时外侧线全被压到同一高度，
-    // 视觉上变成一片灰色带；改成按区间等分后，间距随列数自适应。
-    const count = allFromNodes.length;
-    const topY = from.y + from.h + R + 2;
-    const bottomY = to.y - R - 2;
-    const span = Math.max(0, bottomY - topY);
-    const stepY = count > 1 ? span / (count - 1) : 0;
-    const midY = bottomY - myIndex * stepY;
-
-    // 水平段 X：目标节点顶部的入口偏移（按来源索引分散）
-    // 不再为 3/4 条线写死数组 —— 列数变化时按 count 对称生成，
-    // step 上限 40 且保证最外侧线不超出节点宽度（半宽 80）
-    const step = Math.min(40, 140 / Math.max(1, count - 1));
-    const entryOffsets = Array.from({ length: count }, (_, i) => (i - (count - 1) / 2) * step);
-    const targetX = ex + (entryOffsets[myIndex] || 0);
-
-    // 构建正交路径：起点 → 向下到 midY → 水平到 targetX → 向下进入目标
-    // 使用 Q 指令画圆角拐角
-    const p1_y = midY;            // 第一段终点（竖直下）
-    const p2_x = targetX;         // 第二段终点（水平横）
-    const p3_x = targetX;         // 第三段起点（竖直下）
-
-    // 如果 source 和 target 已经在同一列附近（如 WeMonitor→Webhook），直接斜线即可
-    if (Math.abs(sx - ex) < 30) {
-      return { d: `M${sx},${sy} L${ex},${ey}`, ex, ey };
-    }
-
-    const d = buildOrthoPath(sx, sy, p1_y, p2_x, p3_x, ey);
-    return { d, ex, ey };
+    // Fan-in: 多来源汇入同一节点。
+    // 主渲染路径已改用「通知总线」（见 renderCicdTopology），不会走到这里；
+    // 保留一个统一中间线的兜底实现：所有来源共用同一条 midY，
+    // 即使被调用也是重合的平行段，而不是按索引错开后又挤成一束。
+    const midY = from.y + from.h + (to.y - (from.y + from.h)) / 2;
+    return { d: buildOrthoPath(sx, sy, midY, ex, ex, ey), ex, ey };
 
   } else if (isFanOut) {
     // Fan-out: Deploy Agent → 服务
