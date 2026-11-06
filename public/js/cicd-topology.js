@@ -104,15 +104,17 @@ const CICD_TOPOLOGY = {
     // ── Webhook → Deploy Agent（水平） ──
     { from: 'webhook', to: 'deploy-agent',                style: 'solid', routing: 'direct' },
 
-    // ── Fan-out: Deploy Agent → 服务（正交折线） ──
-    { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-weauto',             style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-wetravel',           style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-wefood',             style: 'solid', routing: 'ortho', stage: 'deploy' },
-    { from: 'deploy-agent', to: 'svc-wedou',              style: 'solid', routing: 'ortho', stage: 'deploy' },
+    // ── Fan-out: Deploy Agent → 服务（直线扇形） ──
+    // 用直线而非正交折线：8 条折线的水平段会在服务层上方再叠出一条平行线带，
+    // 和刚修掉的 fan-in 是同一类问题；直线从部署层下沿放射，每条线的走向都独立可辨。
+    { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-weauto',             style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wetravel',           style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wefood',             style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wedou',              style: 'solid', routing: 'direct', stage: 'deploy' },
   ],
 };
 
@@ -572,7 +574,11 @@ function getCicdNodeStatus(node) {
 // ════════════════════════════════════════════════
 
 /**
- * 直接连线端点（用于 1:1 垂直管道）
+ * 直接连线端点
+ *
+ * 引出方向只按「是否同层」判断，而不是按斜率大小：
+ * 跨层连线若从左右边框引出（斜率大时旧逻辑会这么选），长斜线会横穿中间层的节点
+ * （例如 Deploy Agent → WeMusic 会穿过 Webhook）。跨层一律从上下边框引出。
  */
 function computeDirectEdge(from, to) {
   const fcx = from.x + from.w / 2;
@@ -582,10 +588,11 @@ function computeDirectEdge(from, to) {
 
   const dx = tcx - fcx;
   const dy = tcy - fcy;
+  const sameRow = Math.abs(dy) < 4;
 
   let sx, sy, ex, ey;
 
-  if (Math.abs(dx) > Math.abs(dy)) {
+  if (sameRow) {
     if (dx > 0) { sx = from.x + from.w; ex = to.x; }
     else        { sx = from.x;          ex = to.x + to.w; }
     sy = fcy + (sx - fcx) * (dy / Math.abs(dx || 1));
@@ -608,15 +615,13 @@ function computeDirectEdge(from, to) {
 const R = 10;
 
 /**
- * 正交折线路由（用于 fan-in / fan-out）
+ * 正交折线路由
  *
- * 策略：
- * - 从源节点底部中点出发，先向下走到中间层高度
- * - 再水平移动到目标节点上方
- * - 再向下进入目标节点顶部
- * - 所有拐角用 Q 指令画圆弧
+ * 现状：拓扑里所有连线都走 `computeDirectEdge`（直线）+ 通知总线，
+ * 这个函数不再被主渲染路径调用，仅作为将来需要折线时的备用实现保留。
  *
- * 多条同向线条通过不同的中间 Y 高度错开，避免重叠
+ * 当时放弃折线的原因：多条同向折线的水平段总会落在相邻高度上，
+ * fan-in 8 条、fan-out 8 条时都会叠成一片平行线带，靠增大间距解决不了。
  */
 function computeOrthoPath(from, to) {
   const GAP = 16; // 同组线条的间距
