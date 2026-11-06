@@ -58,6 +58,33 @@ module.exports = {
       health_type: 'tcp',
       health_target: '127.0.0.1:18991',
       enabled: true
+    },
+    {
+      // 2026-11-06 接入的三个新服务。健康检查走 tcp：
+      // WeTravel 的 /health 返回 text/plain，WeFood / WeDou 没有独立健康端点
+      // （/healthz 会被 SPA fallback 接住返回 200 index.html，误判为健康）。
+      name: 'WeTravel',
+      scrape_url: null,
+      scrape_interval: 30,
+      health_type: 'tcp',
+      health_target: '127.0.0.1:8090',
+      enabled: true
+    },
+    {
+      name: 'WeFood',
+      scrape_url: null,
+      scrape_interval: 30,
+      health_type: 'tcp',
+      health_target: '127.0.0.1:4318',
+      enabled: true
+    },
+    {
+      name: 'WeDou',
+      scrape_url: null,
+      scrape_interval: 30,
+      health_type: 'tcp',
+      health_target: '127.0.0.1:3002',
+      enabled: true
     }
   ]
 };

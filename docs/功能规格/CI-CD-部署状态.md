@@ -4,7 +4,11 @@
 
 ## 1. 功能概述
 
-「部署状态」页面（`/deploy`）展示所有被托管服务（WeMonitor、WeMusic、WeDownload、QuizApp、WeAuto）的部署情况，包括本地版本与 GitHub 远端版本的对比、CI 构建状态、部署事件时间线、TCP 存活探测。
+「部署状态」页面（`/deploy`）展示所有被托管服务的部署情况，包括本地版本与 GitHub 远端版本的对比、CI 构建状态、部署事件时间线、TCP 存活探测。
+
+**服务清单的数据源是 N150 的 `~/.deploy-projects.conf`**（`lib/deploy/projects.js`），
+不是代码里的固定数组。当前共 8 个项目：WeMonitor、WeMusic、WeDownload、QuizApp、
+WeAuto、WeTravel、WeFood、WeDou。新增服务只要在该 conf 里加一行即可出现在本页面。
 
 与 [CI/CD 持久化部署队列](CI-CD-持久化部署队列.md) 配合：队列负责执行部署，本页面负责展示部署状态。
 

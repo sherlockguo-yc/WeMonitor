@@ -3,48 +3,62 @@
    =================================================== */
 
 // ── 静态拓扑定义 ──
-// Canvas: W=1360, H=560
+// Canvas: W=1460, H=588
 // 5 层结构：源码 → 构建 → 发布 → 部署 → 服务
-// L1/L2/L3/L5 各 5 个节点（对应 5 个被部署项目），L4 部署层 3 个节点横向排列
+// L1/L2/L3/L5 各 8 个节点（对应 8 个被部署项目），L4 部署层 3 个节点横向排列
 // L3→L4 用正交折线避免交叉
-// 列顺序：WeMusic / WeMonitor / WeDownload / WeAuto / QuizApp
+// 列顺序：WeMusic / WeMonitor / WeDownload / WeAuto / QuizApp / WeTravel / WeFood / WeDou
+// 列坐标：x = 70 + 列号 × 172，节点宽 148（8 列仍能容纳 WeDownload 这类长名）
 // 每个节点都显式写明 layer —— 动画延迟与层级标签都依赖它，
 // 不能再用 ni/3 之类的下标推算（列数一变就算错）
 
 const CICD_TOPOLOGY = {
   nodes: [
     // Layer 1: 源码仓库
-    { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 80,  y: 20,  w: 160, h: 50, service: 'wemusic',    layer: 1 },
-    { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 320, y: 20,  w: 160, h: 50, service: 'wemonitor',  layer: 1 },
-    { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 560, y: 20,  w: 160, h: 50, service: 'wedownload', layer: 1 },
-    { id: 'repo-weauto',     label: 'WeAuto\n仓库',     x: 800, y: 20,  w: 160, h: 50, service: 'weauto',     layer: 1 },
-    { id: 'repo-quizapp',    label: 'QuizApp\n仓库',    x: 1040, y: 20, w: 160, h: 50, service: 'quizapp',    layer: 1 },
+    { id: 'repo-wemusic',    label: 'WeMusic\n仓库',    x: 70,   y: 20,  w: 148, h: 50, service: 'wemusic',    layer: 1 },
+    { id: 'repo-wemonitor',  label: 'WeMonitor\n仓库',  x: 242,  y: 20,  w: 148, h: 50, service: 'wemonitor',  layer: 1 },
+    { id: 'repo-wedownload', label: 'WeDownload\n仓库', x: 414,  y: 20,  w: 148, h: 50, service: 'wedownload', layer: 1 },
+    { id: 'repo-weauto',     label: 'WeAuto\n仓库',     x: 586,  y: 20,  w: 148, h: 50, service: 'weauto',     layer: 1 },
+    { id: 'repo-quizapp',    label: 'QuizApp\n仓库',    x: 758,  y: 20,  w: 148, h: 50, service: 'quizapp',    layer: 1 },
+    { id: 'repo-wetravel',   label: 'WeTravel\n仓库',   x: 930,  y: 20,  w: 148, h: 50, service: 'wetravel',   layer: 1 },
+    { id: 'repo-wefood',     label: 'WeFood\n仓库',     x: 1102, y: 20,  w: 148, h: 50, service: 'wefood',     layer: 1 },
+    { id: 'repo-wedou',      label: 'WeDou\n仓库',      x: 1274, y: 20,  w: 148, h: 50, service: 'wedou',      layer: 1 },
 
     // Layer 2: GitHub Actions CI
-    { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 80,  y: 122, w: 160, h: 50, service: 'wemusic',    layer: 2 },
-    { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 320, y: 122, w: 160, h: 50, service: 'wemonitor',  layer: 2 },
-    { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 560, y: 122, w: 160, h: 50, service: 'wedownload', layer: 2 },
-    { id: 'ci-weauto',     label: 'GitHub\nActions',  x: 800, y: 122, w: 160, h: 50, service: 'weauto',     layer: 2 },
-    { id: 'ci-quizapp',    label: 'GitHub\nActions',  x: 1040, y: 122, w: 160, h: 50, service: 'quizapp',   layer: 2 },
+    { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 70,   y: 122, w: 148, h: 50, service: 'wemusic',    layer: 2 },
+    { id: 'ci-wemonitor',  label: 'GitHub\nActions',  x: 242,  y: 122, w: 148, h: 50, service: 'wemonitor',  layer: 2 },
+    { id: 'ci-wedownload', label: 'GitHub\nActions',  x: 414,  y: 122, w: 148, h: 50, service: 'wedownload', layer: 2 },
+    { id: 'ci-weauto',     label: 'GitHub\nActions',  x: 586,  y: 122, w: 148, h: 50, service: 'weauto',     layer: 2 },
+    { id: 'ci-quizapp',    label: 'GitHub\nActions',  x: 758,  y: 122, w: 148, h: 50, service: 'quizapp',    layer: 2 },
+    { id: 'ci-wetravel',   label: 'GitHub\nActions',  x: 930,  y: 122, w: 148, h: 50, service: 'wetravel',   layer: 2 },
+    { id: 'ci-wefood',     label: 'GitHub\nActions',  x: 1102, y: 122, w: 148, h: 50, service: 'wefood',     layer: 2 },
+    { id: 'ci-wedou',      label: 'GitHub\nActions',  x: 1274, y: 122, w: 148, h: 50, service: 'wedou',      layer: 2 },
 
     // Layer 3: GitHub Releases
-    { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 80,  y: 224, w: 160, h: 50, service: 'wemusic',    layer: 3 },
-    { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 320, y: 224, w: 160, h: 50, service: 'wemonitor',  layer: 3 },
-    { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 560, y: 224, w: 160, h: 50, service: 'wedownload', layer: 3 },
-    { id: 'release-weauto',     label: 'GitHub\nRelease',  x: 800, y: 224, w: 160, h: 50, service: 'weauto',     layer: 3 },
-    { id: 'release-quizapp',    label: 'GitHub\nRelease',  x: 1040, y: 224, w: 160, h: 50, service: 'quizapp',   layer: 3 },
+    { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 70,   y: 224, w: 148, h: 50, service: 'wemusic',    layer: 3 },
+    { id: 'release-wemonitor',  label: 'GitHub\nRelease',  x: 242,  y: 224, w: 148, h: 50, service: 'wemonitor',  layer: 3 },
+    { id: 'release-wedownload', label: 'GitHub\nRelease',  x: 414,  y: 224, w: 148, h: 50, service: 'wedownload', layer: 3 },
+    { id: 'release-weauto',     label: 'GitHub\nRelease',  x: 586,  y: 224, w: 148, h: 50, service: 'weauto',     layer: 3 },
+    { id: 'release-quizapp',    label: 'GitHub\nRelease',  x: 758,  y: 224, w: 148, h: 50, service: 'quizapp',    layer: 3 },
+    { id: 'release-wetravel',   label: 'GitHub\nRelease',  x: 930,  y: 224, w: 148, h: 50, service: 'wetravel',   layer: 3 },
+    { id: 'release-wefood',     label: 'GitHub\nRelease',  x: 1102, y: 224, w: 148, h: 50, service: 'wefood',     layer: 3 },
+    { id: 'release-wedou',      label: 'GitHub\nRelease',  x: 1274, y: 224, w: 148, h: 50, service: 'wedou',      layer: 3 },
 
-    // Layer 4: 部署（3 个节点均匀分布）
-    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 80,  y: 340, w: 160, h: 54, layer: 4 },
-    { id: 'webhook',      label: 'Webhook',               x: 320, y: 340, w: 160, h: 54, port: 9001, layer: 4 },
-    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 560, y: 340, w: 160, h: 64, dynamic: 'worker', layer: 4 },
+    // Layer 4: 部署（3 个节点占前 3 列）
+    // y=380 而非原 340：8 条 fan-in 虚线需要更多垂直空间均分，否则会挤成一束
+    { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 70,  y: 380, w: 148, h: 54, layer: 4 },
+    { id: 'webhook',      label: 'Webhook',               x: 242, y: 380, w: 148, h: 54, port: 9001, layer: 4 },
+    { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 414, y: 380, w: 148, h: 64, dynamic: 'worker', layer: 4 },
 
     // Layer 5: 服务
-    { id: 'svc-wemusic',    label: 'WeMusic',     x: 80,  y: 488, w: 170, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic',    layer: 5 },
-    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 320, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor',  layer: 5 },
-    { id: 'svc-wedownload', label: 'WeDownload',  x: 560, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload', layer: 5 },
-    { id: 'svc-weauto',     label: 'WeAuto',      x: 800, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 18991, service: 'weauto',     layer: 5 },
-    { id: 'svc-quizapp',    label: 'QuizApp',     x: 1040, y: 488, w: 170, h: 52, dynamic: 'deploy', port: 9200,  service: 'quizapp',   layer: 5 },
+    { id: 'svc-wemusic',    label: 'WeMusic',     x: 70,   y: 528, w: 148, h: 52, dynamic: 'deploy', port: 5174,  service: 'wemusic',    layer: 5 },
+    { id: 'svc-wemonitor',  label: 'WeMonitor',   x: 242,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 18990, service: 'wemonitor',  layer: 5 },
+    { id: 'svc-wedownload', label: 'WeDownload',  x: 414,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 8080,  service: 'wedownload', layer: 5 },
+    { id: 'svc-weauto',     label: 'WeAuto',      x: 586,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 18991, service: 'weauto',     layer: 5 },
+    { id: 'svc-quizapp',    label: 'QuizApp',     x: 758,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 9200,  service: 'quizapp',    layer: 5 },
+    { id: 'svc-wetravel',   label: 'WeTravel',    x: 930,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 8090,  service: 'wetravel',   layer: 5 },
+    { id: 'svc-wefood',     label: 'WeFood',      x: 1102, y: 528, w: 148, h: 52, dynamic: 'deploy', port: 4318,  service: 'wefood',     layer: 5 },
+    { id: 'svc-wedou',      label: 'WeDou',       x: 1274, y: 528, w: 148, h: 52, dynamic: 'deploy', port: 3002,  service: 'wedou',      layer: 5 },
   ],
 
   // routing: 'direct' = 直线（1:1 垂直管道）, 'ortho' = 正交折线（fan-in/fan-out）
@@ -60,18 +74,29 @@ const CICD_TOPOLOGY = {
     { from: 'repo-wedownload', to: 'ci-wedownload',       style: 'solid', routing: 'direct', stage: 'source' },
     { from: 'repo-weauto',     to: 'ci-weauto',           style: 'solid', routing: 'direct', stage: 'source' },
     { from: 'repo-quizapp',    to: 'ci-quizapp',          style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-wetravel',   to: 'ci-wetravel',         style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-wefood',     to: 'ci-wefood',           style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-wedou',      to: 'ci-wedou',            style: 'solid', routing: 'direct', stage: 'source' },
     { from: 'ci-wemusic',     to: 'release-wemusic',      style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-wemonitor',   to: 'release-wemonitor',    style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-wedownload',  to: 'release-wedownload',   style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-weauto',      to: 'release-weauto',       style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-quizapp',     to: 'release-quizapp',      style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-wetravel',    to: 'release-wetravel',     style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-wefood',      to: 'release-wefood',       style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-wedou',       to: 'release-wedou',        style: 'solid', routing: 'direct', stage: 'build' },
 
     // ── Fan-in: Release → Webhook（正交折线） ──
-    { from: 'release-wemusic',    to: 'webhook',           style: 'dashed', routing: 'ortho', label: '通知' },
+    // 8 条线汇入同一节点时不再标 "通知" 文字：标签框会横跨整个线束，
+    // 含义由页面图例「虚线：CI 通知信号」统一说明。
+    { from: 'release-wemusic',    to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wemonitor',  to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wedownload', to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-weauto',     to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-quizapp',    to: 'webhook',           style: 'dashed', routing: 'ortho' },
+    { from: 'release-wetravel',   to: 'webhook',           style: 'dashed', routing: 'ortho' },
+    { from: 'release-wefood',     to: 'webhook',           style: 'dashed', routing: 'ortho' },
+    { from: 'release-wedou',      to: 'webhook',           style: 'dashed', routing: 'ortho' },
 
     // ── Cloudflare Tunnel → Webhook（水平短线） ──
     { from: 'cf-tunnel', to: 'webhook',                    style: 'solid', routing: 'direct', label: 'TLS' },
@@ -85,6 +110,9 @@ const CICD_TOPOLOGY = {
     { from: 'deploy-agent', to: 'svc-wedownload',         style: 'solid', routing: 'ortho', stage: 'deploy' },
     { from: 'deploy-agent', to: 'svc-weauto',             style: 'solid', routing: 'ortho', stage: 'deploy' },
     { from: 'deploy-agent', to: 'svc-quizapp',            style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wetravel',           style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wefood',             style: 'solid', routing: 'ortho', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-wedou',              style: 'solid', routing: 'ortho', stage: 'deploy' },
   ],
 };
 
@@ -158,22 +186,22 @@ function getWorkerLabelLines() {
 // ── 渲染 SVG ──
 
 function renderCicdTopology(container) {
-  // W 随项目列数增长：5 列 × 160 + 间距 240，右侧留白与左侧层级标签区对称
-  const W = 1360;
-  const H = 588;
+  // W 与节点坐标同步：8 列，最后一列 x=1274 + 宽 148，右侧留白与左侧层级标签区对称
+  const W = 1460;
+  const H = 628;
 
   const layers = [
     { y: 20,  h: 50, label: '源码' },
     { y: 122, h: 50, label: '构建' },
     { y: 224, h: 50, label: '发布' },
-    { y: 340, h: 54, label: '部署' },
-    { y: 488, h: 52, label: '服务' },
+    { y: 380, h: 54, label: '部署' },
+    { y: 528, h: 52, label: '服务' },
   ];
 
   let svg = `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">`;
 
-  // ── 层级分隔线 ──
-  [100, 204, 310, 441].forEach(y => {
+  // ── 层级分隔线（取相邻层之间的中位） ──
+  [100, 204, 327, 486].forEach(y => {
     svg += `<line x1="38" y1="${y}" x2="${W - 10}" y2="${y}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,6" opacity="0.65"/>`;
   });
 
@@ -576,15 +604,15 @@ function computeOrthoPath(from, to) {
     const allFromNodes = allFromIds.map(id => CICD_TOPOLOGY.nodes.find(n => n.id === id)).sort((a, b) => a.x - b.x);
     const myIndex = allFromNodes.findIndex(n => n.id === from.id); // 0=左, 1=中, 2=右
 
-    // 中间层 Y 坐标：按来源数量对称错开，避免交叉
-    // count=3 时 (count-1)/2=1，公式退化为原式，旧布局保持不变
-    // clamp 到 [来源节点底部 + R, 目标节点顶部 - R]，防止 4 条线时最外侧线拐进节点内部
+    // 中间层 Y 坐标：把可用垂直区间均分给所有来源，避免线束挤成一团。
+    // 原来用固定 GAP 在区间外 clamp，8 条来源时外侧线全被压到同一高度，
+    // 视觉上变成一片灰色带；改成按区间等分后，间距随列数自适应。
     const count = allFromNodes.length;
-    const baseMidY = from.y + from.h + (to.y - (from.y + from.h)) / 2;
-    const midY = Math.min(
-      to.y - R - 2,
-      Math.max(from.y + from.h + R + 2, baseMidY - (myIndex - (count - 1) / 2) * GAP)
-    );
+    const topY = from.y + from.h + R + 2;
+    const bottomY = to.y - R - 2;
+    const span = Math.max(0, bottomY - topY);
+    const stepY = count > 1 ? span / (count - 1) : 0;
+    const midY = bottomY - myIndex * stepY;
 
     // 水平段 X：目标节点顶部的入口偏移（按来源索引分散）
     // 不再为 3/4 条线写死数组 —— 列数变化时按 count 对称生成，

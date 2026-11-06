@@ -16,6 +16,9 @@ const SERVICE_ICONS = {
   wedownload: 'download-cloud',
   quizapp: 'graduation-cap',
   weauto: 'zap',
+  wetravel: 'map-pin',
+  wefood: 'utensils',
+  wedou: 'grid-2x2',
 };
 
 const CI_LABELS = {
