@@ -13,7 +13,6 @@ const STATUS_LABELS = {
 // 各服务卡片头部图标；未配置的服务回退到 music
 const SERVICE_ICONS = {
   wemonitor: 'activity',
-  quizapp: 'graduation-cap',
   weauto: 'zap',
   wetravel: 'map-pin',
   wefood: 'utensils',

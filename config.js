@@ -31,14 +31,6 @@ module.exports = {
       enabled: true
     },
     {
-      name: 'QuizApp',
-      scrape_url: null,
-      scrape_interval: 30,
-      health_type: 'tcp',
-      health_target: '127.0.0.1:9200',
-      enabled: true
-    },
-    {
       // WeAuto 自 2026-10-14 起是常驻服务（自带网站与调度器），因此可以被探测。
       // 此前它是无端口 CLI，只能靠读它的 runs.jsonl 间接判断，那正是后来
       // 「永远显示存活」这个假健康信号的根源。

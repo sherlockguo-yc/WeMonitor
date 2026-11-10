@@ -7,20 +7,19 @@
 「部署状态」页面（`/deploy`）展示所有被托管服务的部署情况，包括本地版本与 GitHub 远端版本的对比、CI 构建状态、部署事件时间线、TCP 存活探测。
 
 **服务清单的数据源是 N150 的 `~/.deploy-projects.conf`**（`lib/deploy/projects.js`），
-不是代码里的固定数组。当前共 7 个项目：WeMonitor、WeMusic、QuizApp、
+不是代码里的固定数组。当前共 6 个项目：WeMonitor、WeMusic、
 WeAuto、WeTravel、WeFood、WeDou。新增服务只要在该 conf 里加一行即可出现在本页面。
 
 与 [CI/CD 持久化部署队列](CI-CD-持久化部署队列.md) 配合：队列负责执行部署，本页面负责展示部署状态。
 
 ## 2. 被监控服务
 
-`routes/deploy.js` 中 `SERVICES` 数组定义 5 个服务：
+`routes/deploy.js` 中 `FALLBACK_SERVICES` 数组定义开发机（无 conf 文件时）的兜底清单，共 6 个服务：
 
 | 服务 | 仓库 | 端口 | 部署目录 |
 |------|------|------|---------|
 | WeMonitor | `sherlockguo-yc/WeMonitor` | 18990 | `~/wemonitor` |
 | WeMusic | `sherlockguo-yc/WeMusic` | 5174 | `~/wemusic` |
-| QuizApp | `Jason-DancingBoy/quiz-app` | 9200 | `~/quiz-app` |
 | WeAuto | `sherlockguo-yc/WeAuto` | 18991 | `~/weauto` |
 
 WeAuto 自 2026-10-14 起是常驻服务（自带网站与调度器）；在此之前无监听端口，
