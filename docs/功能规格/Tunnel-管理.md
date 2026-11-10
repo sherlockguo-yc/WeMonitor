@@ -76,7 +76,11 @@ Token 通过 N150 上的 `.env` 文件配置，`restart.sh` 在启动时加载�
 | `wemusic.sherlockguo.com` | `:5174` | WeMusic |
 | `wemusic.sherlockguo.com`/deploy `/webhook` `/health` | `:9001` | WeMusic Webhook |
 | `wemonitor.sherlockguo.com` | `:18990` | WeMonitor |
-| `aria.sherlockguo.com` | `:6801` | Aria2 |
+| `weauto.sherlockguo.com` | `:18991` | WeAuto |
+| `wetravel.sherlockguo.com` | `:8090` | WeTravel |
+| `wefood.sherlockguo.com` | `:4318` | WeFood |
+| `wedou.sherlockguo.com` | `:3002` | WeDou |
+| `ssh.sherlockguo.com` | `:22` | SSH（隧道入口） |
 
 所有服务共用同一个 Tunnel。
 

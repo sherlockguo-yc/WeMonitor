@@ -2,7 +2,7 @@
 
 ## 1. 用户场景
 
-当 WeMusic、WeMonitor 或 WeDownload 发布新版本时，用户在 WeMonitor 部署页需要准确看到该版本处于排队、下载、校验、同步、重启、成功或失败中的哪一步。网络波动、锁竞争和 webhook 请求超时不得让页面永久显示“部署中”。
+当 WeMusic、WeMonitor 或 WeAuto 等任一被托管项目发布新版本时，用户在 WeMonitor 部署页需要准确看到该版本处于排队、下载、校验、同步、重启、成功或失败中的哪一步。网络波动、锁竞争和 webhook 请求超时不得让页面永久显示“部署中”。
 
 ## 2. 数据流
 
@@ -79,13 +79,13 @@ worker 异常退出且状态超过租约
 
 | 模块 | 影响 |
 |---|---|
-| N150 `~/deploy-agent.sh` | 从同步下载脚本改为队列 worker，影响 WeMusic、WeMonitor、WeDownload 三个项目。 |
+| N150 `~/deploy-agent.sh` | 从同步下载脚本改为队列 worker，影响 `~/.deploy-projects.conf` 中登记的所有项目。 |
 | N150 `~/webhook-start.sh` 与 `~/wemusic/server/webhook.js` | webhook 从启动同步部署改为写队列。 |
 | WeMusic `scripts/deploy-agent.sh` | 必须成为 N150 运行时脚本的受版本控制来源，防止服务器热修复与仓库代码漂移。 |
 | WeMonitor `lib/deploy/local.js`、`routes/deploy.js`、前端部署页 | 读取队列状态并展示具体阶段、错误和排队情况。 |
 | cron | 保持每分钟执行，但职责改为恢复/驱动唯一 worker。 |
 
-风险等级：高。`deploy-agent.sh` 是三个服务共享基础设施；错误实现可能阻塞全部更新或误判运行状态。部署实现必须在 N150 临时目录通过 shell 语法检查、状态文件读写测试、模拟中断恢复测试后才能替换生产脚本。
+风险等级：高。`deploy-agent.sh` 是所有被托管项目共享的基础设施；错误实现可能阻塞全部更新或误判运行状态。部署实现必须在 N150 临时目录通过 shell 语法检查、状态文件读写测试、模拟中断恢复测试后才能替换生产脚本。
 
 ## 7. 方案对比与选择
 
