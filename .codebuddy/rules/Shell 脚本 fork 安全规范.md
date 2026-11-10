@@ -31,7 +31,7 @@ nohup uvicorn app:main --port "$PORT" > "$LOG" 2>&1 &
 nohup uvicorn app:main --port "$PORT" 9>&- > "$LOG" 2>&1 &
 ```
 
-**实际案例（2026-08-06）**：`~/quiz-app/restart.sh` 未加 `9>&-`，uvicorn 继承 fd 9 持有锁 → 新一轮部署的 `flock 9` 永久等待 → deploy-agent 卡死 1 小时 → worker.json 心跳不更新 → **所有项目（WeMonitor/WeMusic/WeDownload）部署队列被全局阻塞**。修复：启动命令加 `9>&-` + 删锁文件 + kill 卡死进程链。
+**实际案例（2026-08-06）**：某 Python 服务（uvicorn）的 `restart.sh` 未加 `9>&-`，uvicorn 继承 fd 9 持有锁 → 新一轮部署的 `flock 9` 永久等待 → deploy-agent 卡死 1 小时 → worker.json 心跳不更新 → **所有项目的部署队列被全局阻塞**。修复：启动命令加 `9>&-` + 删锁文件 + kill 卡死进程链。
 
 ## 二、环境变量子进程继承
 
