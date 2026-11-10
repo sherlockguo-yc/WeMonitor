@@ -64,7 +64,7 @@ function getNodeStatus(node) {
     case 'health':
       if (d.healthIdx === -1) return 'ok';
       if (Array.isArray(topoStatus.health)) {
-        const nameMap = { 0: 'WeMusic', 1: 'WeDownload', 2: 'Webhook', 3: 'Portainer', 4: 'aria2' };
+        const nameMap = { 0: 'WeMusic', 2: 'Webhook', 3: 'Portainer' };
         const svc = topoStatus.health.find(h => h.name === nameMap[d.healthIdx]);
         if (!svc) return 'unknown';
         return svc.status === 'healthy' ? 'ok' : 'error';

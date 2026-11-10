@@ -12,7 +12,6 @@ const projects = require('../lib/deploy/projects');
 const FALLBACK_SERVICES = [
   { id: 'wemonitor',  name: 'WeMonitor',  repo: 'sherlockguo-yc/WeMonitor',  dir: local.WEMONITOR_DIR,  port: 18990 },
   { id: 'wemusic',    name: 'WeMusic',    repo: 'sherlockguo-yc/WeMusic',    dir: local.WEMUSIC_DIR,    port: 5174 },
-  { id: 'wedownload', name: 'WeDownload', repo: 'sherlockguo-yc/WeDownload', dir: local.WEDOWNLOAD_DIR, port: 8080 },
   { id: 'quizapp',    name: 'QuizApp',    repo: 'Jason-DancingBoy/quiz-app', dir: local.QUIZAPP_DIR,    port: 9200 },
   // WeAuto 自 2026-10-14 起是常驻服务（自带网站与调度器），端口 18991。
   // 此前 port 为 null，getLocalState 会跳过端口探测并把 alive 恒置为 true

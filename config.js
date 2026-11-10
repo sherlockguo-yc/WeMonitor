@@ -31,14 +31,6 @@ module.exports = {
       enabled: true
     },
     {
-      name: 'WeDownload',
-      scrape_url: null,
-      scrape_interval: 30,
-      health_type: 'tcp',
-      health_target: '127.0.0.1:8080',
-      enabled: true
-    },
-    {
       name: 'QuizApp',
       scrape_url: null,
       scrape_interval: 30,

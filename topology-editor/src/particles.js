@@ -11,7 +11,7 @@ const FLOW_DEFS = [
 // 扩散目标（n150 下的服务），同样按节点对解析，缺哪些就只用存在的
 const FANOUT_HOPS = [
   ['n150', 'wemonitor'], ['n150', 'webhook'], ['n150', 'wemusic'],
-  ['n150', 'wedownload'], ['n150', 'ssh'], ['n150', 'portainer'], ['wedownload', 'aria2'],
+  ['n150', 'ssh'], ['n150', 'portainer'],
 ];
 const BALL_SPEED = 0.12; // px/ms ≈ 120px/s，适中档位
 

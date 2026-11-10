@@ -12,10 +12,8 @@
     { "id": "wemonitor",  "type": "topology", "position": {"x":80,"y":490},   "data": { "label": "WeMonitor", "port":18990, "dynamic":"health","healthIdx":-1,"width":160 }},
     { "id": "webhook",    "type": "topology", "position": {"x":260,"y":490},  "data": { "label": "Webhook",   "port":9001,  "dynamic":"health","healthIdx":2, "width":160 }},
     { "id": "wemusic",    "type": "topology", "position": {"x":440,"y":490},  "data": { "label": "WeMusic",   "port":5174,  "dynamic":"health","healthIdx":0, "width":160 }},
-    { "id": "wedownload", "type": "topology", "position": {"x":640,"y":490},  "data": { "label": "WeDownload","port":8080,  "dynamic":"health","healthIdx":1, "width":170 }},
     { "id": "ssh",        "type": "topology", "position": {"x":850,"y":490},  "data": { "label": "SSH",       "port":22,    "dynamic":"tunnel",             "width":100 }},
-    { "id": "portainer",  "type": "topology", "position": {"x":980,"y":490},  "data": { "label": "Portainer", "port":9000,  "dynamic":"health","healthIdx":3, "width":120 }},
-    { "id": "aria2",      "type": "topology", "position": {"x":640,"y":580},  "data": { "label": "aria2 RPC", "port":6800,  "dynamic":"health","healthIdx":4, "width":150 }}
+    { "id": "portainer",  "type": "topology", "position": {"x":980,"y":490},  "data": { "label": "Portainer", "port":9000,  "dynamic":"health","healthIdx":3, "width":120 }}
   ],
   "edges": [
     { "id": "e-pub1","source":"internet",  "target":"cf-cdn",     "label":"","lineStyle":"solid" },
@@ -35,9 +33,7 @@
     { "id": "e-svc1","source":"n150",      "target":"wemonitor",  "label":":18990","lineStyle":"solid" },
     { "id": "e-svc2","source":"n150",      "target":"webhook",    "label":":9001","lineStyle":"solid" },
     { "id": "e-svc3","source":"n150",      "target":"wemusic",    "label":":5174","lineStyle":"solid" },
-    { "id": "e-svc4","source":"n150",      "target":"wedownload", "label":":8080","lineStyle":"solid" },
     { "id": "e-svc5","source":"n150",      "target":"ssh",        "label":":22","lineStyle":"solid" },
-    { "id": "e-svc6","source":"n150",      "target":"portainer",  "label":":9000","lineStyle":"solid" },
-    { "id": "e-svc7","source":"wedownload","target":"aria2",      "label":":6800","lineStyle":"solid" }
+    { "id": "e-svc6","source":"n150",      "target":"portainer",  "label":":9000","lineStyle":"solid" }
   ]
 }

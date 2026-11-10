@@ -48,7 +48,7 @@ Token 通过 N150 上的 `.env` 文件配置，`restart.sh` 在启动时加载�
 2. Cloudflare API PUT → 更新 ingress 配置（插入到 404 catch-all 规则之前）
 
 添加表单支持：
-- 预设服务下拉（WeMusic、WeMonitor、WeDownload、Webhook 等）
+- 预设服务下拉（WeMusic、WeMonitor、Webhook 等）
 - 自定义目标地址
 
 ### 3.3 日志查看
@@ -76,7 +76,6 @@ Token 通过 N150 上的 `.env` 文件配置，`restart.sh` 在启动时加载�
 | `wemusic.sherlockguo.com` | `:5174` | WeMusic |
 | `wemusic.sherlockguo.com`/deploy `/webhook` `/health` | `:9001` | WeMusic Webhook |
 | `wemonitor.sherlockguo.com` | `:18990` | WeMonitor |
-| `wedownload.sherlockguo.com` | `:8080` | WeDownload |
 | `aria.sherlockguo.com` | `:6801` | Aria2 |
 
 所有服务共用同一个 Tunnel。
