@@ -119,7 +119,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 天
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 天
   }
 }));
 
