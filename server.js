@@ -117,6 +117,8 @@ app.use(session({
   secret: config.sessionSecret || 'wemonitor-session-secret-change-me',
   resave: false,
   saveUninitialized: false,
+  // 每次请求重发 Set-Cookie，把 30 天有效期往后推；闲置超过 30 天才需要重登
+  rolling: true,
   cookie: {
     httpOnly: true,
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 天
