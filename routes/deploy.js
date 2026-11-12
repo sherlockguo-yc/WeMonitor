@@ -6,6 +6,7 @@ const { requireAuth } = require('../lib/auth');
 const github = require('../lib/deploy/github');
 const local = require('../lib/deploy/local');
 const projects = require('../lib/deploy/projects');
+const { sanitizeDeployState } = require('../lib/deploy/summary');
 
 // 内置兜底清单：开发机没有 ~/.deploy-projects.conf 时使用。
 // 生产环境优先读 N150 的 conf，新服务只需在 conf 里加一行即可自动纳入监控。
@@ -58,10 +59,15 @@ router.get('/status', async (req, res) => {
   try {
     const worker = local.readQueueWorkerState();
     const services = await Promise.all(getServices().map(async (svc) => {
-      const [localState, remote] = await Promise.all([
+      const [rawLocalState, remote] = await Promise.all([
         local.getLocalState(svc.dir, svc.port, svc.id),
         github.getRemoteState(svc.repo),
       ]);
+      // 丢弃 worker 已无法消费的残留 pending，避免永久「排队中」
+      const localState = {
+        ...rawLocalState,
+        deploy: sanitizeDeployState(rawLocalState.deploy, rawLocalState, worker),
+      };
       return {
         id: svc.id,
         name: svc.name,
