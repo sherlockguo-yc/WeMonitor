@@ -17,6 +17,7 @@ const SERVICE_ICONS = {
   wetravel: 'map-pin',
   wefood: 'utensils',
   wedou: 'grid-2x2',
+  weremember: 'notebook-pen',
 };
 
 const CI_LABELS = {

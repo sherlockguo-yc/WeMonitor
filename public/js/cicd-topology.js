@@ -5,9 +5,9 @@
 // ── 静态拓扑定义 ──
 // Canvas: W=1288, H=588
 // 5 层结构：源码 → 构建 → 发布 → 部署 → 服务
-// L1/L2/L3/L5 各 6 个节点（对应 6 个被部署项目），L4 部署层 3 个节点横向排列
+// L1/L2/L3/L5 各 7 个节点（对应 7 个被部署项目），L4 部署层 3 个节点横向排列
 // L3→L4 用正交折线避免交叉
-// 列顺序：WeMusic / WeMonitor / WeAuto / WeTravel / WeFood / WeDou
+// 列顺序：WeMusic / WeMonitor / WeAuto / WeTravel / WeFood / WeDou / WeRemember
 // QuizApp 已于 2026-11-10 废弃下线（N150 服务目录、隧道路由、健康检查条目一并移除）
 // 列坐标：x = 70 + 列号 × 172，节点宽 148
 // 每个节点都显式写明 layer —— 动画延迟与层级标签都依赖它，
@@ -22,6 +22,7 @@ const CICD_TOPOLOGY = {
     { id: 'repo-wetravel',   label: 'WeTravel\n仓库',   x: 586,  y: 20,  w: 148, h: 50, service: 'wetravel',   layer: 1 },
     { id: 'repo-wefood',     label: 'WeFood\n仓库',     x: 758,  y: 20,  w: 148, h: 50, service: 'wefood',     layer: 1 },
     { id: 'repo-wedou',      label: 'WeDou\n仓库',      x: 930,  y: 20,  w: 148, h: 50, service: 'wedou',      layer: 1 },
+    { id: 'repo-weremember', label: 'WeRemember\n仓库', x: 1102, y: 20,  w: 148, h: 50, service: 'weremember', layer: 1 },
 
     // Layer 2: GitHub Actions CI
     { id: 'ci-wemusic',    label: 'GitHub\nActions',  x: 70,   y: 122, w: 148, h: 50, service: 'wemusic',    layer: 2 },
@@ -30,6 +31,7 @@ const CICD_TOPOLOGY = {
     { id: 'ci-wetravel',   label: 'GitHub\nActions',  x: 586,  y: 122, w: 148, h: 50, service: 'wetravel',   layer: 2 },
     { id: 'ci-wefood',     label: 'GitHub\nActions',  x: 758,  y: 122, w: 148, h: 50, service: 'wefood',     layer: 2 },
     { id: 'ci-wedou',      label: 'GitHub\nActions',  x: 930,  y: 122, w: 148, h: 50, service: 'wedou',      layer: 2 },
+    { id: 'ci-weremember', label: 'GitHub\nActions',  x: 1102, y: 122, w: 148, h: 50, service: 'weremember', layer: 2 },
 
     // Layer 3: GitHub Releases
     { id: 'release-wemusic',    label: 'GitHub\nRelease',  x: 70,   y: 224, w: 148, h: 50, service: 'wemusic',    layer: 3 },
@@ -38,9 +40,10 @@ const CICD_TOPOLOGY = {
     { id: 'release-wetravel',   label: 'GitHub\nRelease',  x: 586,  y: 224, w: 148, h: 50, service: 'wetravel',   layer: 3 },
     { id: 'release-wefood',     label: 'GitHub\nRelease',  x: 758,  y: 224, w: 148, h: 50, service: 'wefood',     layer: 3 },
     { id: 'release-wedou',      label: 'GitHub\nRelease',  x: 930,  y: 224, w: 148, h: 50, service: 'wedou',      layer: 3 },
+    { id: 'release-weremember', label: 'GitHub\nRelease',  x: 1102, y: 224, w: 148, h: 50, service: 'weremember', layer: 3 },
 
     // Layer 4: 部署（3 个节点占前 3 列）
-    // y=380 而非原 340：6 条 fan-in 虚线需要更多垂直空间均分，否则会挤成一束
+    // y=380 而非原 340：7 条 fan-in 虚线需要更多垂直空间均分，否则会挤成一束
     { id: 'cf-tunnel',    label: 'Cloudflare\nTunnel',    x: 70,  y: 380, w: 148, h: 54, layer: 4 },
     { id: 'webhook',      label: 'Webhook',               x: 242, y: 380, w: 148, h: 54, port: 9001, layer: 4 },
     { id: 'deploy-agent', label: 'Deploy\nAgent',         x: 414, y: 380, w: 148, h: 64, dynamic: 'worker', layer: 4 },
@@ -52,6 +55,7 @@ const CICD_TOPOLOGY = {
     { id: 'svc-wetravel',   label: 'WeTravel',    x: 586,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 8090,  service: 'wetravel',   layer: 5 },
     { id: 'svc-wefood',     label: 'WeFood',      x: 758,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 4318,  service: 'wefood',     layer: 5 },
     { id: 'svc-wedou',      label: 'WeDou',       x: 930,  y: 528, w: 148, h: 52, dynamic: 'deploy', port: 3002,  service: 'wedou',      layer: 5 },
+    { id: 'svc-weremember', label: 'WeRemember',  x: 1102, y: 528, w: 148, h: 52, dynamic: 'deploy', port: 5176,  service: 'weremember', layer: 5 },
   ],
 
   // routing: 'direct' = 直线（1:1 垂直管道）, 'ortho' = 正交折线（fan-in/fan-out）
@@ -68,15 +72,17 @@ const CICD_TOPOLOGY = {
     { from: 'repo-wetravel',   to: 'ci-wetravel',         style: 'solid', routing: 'direct', stage: 'source' },
     { from: 'repo-wefood',     to: 'ci-wefood',           style: 'solid', routing: 'direct', stage: 'source' },
     { from: 'repo-wedou',      to: 'ci-wedou',            style: 'solid', routing: 'direct', stage: 'source' },
+    { from: 'repo-weremember', to: 'ci-weremember',       style: 'solid', routing: 'direct', stage: 'source' },
     { from: 'ci-wemusic',     to: 'release-wemusic',      style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-wemonitor',   to: 'release-wemonitor',    style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-weauto',      to: 'release-weauto',       style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-wetravel',    to: 'release-wetravel',     style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-wefood',      to: 'release-wefood',       style: 'solid', routing: 'direct', stage: 'build' },
     { from: 'ci-wedou',       to: 'release-wedou',        style: 'solid', routing: 'direct', stage: 'build' },
+    { from: 'ci-weremember',  to: 'release-weremember',   style: 'solid', routing: 'direct', stage: 'build' },
 
     // ── Fan-in: Release → Webhook（正交折线） ──
-    // 6 条线汇入同一节点时不再标 "通知" 文字：标签框会横跨整个线束，
+    // 7 条线汇入同一节点时不再标 "通知" 文字：标签框会横跨整个线束，
     // 含义由页面图例「虚线：CI 通知信号」统一说明。
     { from: 'release-wemusic',    to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wemonitor',  to: 'webhook',           style: 'dashed', routing: 'ortho' },
@@ -84,6 +90,7 @@ const CICD_TOPOLOGY = {
     { from: 'release-wetravel',   to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wefood',     to: 'webhook',           style: 'dashed', routing: 'ortho' },
     { from: 'release-wedou',      to: 'webhook',           style: 'dashed', routing: 'ortho' },
+    { from: 'release-weremember', to: 'webhook',           style: 'dashed', routing: 'ortho' },
 
     // ── Cloudflare Tunnel → Webhook（水平短线） ──
     { from: 'cf-tunnel', to: 'webhook',                    style: 'solid', routing: 'direct', label: 'TLS' },
@@ -92,7 +99,7 @@ const CICD_TOPOLOGY = {
     { from: 'webhook', to: 'deploy-agent',                style: 'solid', routing: 'direct' },
 
     // ── Fan-out: Deploy Agent → 服务（直线扇形） ──
-    // 用直线而非正交折线：6 条折线的水平段会在服务层上方再叠出一条平行线带，
+    // 用直线而非正交折线：7 条折线的水平段会在服务层上方再叠出一条平行线带，
     // 和刚修掉的 fan-in 是同一类问题；直线从部署层下沿放射，每条线的走向都独立可辨。
     { from: 'deploy-agent', to: 'svc-wemusic',            style: 'solid', routing: 'direct', stage: 'deploy' },
     { from: 'deploy-agent', to: 'svc-wemonitor',          style: 'solid', routing: 'direct', stage: 'deploy' },
@@ -100,6 +107,7 @@ const CICD_TOPOLOGY = {
     { from: 'deploy-agent', to: 'svc-wetravel',           style: 'solid', routing: 'direct', stage: 'deploy' },
     { from: 'deploy-agent', to: 'svc-wefood',             style: 'solid', routing: 'direct', stage: 'deploy' },
     { from: 'deploy-agent', to: 'svc-wedou',              style: 'solid', routing: 'direct', stage: 'deploy' },
+    { from: 'deploy-agent', to: 'svc-weremember',         style: 'solid', routing: 'direct', stage: 'deploy' },
   ],
 };
 
@@ -173,8 +181,8 @@ function getWorkerLabelLines() {
 // ── 渲染 SVG ──
 
 function renderCicdTopology(container) {
-  // W 与节点坐标同步：6 列，最后一列 x=930 + 宽 148，右侧留白与左侧层级标签区对称
-  const W = 1116;
+  // W 与节点坐标同步：7 列，最后一列 x=1102 + 宽 148，右侧留白与左侧层级标签区对称
+  const W = 1288;
   const H = 628;
 
   const layers = [

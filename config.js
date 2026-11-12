@@ -69,6 +69,14 @@ module.exports = {
       health_type: 'tcp',
       health_target: '127.0.0.1:3002',
       enabled: true
+    },
+    {
+      name: 'WeRemember',
+      scrape_url: null,
+      scrape_interval: 30,
+      health_type: 'tcp',
+      health_target: '127.0.0.1:5176',
+      enabled: true
     }
   ]
 };

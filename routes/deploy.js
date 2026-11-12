@@ -19,6 +19,7 @@ const FALLBACK_SERVICES = [
   { id: 'wetravel',   name: 'WeTravel',   repo: 'sherlockguo-yc/WeTravel',   dir: local.WETRAVEL_DIR,   port: 8090 },
   { id: 'wefood',     name: 'WeFood',     repo: 'sherlockguo-yc/WeFood',     dir: local.WEFOOD_DIR,     port: 4318 },
   { id: 'wedou',      name: 'WeDou',      repo: 'sherlockguo-yc/WeDou',      dir: local.WEDOU_DIR,      port: 3002 },
+  { id: 'weremember', name: 'WeRemember', repo: 'sherlockguo-yc/WeRemember', dir: local.WEREMEMBER_DIR, port: 5176 },
 ];
 
 function getServices() {
