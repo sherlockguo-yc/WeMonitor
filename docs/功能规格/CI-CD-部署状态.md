@@ -43,6 +43,11 @@ WeAuto 自 2026-10-14 起是常驻服务（自带网站与调度器）；在此�
 | `~/.deploy-queue/worker.json` | 全局 worker 状态 |
 | TCP 端口探测 | 服务是否存活 |
 
+`healthcheck` 阶段的事件由 deploy-agent 的 cron 写入，成对出现：端口掉线时先记一条
+`error` 并执行 `restart.sh`，随后复查端口——起来了记 `ok`（`端口 N 已恢复（自动重启成功）`），
+仍不通再记一条 `error`（`重启后仍无响应，需人工排查`）。这样「最后一条事件」永远反映
+当前真实状态，不会出现「已自愈但时间线停在 error」的情况。
+
 ### 3.2 远端状态
 
 `lib/deploy/github.js` 从 GitHub API 获取：
