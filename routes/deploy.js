@@ -6,7 +6,7 @@ const { requireAuth } = require('../lib/auth');
 const github = require('../lib/deploy/github');
 const local = require('../lib/deploy/local');
 const projects = require('../lib/deploy/projects');
-const { sanitizeDeployState } = require('../lib/deploy/summary');
+const { sanitizeDeployState, computeServiceSummary } = require('../lib/deploy/summary');
 
 // 内置兜底清单：开发机没有 ~/.deploy-projects.conf 时使用。
 // 生产环境优先读 N150 的 conf，新服务只需在 conf 里加一行即可自动纳入监控。
@@ -36,24 +36,6 @@ router.use((req, res, next) => {
   next();
 });
 
-// 计算服务整体状态：以持久化队列为准，旧事件仅作为兼容回退。
-function computeSummary(localState, remote) {
-  const deploy = localState.deploy;
-  if (deploy && deploy.active) return 'deploying';
-  if (deploy && deploy.pending) return 'queued';
-  if (!localState.alive) return 'stopped';
-  if (deploy && deploy.last && ['failed', 'interrupted'].includes(deploy.last.status)) return 'error';
-
-  const last = localState.events && localState.events[localState.events.length - 1];
-  if (last && last.status === 'error') return 'error';
-
-  const rv = remote && remote.release && remote.release.version;
-  const lv = localState.version;
-  if (rv && lv) return rv === lv ? 'up-to-date' : 'update-available';
-
-  return 'unknown';
-}
-
 // GET /api/v1/deploy/status
 router.get('/status', async (req, res) => {
   try {
@@ -73,7 +55,7 @@ router.get('/status', async (req, res) => {
         name: svc.name,
         local: localState,
         remote,
-        summary: computeSummary(localState, remote),
+        summary: computeServiceSummary(localState, remote),
       };
     }));
     res.json({ services, worker, fetchedAt: Date.now() });

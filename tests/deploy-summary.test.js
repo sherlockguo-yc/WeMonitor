@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { isStalePending, sanitizeDeployState } = require('../lib/deploy/summary');
+const { isStalePending, sanitizeDeployState, computeServiceSummary } = require('../lib/deploy/summary');
 
 const NOW = Math.floor(Date.now() / 1000);
 
@@ -66,4 +66,67 @@ test('worker 状态缺失时只按版本一致性判断，不因缺少 job 交�
 
   const pendingNewVersion = state(pending('ffff999', NOW - 3600));
   assert.strictEqual(isStalePending(pendingNewVersion, { version: '2a1749e' }, null), false);
+});
+
+// ── computeServiceSummary ──
+
+const healthcheckError = {
+  stage: 'healthcheck', status: 'error', message: '端口 4318 无响应，触发重启', trigger: 'cron', ts: NOW,
+};
+
+function localState(overrides = {}) {
+  return {
+    version: '4b6f0ea',
+    events: [{ stage: 'complete', status: 'succeeded', message: '部署完成 4b6f0ea', ts: NOW - 60 }],
+    deploy: null,
+    alive: true,
+    ...overrides,
+  };
+}
+
+const remoteAt = version => ({ release: { version }, ci: null });
+
+// 2026-11-14 03:00 N150 重启的真实场景：cron 发现端口掉线 → 写 healthcheck error
+// → 立刻 restart.sh 拉起成功（不再补事件）。服务已自愈，不能一直显示红色。
+test('最后一条事件是已自愈的 healthcheck error 时不判异常', () => {
+  const local = localState({ events: [healthcheckError] });
+  assert.strictEqual(computeServiceSummary(local, remoteAt('4b6f0ea')), 'up-to-date');
+});
+
+test('已自愈的 healthcheck error 不掩盖版本落后的提示', () => {
+  const local = localState({ events: [healthcheckError] });
+  assert.strictEqual(computeServiceSummary(local, remoteAt('aaaaaaa')), 'update-available');
+});
+
+test('healthcheck error 且端口仍不通时判 stopped', () => {
+  const local = localState({ events: [healthcheckError], alive: false });
+  assert.strictEqual(computeServiceSummary(local, remoteAt('4b6f0ea')), 'stopped');
+});
+
+test('部署流程自身的失败事件仍判异常', () => {
+  const failed = { stage: 'restart', status: 'error', message: 'restart.sh 执行失败', ts: NOW };
+  assert.strictEqual(computeServiceSummary(localState({ events: [failed] }), remoteAt('4b6f0ea')), 'error');
+});
+
+test('部署失败后即使又发生 healthcheck error，仍判异常', () => {
+  const failed = { stage: 'restart', status: 'error', message: 'restart.sh 执行失败', ts: NOW - 60 };
+  const local = localState({ events: [failed, healthcheckError] });
+  assert.strictEqual(computeServiceSummary(local, remoteAt('4b6f0ea')), 'error');
+});
+
+test('队列状态优先于事件与版本比对', () => {
+  const active = { project: 'wefood', active: { version: '4b6f0ea', phase: 'syncing' }, pending: null };
+  assert.strictEqual(computeServiceSummary(localState({ deploy: active }), remoteAt('4b6f0ea')), 'deploying');
+
+  const queued = { project: 'wefood', active: null, pending: pending('4b6f0ea') };
+  assert.strictEqual(computeServiceSummary(localState({ deploy: queued }), remoteAt('4b6f0ea')), 'queued');
+});
+
+test('队列最后状态失败时判异常', () => {
+  const deploy = { project: 'wefood', active: null, pending: null, last: { status: 'failed' } };
+  assert.strictEqual(computeServiceSummary(localState({ deploy }), remoteAt('4b6f0ea')), 'error');
+});
+
+test('无远端版本时判未知', () => {
+  assert.strictEqual(computeServiceSummary(localState(), remoteAt(null)), 'unknown');
 });

@@ -21,6 +21,9 @@ WeAuto、WeTravel、WeFood、WeDou、WeRemember。新增服务只要在该 conf 
 | WeMonitor | `sherlockguo-yc/WeMonitor` | 18990 | `~/wemonitor` |
 | WeMusic | `sherlockguo-yc/WeMusic` | 5174 | `~/wemusic` |
 | WeAuto | `sherlockguo-yc/WeAuto` | 18991 | `~/weauto` |
+| WeTravel | `sherlockguo-yc/WeTravel` | 8090 | `~/wetravel` |
+| WeFood | `sherlockguo-yc/WeFood` | 4318 | `~/wefood` |
+| WeDou | `sherlockguo-yc/WeDou` | 3002 | `~/wedou` |
 | WeRemember | `sherlockguo-yc/WeRemember` | 5176 | `~/weremember` |
 
 WeAuto 自 2026-10-14 起是常驻服务（自带网站与调度器）；在此之前无监听端口，
@@ -60,7 +63,7 @@ Release 与 CI 均带 `per_page=100` 分页拉取，与 `deploy-agent.sh` 保持
 
 ### 3.3 状态计算
 
-`computeSummary()` 按优先级判断。**以持久化队列为准，旧部署事件仅作为兼容回退**：
+`lib/deploy/summary.js` 的 `computeServiceSummary()` 按优先级判断。**以持久化队列为准，旧部署事件仅作为兼容回退**：
 
 | 优先级 | 条件 | 状态 |
 |--------|------|------|
@@ -72,6 +75,11 @@ Release 与 CI 均带 `per_page=100` 分页拉取，与 `deploy-agent.sh` 保持
 | 6 | 本地版本 == 远端 Release 版本 | `up-to-date` |
 | 7 | 本地版本 ≠ 远端 Release 版本 | `update-available` |
 | 8 | 无法判断 | `unknown` |
+
+第 5 条排除 `stage === 'healthcheck'` 的事件：cron 发现端口掉线后写一条 healthcheck error，
+随即 `restart.sh` 拉起服务，成功时不再补「已恢复」事件。服务已自愈（端口能连上，
+第 3 条已先判过），历史 healthcheck error 只应留在时间线里，不能把服务永久钉成红色。
+服务真没起来由第 3 条覆盖。
 
 注意：这个 `summary` 描述的是**服务整体**状态（第 5 层），不代表上游 CI/Release 各阶段的状态。
 拓扑图的连线着色不使用它（4.3 的 `source` / `build` 阶段），只有 `deploy` 阶段和服务节点用它。
